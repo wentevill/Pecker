@@ -9,6 +9,7 @@ final class TodayViewModel {
 
     private let dependencies: AppDependencies
     private var previousSnapshot: TodaySnapshot?
+    private var refreshGeneration = 0
 
     private(set) var state: TimelineScreenState = .loading
 
@@ -17,13 +18,22 @@ final class TodayViewModel {
     }
 
     func refresh(now: Date = .now) async {
-        await loadSnapshotIfNeeded()
+        refreshGeneration += 1
+        let generation = refreshGeneration
+
+        await loadSnapshot(now: now, generation: generation)
+        guard isCurrent(generation), !Task.isCancelled else {
+            return
+        }
 
         do {
             try Task.checkCancellation()
 
             let settings = dependencies.settingsStore.value
             let authorization = await dependencies.gateway.authorization()
+            guard isCurrent(generation) else {
+                return
+            }
             let fetchCalendar =
                 settings.calendarEnabled
                 && authorization.calendar == .fullAccess
@@ -34,7 +44,9 @@ final class TodayViewModel {
             guard fetchCalendar || fetchReminders
                     || (!settings.calendarEnabled && !settings.remindersEnabled)
             else {
-                state = .permissionRequired(authorization)
+                if isCurrent(generation) {
+                    state = .permissionRequired(authorization)
+                }
                 return
             }
 
@@ -56,6 +68,9 @@ final class TodayViewModel {
                 reminderRecords
             )
             try Task.checkCancellation()
+            guard isCurrent(generation) else {
+                return
+            }
 
             let items = events.map(dependencies.mapper.mapEvent)
                 + reminders.compactMap {
@@ -71,14 +86,23 @@ final class TodayViewModel {
                 staleInterval: Self.staleInterval
             )
 
+            guard isCurrent(generation) else {
+                return
+            }
             try await dependencies.snapshotStore.save(snapshot)
             try Task.checkCancellation()
+            guard isCurrent(generation) else {
+                return
+            }
 
             previousSnapshot = snapshot
             state = snapshot.items.isEmpty ? .empty : .content(snapshot)
         } catch is CancellationError {
             return
         } catch {
+            guard isCurrent(generation) else {
+                return
+            }
             let message = TimelineErrorMessage.refreshFailed
             if let previousSnapshot {
                 state = .stale(previousSnapshot, message)
@@ -88,21 +112,52 @@ final class TodayViewModel {
         }
     }
 
-    private func loadSnapshotIfNeeded() async {
-        guard previousSnapshot == nil else {
+    private func loadSnapshot(now: Date, generation: Int) async {
+        if let previousSnapshot {
+            applyCachedSnapshot(
+                previousSnapshot,
+                now: now,
+                generation: generation
+            )
             return
         }
 
         switch await dependencies.snapshotStore.load() {
         case let .value(snapshot):
-            previousSnapshot = snapshot
-            state = snapshot.items.isEmpty ? .empty : .content(snapshot)
+            applyCachedSnapshot(snapshot, now: now, generation: generation)
         case .missing, .corrupt, .unsupportedSchema:
             break
         }
+    }
+
+    private func applyCachedSnapshot(
+        _ snapshot: TodaySnapshot,
+        now: Date,
+        generation: Int
+    ) {
+        guard isCurrent(generation) else {
+            return
+        }
+        guard dependencies.calendar.isDate(snapshot.generatedAt, inSameDayAs: now)
+        else {
+            previousSnapshot = nil
+            return
+        }
+
+        previousSnapshot = snapshot
+        if snapshot.isStale(at: now) {
+            state = .stale(snapshot, TimelineErrorMessage.cacheStale)
+        } else {
+            state = snapshot.items.isEmpty ? .empty : .content(snapshot)
+        }
+    }
+
+    private func isCurrent(_ generation: Int) -> Bool {
+        generation == refreshGeneration
     }
 }
 
 private enum TimelineErrorMessage {
     static let refreshFailed = "Unable to refresh timeline."
+    static let cacheStale = "Timeline may be out of date."
 }

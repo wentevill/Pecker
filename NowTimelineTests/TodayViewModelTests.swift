@@ -171,6 +171,79 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testSameDayStaleCacheIsShownAsStaleWhileRefreshRuns() async {
+        let calendar = utcCalendar()
+        let now = calendar.date(
+            from: DateComponents(
+                year: 2027,
+                month: 1,
+                day: 15,
+                hour: 12
+            )
+        )!
+        let previous = snapshot(
+            at: now.addingTimeInterval(-3_600),
+            items: [EventKitMapper().mapEvent(event(at: now))]
+        )
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .denied),
+            events: [event(at: now.addingTimeInterval(600))],
+            waitForRelease: true
+        )
+        let store = FakeSnapshotStore(loadResult: .value(previous))
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            store: store,
+            calendar: calendar
+        )
+
+        let refresh = Task { await viewModel.refresh(now: now) }
+
+        await gateway.waitUntilFetchStarts()
+        XCTAssertEqual(
+            viewModel.state,
+            .stale(previous, "Timeline may be out of date.")
+        )
+
+        await gateway.releaseFetch()
+        await refresh.value
+        guard case .content = viewModel.state else {
+            return XCTFail("Expected refreshed content")
+        }
+    }
+
+    @MainActor
+    func testPreviousDayCacheIsNotUsedWhenRefreshFails() async {
+        let calendar = utcCalendar()
+        let now = calendar.date(
+            from: DateComponents(
+                year: 2027,
+                month: 1,
+                day: 15,
+                hour: 12
+            )
+        )!
+        let previous = snapshot(
+            at: now.addingTimeInterval(-24 * 60 * 60),
+            items: [EventKitMapper().mapEvent(event(at: now))]
+        )
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .denied),
+            eventError: TestError.fetch
+        )
+        let store = FakeSnapshotStore(loadResult: .value(previous))
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            store: store,
+            calendar: calendar
+        )
+
+        await viewModel.refresh(now: now)
+
+        XCTAssertEqual(viewModel.state, .failure("Unable to refresh timeline."))
+    }
+
+    @MainActor
     func testRefreshFailureWithoutSnapshotProducesStableFailure() async {
         let gateway = FakeEventKitGateway(
             authorization: .init(calendar: .fullAccess, reminders: .denied),
@@ -292,6 +365,35 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testOlderOverlappingRefreshCannotSaveOrPublishAfterNewerRefresh() async {
+        let olderNow = Date(timeIntervalSince1970: 1_800_000_000)
+        let newerNow = olderNow.addingTimeInterval(60)
+        let gateway = OverlappingRefreshGateway(
+            olderEvent: event(identifier: "older", at: olderNow),
+            newerEvent: event(identifier: "newer", at: newerNow)
+        )
+        let store = FakeSnapshotStore()
+        let viewModel = makeViewModel(gateway: gateway, store: store)
+
+        let olderRefresh = Task { await viewModel.refresh(now: olderNow) }
+        await gateway.waitUntilOlderFetchStarts()
+
+        await viewModel.refresh(now: newerNow)
+        await gateway.releaseOlderFetch()
+        await olderRefresh.value
+
+        let savedSnapshots = await store.savedSnapshots()
+        XCTAssertEqual(savedSnapshots.count, 1)
+        XCTAssertEqual(savedSnapshots.first?.generatedAt, newerNow)
+        XCTAssertEqual(savedSnapshots.first?.items.map(\.id), ["calendar:newer"])
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected newer content, got \(viewModel.state)")
+        }
+        XCTAssertEqual(snapshot.generatedAt, newerNow)
+        XCTAssertEqual(snapshot.items.map(\.id), ["calendar:newer"])
+    }
+
+    @MainActor
     func testProductionFailsExplicitlyWhenAppGroupContainerIsUnavailable() {
         XCTAssertThrowsError(
             try AppDependencies.production(
@@ -328,24 +430,27 @@ final class TodayViewModelTests: XCTestCase {
 
     @MainActor
     private func makeViewModel(
-        gateway: FakeEventKitGateway,
+        gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
-        settings: TimelineSettings = .init()
+        settings: TimelineSettings = .init(),
+        calendar: Calendar = Calendar(identifier: .gregorian)
     ) -> TodayViewModel {
         TodayViewModel(
             dependencies: makeDependencies(
                 gateway: gateway,
                 store: store,
-                settings: settings
+                settings: settings,
+                calendar: calendar
             )
         )
     }
 
     @MainActor
     private func makeDependencies(
-        gateway: FakeEventKitGateway,
+        gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
-        settings: TimelineSettings = .init()
+        settings: TimelineSettings = .init(),
+        calendar: Calendar = Calendar(identifier: .gregorian)
     ) -> AppDependencies {
         let defaults = UserDefaults(
             suiteName: "TodayViewModelTests.\(UUID().uuidString)"
@@ -358,7 +463,7 @@ final class TodayViewModelTests: XCTestCase {
             engine: TimelineEngine(),
             snapshotStore: store,
             settingsStore: settingsStore,
-            calendar: Calendar(identifier: .gregorian)
+            calendar: calendar
         )
     }
 }
@@ -380,6 +485,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     private let eventError: Error?
     private let reminderError: Error?
     private let waitForCancellation: Bool
+    private let waitForRelease: Bool
     private let fetchBarrier: FetchBarrier?
     private var calendarFetchCount = 0
     private var reminderFetchCount = 0
@@ -390,6 +496,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     ] = []
     private var fetchStartedContinuation: CheckedContinuation<Void, Never>?
     private var didStartFetch = false
+    private var fetchReleaseContinuation: CheckedContinuation<Void, Never>?
 
     init(
         authorization: SourceAuthorization,
@@ -398,6 +505,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         eventError: Error? = nil,
         reminderError: Error? = nil,
         waitForCancellation: Bool = false,
+        waitForRelease: Bool = false,
         synchronizeFetches: Bool = false
     ) {
         sourceAuthorization = authorization
@@ -406,6 +514,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         self.eventError = eventError
         self.reminderError = reminderError
         self.waitForCancellation = waitForCancellation
+        self.waitForRelease = waitForRelease
         fetchBarrier = synchronizeFetches ? FetchBarrier() : nil
     }
 
@@ -433,6 +542,11 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         }
         if waitForCancellation {
             try await Task.sleep(for: .seconds(60))
+        }
+        if waitForRelease {
+            await withCheckedContinuation {
+                fetchReleaseContinuation = $0
+            }
         }
         if let eventError {
             throw eventError
@@ -482,10 +596,71 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         }
     }
 
+    func releaseFetch() {
+        fetchReleaseContinuation?.resume()
+        fetchReleaseContinuation = nil
+    }
+
     private func markFetchStarted() {
         didStartFetch = true
         fetchStartedContinuation?.resume()
         fetchStartedContinuation = nil
+    }
+}
+
+private actor OverlappingRefreshGateway: EventKitGatewayProtocol {
+    private let olderEvent: EventRecord
+    private let newerEvent: EventRecord
+    private var fetchCount = 0
+    private var olderFetchStarted = false
+    private var olderFetchStartedContinuation: CheckedContinuation<Void, Never>?
+    private var olderFetchReleaseContinuation: CheckedContinuation<Void, Never>?
+
+    init(olderEvent: EventRecord, newerEvent: EventRecord) {
+        self.olderEvent = olderEvent
+        self.newerEvent = newerEvent
+    }
+
+    func authorization() -> SourceAuthorization {
+        .init(calendar: .fullAccess, reminders: .denied)
+    }
+
+    func requestCalendarAccess() async throws -> Bool { false }
+    func requestReminderAccess() async throws -> Bool { false }
+
+    func fetchToday(calendar: Calendar, now: Date) async throws -> [EventRecord] {
+        fetchCount += 1
+        if fetchCount == 1 {
+            olderFetchStarted = true
+            olderFetchStartedContinuation?.resume()
+            olderFetchStartedContinuation = nil
+            await withCheckedContinuation {
+                olderFetchReleaseContinuation = $0
+            }
+            return [olderEvent]
+        }
+        return [newerEvent]
+    }
+
+    func fetchReminders(
+        calendar: Calendar,
+        now: Date
+    ) async throws -> [ReminderRecord] {
+        []
+    }
+
+    func waitUntilOlderFetchStarts() async {
+        if olderFetchStarted {
+            return
+        }
+        await withCheckedContinuation {
+            olderFetchStartedContinuation = $0
+        }
+    }
+
+    func releaseOlderFetch() {
+        olderFetchReleaseContinuation?.resume()
+        olderFetchReleaseContinuation = nil
     }
 }
 
@@ -572,9 +747,9 @@ private enum TestError: Error {
     case settings
 }
 
-private func event(at date: Date) -> EventRecord {
+private func event(identifier: String = "event", at date: Date) -> EventRecord {
     EventRecord(
-        identifier: "event",
+        identifier: identifier,
         title: "Team meeting",
         startDate: date,
         endDate: date.addingTimeInterval(1_800),
@@ -582,6 +757,12 @@ private func event(at date: Date) -> EventRecord {
         location: nil,
         notes: nil
     )
+}
+
+private func utcCalendar() -> Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+    return calendar
 }
 
 private func reminder(at date: Date) -> ReminderRecord {

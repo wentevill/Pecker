@@ -37,10 +37,17 @@ struct NowTimelineApp: App {
             AppRootView(root: root)
         }
         .onChange(of: scenePhase) { _, newPhase in
-            guard case let .ready(model) = root, newPhase == .active else {
+            guard case let .ready(model) = root else {
                 return
             }
-            model.becameActive()
+            switch newPhase {
+            case .active:
+                model.becameActive()
+            case .inactive, .background:
+                model.becameInactive()
+            @unknown default:
+                model.becameInactive()
+            }
         }
     }
 }
@@ -72,12 +79,14 @@ private struct ReadyRootView: View {
                 PostOnboardingPlaceholder()
             } else {
                 OnboardingView(model: model.onboardingModel) {
-                    model.onboardingDidComplete()
+                    model.start()
                 }
             }
         }
         .task {
-            model.start()
+            if model.onboardingCompleted {
+                model.start()
+            }
         }
     }
 }

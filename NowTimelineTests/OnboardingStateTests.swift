@@ -206,29 +206,132 @@ final class OnboardingStateTests: XCTestCase {
     }
 
     @MainActor
-    func testAppModelDoesNotRefreshUntilOnboardingCompletes() async {
-        let gateway = OnboardingGateway()
-        let fixture = makeFixture(gateway: gateway)
+    func testLifecycleStartIsDeferredUntilOnboardingCompletes() async {
+        let fixture = makeFixture()
+        let refreshCounter = RefreshCounter()
         let appModel = AppModel(
             dependencies: fixture.dependencies,
             onboardingDefaults: fixture.defaults,
-            notificationCenter: NotificationCenter()
+            notificationCenter: NotificationCenter(),
+            refreshOperation: {
+                await refreshCounter.record()
+            }
         )
 
-        appModel.start()
         appModel.becameActive()
         await Task.yield()
 
-        let initialAuthorizationCount = await gateway.authorizationCount()
-        XCTAssertEqual(initialAuthorizationCount, 0)
+        XCTAssertFalse(appModel.hasStarted)
+        let initialCount = await refreshCounter.value()
+        XCTAssertEqual(initialCount, 0)
 
         await advanceToLiveActivity(appModel.onboardingModel)
         await appModel.onboardingModel.performPrimaryAction()
-        appModel.onboardingDidComplete()
-        await gateway.waitForAuthorization()
+        appModel.start()
+        await refreshCounter.wait(for: 1)
 
-        let authorizationCount = await gateway.authorizationCount()
-        XCTAssertEqual(authorizationCount, 1)
+        XCTAssertTrue(appModel.hasStarted)
+        let completedCount = await refreshCounter.value()
+        XCTAssertEqual(completedCount, 1)
+    }
+
+    @MainActor
+    func testPersistedCompletionStartsOnLaunch() async {
+        let fixture = makeFixture(onboardingCompleted: true)
+        let refreshCounter = RefreshCounter()
+        let appModel = AppModel(
+            dependencies: fixture.dependencies,
+            onboardingDefaults: fixture.defaults,
+            notificationCenter: NotificationCenter(),
+            refreshOperation: {
+                await refreshCounter.record()
+            }
+        )
+
+        if appModel.onboardingCompleted {
+            appModel.start()
+        }
+        await refreshCounter.wait(for: 1)
+
+        XCTAssertTrue(appModel.hasStarted)
+        let refreshCount = await refreshCounter.value()
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    @MainActor
+    func testRepeatedStartSchedulesOnlyOneInitialRefresh() async {
+        let fixture = makeFixture(onboardingCompleted: true)
+        let refreshCounter = RefreshCounter()
+        let appModel = AppModel(
+            dependencies: fixture.dependencies,
+            onboardingDefaults: fixture.defaults,
+            notificationCenter: NotificationCenter(),
+            refreshOperation: {
+                await refreshCounter.record()
+            }
+        )
+
+        appModel.start()
+        appModel.start()
+        await refreshCounter.wait(for: 1)
+        await Task.yield()
+
+        let refreshCount = await refreshCounter.value()
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    @MainActor
+    func testInitialActiveAndStartDoNotDuplicateRefresh() async {
+        let fixture = makeFixture(onboardingCompleted: true)
+        let refreshCounter = RefreshCounter()
+        let appModel = AppModel(
+            dependencies: fixture.dependencies,
+            onboardingDefaults: fixture.defaults,
+            notificationCenter: NotificationCenter(),
+            refreshOperation: {
+                await refreshCounter.record()
+            }
+        )
+
+        appModel.becameActive()
+        appModel.start()
+        appModel.becameActive()
+        await refreshCounter.wait(for: 1)
+        await Task.yield()
+
+        let refreshCount = await refreshCounter.value()
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    @MainActor
+    func testActiveAfterInactiveSchedulesOneRefreshPerTransition() async {
+        let fixture = makeFixture(onboardingCompleted: true)
+        let refreshCounter = RefreshCounter()
+        let appModel = AppModel(
+            dependencies: fixture.dependencies,
+            onboardingDefaults: fixture.defaults,
+            notificationCenter: NotificationCenter(),
+            refreshOperation: {
+                await refreshCounter.record()
+            }
+        )
+        appModel.start()
+        await refreshCounter.wait(for: 1)
+
+        appModel.becameActive()
+        appModel.becameActive()
+        await Task.yield()
+        let activeCount = await refreshCounter.value()
+        XCTAssertEqual(activeCount, 1)
+
+        appModel.becameInactive()
+        appModel.becameActive()
+        appModel.becameActive()
+        await refreshCounter.wait(for: 2)
+        await Task.yield()
+
+        let reactivatedCount = await refreshCounter.value()
+        XCTAssertEqual(reactivatedCount, 2)
     }
 
     @MainActor
@@ -248,7 +351,8 @@ final class OnboardingStateTests: XCTestCase {
         gateway: OnboardingGateway? = nil,
         calendarResult: Result<Bool, Error> = .success(true),
         reminderResult: Result<Bool, Error> = .success(true),
-        liveActivityEnabled: Bool = false
+        liveActivityEnabled: Bool = false,
+        onboardingCompleted: Bool = false
     ) -> Fixture {
         let suiteName = "OnboardingStateTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
@@ -258,6 +362,10 @@ final class OnboardingStateTests: XCTestCase {
                 .removePersistentDomain(forName: suiteName)
         }
         let settingsStore = SettingsStore(defaults: defaults)
+        defaults.set(
+            onboardingCompleted,
+            forKey: OnboardingModel.completionKey
+        )
         settingsStore.update {
             $0.liveActivityEnabled = liveActivityEnabled
         }
@@ -284,6 +392,33 @@ final class OnboardingStateTests: XCTestCase {
             defaults: defaults,
             dependencies: dependencies
         )
+    }
+}
+
+private actor RefreshCounter {
+    private var count = 0
+    private var waiters: [
+        (target: Int, continuation: CheckedContinuation<Void, Never>)
+    ] = []
+
+    func record() {
+        count += 1
+        let ready = waiters.filter { count >= $0.target }
+        waiters.removeAll { count >= $0.target }
+        ready.forEach { $0.continuation.resume() }
+    }
+
+    func value() -> Int {
+        count
+    }
+
+    func wait(for target: Int) async {
+        if count >= target {
+            return
+        }
+        await withCheckedContinuation {
+            waiters.append((target, $0))
+        }
     }
 }
 

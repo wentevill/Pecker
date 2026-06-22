@@ -10,7 +10,10 @@ final class AppModel {
     let onboardingModel: OnboardingModel
 
     private let notificationCenter: NotificationCenter
+    private let refreshOperation: @MainActor () async -> Void
     private nonisolated let lifetime: AppModelLifetime
+    private(set) var hasStarted = false
+    private var isActive = false
 
     var onboardingCompleted: Bool {
         onboardingModel.isComplete
@@ -19,10 +22,12 @@ final class AppModel {
     init(
         dependencies: AppDependencies,
         onboardingDefaults: UserDefaults? = nil,
-        notificationCenter: NotificationCenter = .default
+        notificationCenter: NotificationCenter = .default,
+        refreshOperation: (@MainActor () async -> Void)? = nil
     ) {
         self.dependencies = dependencies
-        todayViewModel = TodayViewModel(dependencies: dependencies)
+        let todayViewModel = TodayViewModel(dependencies: dependencies)
+        self.todayViewModel = todayViewModel
         onboardingModel = OnboardingModel(
             gateway: dependencies.gateway,
             settingsStore: dependencies.settingsStore,
@@ -30,42 +35,49 @@ final class AppModel {
             completionOverride: onboardingDefaults == nil ? true : nil
         )
         self.notificationCenter = notificationCenter
+        self.refreshOperation = refreshOperation ?? {
+            await todayViewModel.refresh()
+        }
         lifetime = AppModelLifetime(notificationCenter: notificationCenter)
     }
 
     func start() {
-        if !lifetime.hasEventStoreObserver {
-            let observer = notificationCenter.addObserver(
-                forName: .EKEventStoreChanged,
-                object: nil,
-                queue: .main
-            ) { [weak self] _ in
-                Task { @MainActor [weak self] in
-                    self?.eventStoreDidChange()
-                }
+        guard onboardingCompleted, !hasStarted else {
+            return
+        }
+
+        hasStarted = true
+        isActive = true
+        let observer = notificationCenter.addObserver(
+            forName: .EKEventStoreChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.eventStoreDidChange()
             }
-            lifetime.installEventStoreObserver(observer)
         }
-        if onboardingCompleted {
-            scheduleRefresh()
-        }
+        lifetime.installEventStoreObserver(observer)
+        scheduleRefresh()
     }
 
     func becameActive() {
-        if onboardingCompleted {
-            scheduleRefresh()
+        guard !isActive else {
+            return
         }
-    }
-
-    func onboardingDidComplete() {
-        guard onboardingCompleted else {
+        isActive = true
+        guard hasStarted else {
             return
         }
         scheduleRefresh()
     }
 
+    func becameInactive() {
+        isActive = false
+    }
+
     func relevantSettingsDidChange() {
-        if onboardingCompleted {
+        if hasStarted {
             scheduleRefresh()
         }
     }
@@ -79,13 +91,13 @@ final class AppModel {
             guard let self else {
                 return
             }
-            await todayViewModel.refresh()
+            await refreshOperation()
         }
         lifetime.replaceRefreshTask(with: task)
     }
 
     private func eventStoreDidChange() {
-        if onboardingCompleted {
+        if hasStarted {
             scheduleRefresh()
         }
     }
@@ -103,10 +115,6 @@ private final class AppModelLifetime: @unchecked Sendable {
 
     init(notificationCenter: NotificationCenter) {
         self.notificationCenter = notificationCenter
-    }
-
-    var hasEventStoreObserver: Bool {
-        lock.withLock { eventStoreObserver != nil }
     }
 
     func installEventStoreObserver(_ observer: NSObjectProtocol) {

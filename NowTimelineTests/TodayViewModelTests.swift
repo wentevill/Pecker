@@ -26,6 +26,7 @@ final class TodayViewModelTests: XCTestCase {
         appModel.relevantSettingsDidChange()
         await gateway.waitForAuthorizationCount(3)
 
+        appModel.becameInactive()
         appModel.becameActive()
         await gateway.waitForAuthorizationCount(4)
     }

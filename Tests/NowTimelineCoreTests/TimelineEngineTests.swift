@@ -214,6 +214,217 @@ import Testing
         #expect(snapshot.nextItemID == train.id)
     }
 
+    @Test func manualPinOverridesAutomaticFlight() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let flight = item("flight", .flight, 1_100, 1_200)
+        let interview = item("interview", .interview, 1_300, 1_400)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [flight, interview],
+            now: now,
+            settings: .init(
+                manualPinnedSourceIdentifier: interview.sourceIdentifier
+            ),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == interview.id)
+        #expect(snapshot.pinOrigin == .manual)
+    }
+
+    @Test func missingManualPinFallsBackToAutomatic() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let flight = item("flight", .flight, 1_100, 1_200)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [flight],
+            now: now,
+            settings: .init(manualPinnedSourceIdentifier: "missing"),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == flight.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
+    @Test func completedItemsCannotBePinned() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let completedFlight = item("flight", .flight, 800, 1_000)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [completedFlight],
+            now: now,
+            settings: .init(
+                manualPinnedSourceIdentifier: completedFlight.sourceIdentifier
+            ),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == nil)
+        #expect(snapshot.pinOrigin == nil)
+    }
+
+    @Test func automaticPriorityIsFlightTrainInterviewMeetingDeadline() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let rankedItems = [
+            item("flight", .flight, 1_500, 1_600),
+            item("train", .train, 1_100, 1_200),
+            item("interview", .interview, 1_050, 1_150),
+            item("meeting", .meeting, 1_025, 1_125),
+            item("deadline", .deadline, 1_010, 1_110)
+        ]
+
+        for index in rankedItems.indices {
+            let candidates = Array(rankedItems[index...].reversed())
+            let snapshot = TimelineEngine().makeSnapshot(
+                items: candidates,
+                now: now,
+                settings: .init(),
+                staleInterval: 900
+            )
+
+            #expect(snapshot.pinnedItemID == rankedItems[index].id)
+            #expect(snapshot.pinOrigin == .automatic)
+        }
+    }
+
+    @Test func automaticPinUsesEarlierStartWithinKind() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let earlier = item("earlier", .meeting, 1_100, 1_300)
+        let later = item("later", .meeting, 1_200, 1_250)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [later, earlier],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == earlier.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
+    @Test func automaticPinUsesStableItemTieBreakers() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let earliestEnd = item("earliest-end", .meeting, 1_100, 1_200)
+        let laterEnd = item("later-end", .meeting, 1_100, 1_300)
+        let endSnapshot = TimelineEngine().makeSnapshot(
+            items: [laterEnd, earliestEnd],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        let alpha = item("Alpha", .meeting, 1_100, 1_200)
+        let beta = item("Beta", .meeting, 1_100, 1_200)
+        let titleSnapshot = TimelineEngine().makeSnapshot(
+            items: [beta, alpha],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(endSnapshot.pinnedItemID == earliestEnd.id)
+        #expect(titleSnapshot.pinnedItemID == alpha.id)
+    }
+
+    @Test func manualPinMustMatchSourceIdentifierAndBeUnfinished() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let completedTask = item("shared", .task, 800, 1_000)
+        let unmatchedFlight = item("flight", .flight, 1_100, 1_200)
+
+        let completedMatchSnapshot = TimelineEngine().makeSnapshot(
+            items: [unmatchedFlight, completedTask],
+            now: now,
+            settings: .init(manualPinnedSourceIdentifier: "shared"),
+            staleInterval: 900
+        )
+        let IDOnlyMatchSnapshot = TimelineEngine().makeSnapshot(
+            items: [unmatchedFlight],
+            now: now,
+            settings: .init(manualPinnedSourceIdentifier: unmatchedFlight.id),
+            staleInterval: 900
+        )
+
+        #expect(completedMatchSnapshot.pinnedItemID == unmatchedFlight.id)
+        #expect(completedMatchSnapshot.pinOrigin == .automatic)
+        #expect(IDOnlyMatchSnapshot.pinnedItemID == unmatchedFlight.id)
+        #expect(IDOnlyMatchSnapshot.pinOrigin == .automatic)
+    }
+
+    @Test func manualPinCanSelectUnfinishedTaskWithoutEndDate() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let task = item("task", .task, 1_000, nil)
+        let flight = item("flight", .flight, 1_100, 1_200)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [flight, task],
+            now: now,
+            settings: .init(
+                manualPinnedSourceIdentifier: task.sourceIdentifier
+            ),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == task.id)
+        #expect(snapshot.pinOrigin == .manual)
+    }
+
+    @Test func allDayUnfinishedImportantEventIsEligibleForAutomaticPin() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let allDayInterview = item(
+            "all-day-interview",
+            .interview,
+            900,
+            1_100,
+            isAllDay: true
+        )
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [allDayInterview],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == allDayInterview.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
+    @Test func nonEligibleKindsAloneDoNotProduceAutomaticPin() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let task = item("task", .task, 1_100, 1_200)
+        let unknown = item("unknown", .unknown, 1_050, 1_150)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [task, unknown],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == nil)
+        #expect(snapshot.pinOrigin == nil)
+    }
+
+    @Test func hiddenTravelKindsAreNotAutomaticallyPinnedAsTravel() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let flight = item("flight", .flight, 1_050, 1_150)
+        let train = item("train", .train, 1_060, 1_160)
+        let travel = item("travel", .travel, 1_070, 1_170)
+        let meeting = item("meeting", .meeting, 1_200, 1_300)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [meeting, travel, train, flight],
+            now: now,
+            settings: .init(showTravelEvents: false),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.pinnedItemID == meeting.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
     @Test func sortsItemsAndSetsSnapshotMetadata() {
         let now = Date(timeIntervalSince1970: 1_000)
         let noEnd = item("No End", .task, 1_100, nil)

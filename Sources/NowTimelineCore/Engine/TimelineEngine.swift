@@ -58,6 +58,31 @@ public struct TimelineEngine: Sendable {
         let nextItem = snapshotItems.first { item in
             !item.isAllDay && item.startDate > now
         }
+        let automaticPinnedItem = snapshotItems
+            .filter { item in
+                isUnfinished(item, at: now)
+                    && automaticPinPriority(for: item.kind) != nil
+            }
+            .sorted(by: automaticPinSortsBefore)
+            .first
+        let pinnedItem: TimelineItem?
+        let pinOrigin: PinOrigin?
+        if let manualPinnedSourceIdentifier =
+            settings.manualPinnedSourceIdentifier,
+           let manualPinnedItem = snapshotItems.first(where: { item in
+               item.sourceIdentifier == manualPinnedSourceIdentifier
+                   && isUnfinished(item, at: now)
+           })
+        {
+            pinnedItem = manualPinnedItem
+            pinOrigin = .manual
+        } else if let automaticPinnedItem {
+            pinnedItem = automaticPinnedItem
+            pinOrigin = .automatic
+        } else {
+            pinnedItem = nil
+            pinOrigin = nil
+        }
 
         return TodaySnapshot(
             schemaVersion: TodaySnapshot.currentSchemaVersion,
@@ -67,9 +92,47 @@ public struct TimelineEngine: Sendable {
             nowItemID: activeItems.first?.id,
             concurrentNowCount: max(0, activeItems.count - 1),
             nextItemID: nextItem?.id,
-            pinnedItemID: nil,
-            pinOrigin: nil
+            pinnedItemID: pinnedItem?.id,
+            pinOrigin: pinOrigin
         )
+    }
+
+    private func isUnfinished(_ item: TimelineItem, at now: Date) -> Bool {
+        if let endDate = item.endDate {
+            return endDate > now
+        }
+
+        return item.startDate >= now
+    }
+
+    private func automaticPinSortsBefore(
+        _ left: TimelineItem,
+        _ right: TimelineItem
+    ) -> Bool {
+        let leftPriority = automaticPinPriority(for: left.kind)!
+        let rightPriority = automaticPinPriority(for: right.kind)!
+        if leftPriority != rightPriority {
+            return leftPriority < rightPriority
+        }
+
+        return itemSortsBefore(left, right)
+    }
+
+    private func automaticPinPriority(for kind: TimelineKind) -> Int? {
+        switch kind {
+        case .flight:
+            0
+        case .train:
+            1
+        case .interview:
+            2
+        case .meeting:
+            3
+        case .deadline:
+            4
+        case .task, .travel, .unknown:
+            nil
+        }
     }
 
     private func itemSortsBefore(

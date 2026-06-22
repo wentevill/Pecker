@@ -88,3 +88,24 @@ private func classifiesTimelineItems(testCase: ClassificationCase) {
 
     #expect(kind == testCase.expectedKind)
 }
+
+@Test(
+    arguments: [
+        "Delegate review",
+        "Training plan",
+        "Duet practice",
+        "Steams report"
+    ]
+)
+private func classifiesLatinKeywordSubstringsAsUnknown(title: String) {
+    let classifier = TimelineClassifier()
+
+    let kind = classifier.classify(
+        title: title,
+        location: nil,
+        notes: nil,
+        source: .calendar
+    )
+
+    #expect(kind == .unknown)
+}

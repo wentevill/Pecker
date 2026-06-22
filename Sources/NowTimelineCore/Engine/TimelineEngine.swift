@@ -13,8 +13,6 @@ public struct TimelineEngine: Sendable {
         settings: TimelineSettings,
         staleInterval: TimeInterval
     ) -> TodaySnapshot {
-        _ = classifier
-
         let snapshotItems = items
             .filter { item in
                 switch item.source {

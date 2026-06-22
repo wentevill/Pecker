@@ -6,6 +6,17 @@ import XCTest
 
 final class SettingsStoreTests: XCTestCase {
     @MainActor
+    func testAppGroupFactoryThrowsWhenSuiteIsUnavailable() {
+        XCTAssertThrowsError(
+            try SettingsStore.appGroupStore { _ in nil }
+        ) { error in
+            guard case SettingsStoreError.appGroupUnavailable = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @MainActor
     func testLoadsDefaultSettingsWhenNoDataExists() {
         let defaults = makeDefaults()
 

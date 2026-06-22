@@ -2,6 +2,10 @@ import Foundation
 import NowTimelineCore
 import Observation
 
+enum SettingsStoreError: Error {
+    case appGroupUnavailable
+}
+
 @MainActor
 @Observable
 final class SettingsStore {
@@ -11,12 +15,21 @@ final class SettingsStore {
     private let defaults: UserDefaults
     private(set) var value: TimelineSettings
 
-    init(
-        defaults: UserDefaults =
-            UserDefaults(suiteName: AppGroup.identifier) ?? .standard
-    ) {
+    init(defaults: UserDefaults) {
         self.defaults = defaults
         value = Self.load(from: defaults)
+    }
+
+    static func appGroupStore(
+        suiteProvider: (String) -> UserDefaults? = {
+            UserDefaults(suiteName: $0)
+        }
+    ) throws -> SettingsStore {
+        guard let defaults = suiteProvider(AppGroup.identifier) else {
+            throw SettingsStoreError.appGroupUnavailable
+        }
+
+        return SettingsStore(defaults: defaults)
     }
 
     func update(_ mutation: (inout TimelineSettings) -> Void) {

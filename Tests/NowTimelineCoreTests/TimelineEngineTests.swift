@@ -51,6 +51,63 @@ import Testing
         #expect(snapshot.concurrentNowCount == 0)
     }
 
+    @Test func selectsCrossMidnightEventAsNowBasedOnItsInterval() {
+        let event = item(
+            "Cross-midnight maintenance",
+            .meeting,
+            1_782_084_600, // 2026-06-21T23:30:00Z
+            1_782_090_000  // 2026-06-22T01:00:00Z
+        )
+        let now = Date(
+            timeIntervalSince1970: 1_782_087_300 // 2026-06-22T00:15:00Z
+        )
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [event],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.nowItemID == event.id)
+    }
+
+    @Test func selectsOverdueReminderOnlyWhileConfiguredEndIsAfterNow() {
+        let now = Date(
+            timeIntervalSince1970: 1_782_122_400 // 2026-06-22T10:00:00Z
+        )
+        let activeOverdueReminder = item(
+            "Submit expense report",
+            .unknown,
+            1_782_118_800, // 2026-06-22T09:00:00Z
+            1_782_126_000, // 2026-06-22T11:00:00Z
+            source: .reminder
+        )
+        let endedOverdueReminder = item(
+            "Submit timesheet",
+            .unknown,
+            1_782_118_800, // 2026-06-22T09:00:00Z
+            1_782_122_400, // 2026-06-22T10:00:00Z
+            source: .reminder
+        )
+
+        let activeSnapshot = TimelineEngine().makeSnapshot(
+            items: [activeOverdueReminder],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+        let endedSnapshot = TimelineEngine().makeSnapshot(
+            items: [endedOverdueReminder],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(activeSnapshot.nowItemID == activeOverdueReminder.id)
+        #expect(endedSnapshot.nowItemID == nil)
+    }
+
     @Test func ranksNowKindsInApprovedOrder() {
         let now = Date(timeIntervalSince1970: 1_000)
         let rankedItems = [
@@ -75,6 +132,93 @@ import Testing
             #expect(snapshot.nowItemID == rankedItems[index].id)
             #expect(snapshot.concurrentNowCount == candidates.count - 1)
         }
+    }
+
+    @Test func classifiesUnknownActiveFlightBeforeNowSelection() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let meeting = item("Team meeting", .meeting, 900, 1_100)
+        let flight = item("SQ833", .unknown, 950, 1_200)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [meeting, flight],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.items.first { $0.id == flight.id }?.kind == .flight)
+        #expect(snapshot.nowItemID == flight.id)
+        #expect(snapshot.pinnedItemID == flight.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
+    @Test func classifiesUnknownFutureFlightBeforeAutomaticPinSelection() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let meeting = item("Team meeting", .meeting, 1_050, 1_150)
+        let flight = item("SQ833", .unknown, 1_200, 1_400)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [meeting, flight],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.items.first { $0.id == flight.id }?.kind == .flight)
+        #expect(snapshot.pinnedItemID == flight.id)
+        #expect(snapshot.pinOrigin == .automatic)
+    }
+
+    @Test func classifiesUnknownReminderAsTask() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let reminder = item(
+            "Buy milk",
+            .unknown,
+            900,
+            1_100,
+            source: .reminder
+        )
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [reminder],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.items.first?.kind == .task)
+        #expect(snapshot.nowItemID == reminder.id)
+    }
+
+    @Test func preservesAlreadySpecificKindDuringClassification() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let meeting = item("SQ833", .meeting, 900, 1_100)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [meeting],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.items.first?.kind == .meeting)
+    }
+
+    @Test func classifiesUnknownFlightBeforeHiddenTravelDowngrade() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let flight = item("SQ833", .unknown, 900, 1_100)
+        let meeting = item("Team meeting", .meeting, 900, 1_200)
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [flight, meeting],
+            now: now,
+            settings: .init(showTravelEvents: false),
+            staleInterval: 900
+        )
+
+        #expect(snapshot.items.first { $0.id == flight.id }?.kind == .unknown)
+        #expect(snapshot.nowItemID == meeting.id)
+        #expect(snapshot.pinnedItemID == meeting.id)
     }
 
     @Test func appliesStableNowTieBreakers() {

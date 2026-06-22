@@ -38,4 +38,8 @@ public struct TodaySnapshot: Codable, Equatable, Sendable {
         self.pinnedItemID = pinnedItemID
         self.pinOrigin = pinOrigin
     }
+
+    public func isStale(at date: Date) -> Bool {
+        date >= staleAfter
+    }
 }

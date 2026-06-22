@@ -23,6 +23,29 @@ public struct TimelineEngine: Sendable {
                 }
             }
             .map { item in
+                guard item.kind == .unknown else {
+                    return item
+                }
+
+                return TimelineItem(
+                    id: item.id,
+                    sourceIdentifier: item.sourceIdentifier,
+                    title: item.title,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    isAllDay: item.isAllDay,
+                    source: item.source,
+                    kind: classifier.classify(
+                        title: item.title,
+                        location: item.location,
+                        notes: item.notes,
+                        source: item.source
+                    ),
+                    location: item.location,
+                    notes: item.notes
+                )
+            }
+            .map { item in
                 guard !settings.showTravelEvents,
                       item.kind == .flight
                         || item.kind == .train

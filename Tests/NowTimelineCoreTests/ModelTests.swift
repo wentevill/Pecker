@@ -33,3 +33,30 @@ import Testing
     )
     #expect(decoded == value)
 }
+
+@Test func snapshotIsNotStaleImmediatelyBeforeStaleAfter() {
+    let snapshot = snapshot(staleAfter: Date(timeIntervalSince1970: 300))
+
+    #expect(!snapshot.isStale(at: Date(timeIntervalSince1970: 299.999)))
+}
+
+@Test func snapshotIsStaleExactlyAtStaleAfter() {
+    let staleAfter = Date(timeIntervalSince1970: 300)
+    let snapshot = snapshot(staleAfter: staleAfter)
+
+    #expect(snapshot.isStale(at: staleAfter))
+}
+
+private func snapshot(staleAfter: Date) -> TodaySnapshot {
+    TodaySnapshot(
+        schemaVersion: TodaySnapshot.currentSchemaVersion,
+        generatedAt: Date(timeIntervalSince1970: 50),
+        staleAfter: staleAfter,
+        items: [],
+        nowItemID: nil,
+        concurrentNowCount: 0,
+        nextItemID: nil,
+        pinnedItemID: nil,
+        pinOrigin: nil
+    )
+}

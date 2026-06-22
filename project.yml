@@ -19,6 +19,7 @@ targets:
     sources:
       - path: NowTimeline/App
       - path: NowTimeline/EventKit
+      - path: NowTimeline/Features
       - path: NowTimeline/Persistence
       - path: NowTimeline/Resources
         buildPhase: resources

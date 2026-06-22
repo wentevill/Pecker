@@ -38,10 +38,18 @@ final class TodayViewModelTests: XCTestCase {
             events: [event(at: now.addingTimeInterval(600))],
             reminders: [reminder(at: now.addingTimeInterval(1_200))]
         )
-        let store = FakeSnapshotStore()
+        let store = FakeSnapshotStore(saveIsGated: true)
         let viewModel = makeViewModel(gateway: gateway, store: store)
 
-        await viewModel.refresh(now: now)
+        let refresh = Task { await viewModel.refresh(now: now) }
+
+        await store.waitUntilSaveEntered()
+        guard case .loading = viewModel.state else {
+            return XCTFail("Published \(viewModel.state) before saving completed")
+        }
+
+        await store.releaseSave()
+        await refresh.value
 
         guard case let .content(snapshot) = viewModel.state else {
             return XCTFail("Expected content, got \(viewModel.state)")
@@ -249,6 +257,59 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testSaveFailureWithoutPreviousSnapshotProducesFailure() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .denied),
+            events: [event(at: now)]
+        )
+        let store = FakeSnapshotStore(saveError: TestError.save)
+        let viewModel = makeViewModel(gateway: gateway, store: store)
+
+        await viewModel.refresh(now: now)
+
+        XCTAssertEqual(viewModel.state, .failure("Unable to refresh timeline."))
+    }
+
+    @MainActor
+    func testCalendarAndReminderFetchesRunConcurrently() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            events: [event(at: now)],
+            reminders: [reminder(at: now)],
+            synchronizeFetches: true
+        )
+        let viewModel = makeViewModel(gateway: gateway)
+
+        await viewModel.refresh(now: now)
+
+        let enteredFetches = await gateway.enteredFetches()
+        XCTAssertEqual(enteredFetches, [.calendar, .reminders])
+        guard case .content = viewModel.state else {
+            return XCTFail("Expected content after concurrent fetches")
+        }
+    }
+
+    @MainActor
+    func testProductionFailsExplicitlyWhenAppGroupContainerIsUnavailable() {
+        XCTAssertThrowsError(
+            try AppDependencies.production(
+                containerURLProvider: { nil },
+                settingsStoreFactory: {
+                    XCTFail("Settings factory should not run without a container")
+                    throw TestError.settings
+                }
+            )
+        ) { error in
+            guard case AppDependenciesError.appGroupContainerUnavailable = error
+            else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @MainActor
     func testCancellationDoesNotOverwriteCurrentStateWithFailure() async {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let gateway = FakeEventKitGateway(
@@ -303,6 +364,11 @@ final class TodayViewModelTests: XCTestCase {
 }
 
 private actor FakeEventKitGateway: EventKitGatewayProtocol {
+    enum Fetch: Hashable {
+        case calendar
+        case reminders
+    }
+
     struct FetchCounts: Equatable {
         let calendar: Int
         let reminders: Int
@@ -314,8 +380,10 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     private let eventError: Error?
     private let reminderError: Error?
     private let waitForCancellation: Bool
+    private let fetchBarrier: FetchBarrier?
     private var calendarFetchCount = 0
     private var reminderFetchCount = 0
+    private var fetchesEntered: Set<Fetch> = []
     private var authorizationCallCount = 0
     private var authorizationWaiters: [
         (count: Int, continuation: CheckedContinuation<Void, Never>)
@@ -329,7 +397,8 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         reminders: [ReminderRecord] = [],
         eventError: Error? = nil,
         reminderError: Error? = nil,
-        waitForCancellation: Bool = false
+        waitForCancellation: Bool = false,
+        synchronizeFetches: Bool = false
     ) {
         sourceAuthorization = authorization
         self.events = events
@@ -337,6 +406,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         self.eventError = eventError
         self.reminderError = reminderError
         self.waitForCancellation = waitForCancellation
+        fetchBarrier = synchronizeFetches ? FetchBarrier() : nil
     }
 
     func authorization() -> SourceAuthorization {
@@ -356,7 +426,11 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
 
     func fetchToday(calendar: Calendar, now: Date) async throws -> [EventRecord] {
         calendarFetchCount += 1
+        fetchesEntered.insert(.calendar)
         markFetchStarted()
+        if let fetchBarrier {
+            await fetchBarrier.enter()
+        }
         if waitForCancellation {
             try await Task.sleep(for: .seconds(60))
         }
@@ -371,7 +445,11 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
         now: Date
     ) async throws -> [ReminderRecord] {
         reminderFetchCount += 1
+        fetchesEntered.insert(.reminders)
         markFetchStarted()
+        if let fetchBarrier {
+            await fetchBarrier.enter()
+        }
         if let reminderError {
             throw reminderError
         }
@@ -380,6 +458,10 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
 
     func fetchCounts() -> FetchCounts {
         .init(calendar: calendarFetchCount, reminders: reminderFetchCount)
+    }
+
+    func enteredFetches() -> Set<Fetch> {
+        fetchesEntered
     }
 
     func waitUntilFetchStarts() async {
@@ -407,28 +489,76 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     }
 }
 
+private actor FetchBarrier {
+    private var enteredCount = 0
+    private var continuations: [CheckedContinuation<Void, Never>] = []
+
+    func enter() async {
+        enteredCount += 1
+        if enteredCount == 2 {
+            let pending = continuations
+            continuations.removeAll()
+            pending.forEach { $0.resume() }
+            return
+        }
+
+        await withCheckedContinuation {
+            continuations.append($0)
+        }
+    }
+}
+
 private actor FakeSnapshotStore: SnapshotStoring {
     private let loadResult: SnapshotLoadResult
     private let saveError: Error?
+    private let saveIsGated: Bool
     private var snapshots: [TodaySnapshot] = []
+    private var saveEntered = false
+    private var saveEnteredContinuations: [CheckedContinuation<Void, Never>] = []
+    private var saveReleaseContinuation: CheckedContinuation<Void, Never>?
 
     init(
         loadResult: SnapshotLoadResult = .missing,
-        saveError: Error? = nil
+        saveError: Error? = nil,
+        saveIsGated: Bool = false
     ) {
         self.loadResult = loadResult
         self.saveError = saveError
+        self.saveIsGated = saveIsGated
     }
 
     func load() -> SnapshotLoadResult {
         loadResult
     }
 
-    func save(_ snapshot: TodaySnapshot) throws {
+    func save(_ snapshot: TodaySnapshot) async throws {
+        saveEntered = true
+        let enteredContinuations = saveEnteredContinuations
+        saveEnteredContinuations.removeAll()
+        enteredContinuations.forEach { $0.resume() }
+        if saveIsGated {
+            await withCheckedContinuation {
+                saveReleaseContinuation = $0
+            }
+        }
         if let saveError {
             throw saveError
         }
         snapshots.append(snapshot)
+    }
+
+    func waitUntilSaveEntered() async {
+        if saveEntered {
+            return
+        }
+        await withCheckedContinuation {
+            saveEnteredContinuations.append($0)
+        }
+    }
+
+    func releaseSave() {
+        saveReleaseContinuation?.resume()
+        saveReleaseContinuation = nil
     }
 
     func savedSnapshots() -> [TodaySnapshot] {
@@ -439,6 +569,7 @@ private actor FakeSnapshotStore: SnapshotStoring {
 private enum TestError: Error {
     case fetch
     case save
+    case settings
 }
 
 private func event(at date: Date) -> EventRecord {

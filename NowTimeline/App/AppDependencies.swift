@@ -38,11 +38,16 @@ struct AppDependencies {
     }
 
     static func production(
-        fileManager: FileManager = .default
+        containerURLProvider: () -> URL? = {
+            FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: AppGroup.identifier
+            )
+        },
+        settingsStoreFactory: () throws -> SettingsStore = {
+            try SettingsStore.appGroupStore()
+        }
     ) throws -> AppDependencies {
-        guard let containerURL = fileManager.containerURL(
-            forSecurityApplicationGroupIdentifier: AppGroup.identifier
-        ) else {
+        guard let containerURL = containerURLProvider() else {
             throw AppDependenciesError.appGroupContainerUnavailable
         }
 
@@ -51,7 +56,7 @@ struct AppDependencies {
             mapper: EventKitMapper(),
             engine: TimelineEngine(),
             snapshotStore: SnapshotStore(directoryURL: containerURL),
-            settingsStore: try SettingsStore.appGroupStore(),
+            settingsStore: try settingsStoreFactory(),
             calendar: .autoupdatingCurrent
         )
     }

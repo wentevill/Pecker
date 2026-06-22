@@ -59,7 +59,7 @@ public struct TimelineClassifier: Sendable {
     private func containsKeyword(in text: String, keywords: [String]) -> Bool {
         keywords.contains { keyword in
             if keyword.unicodeScalars.allSatisfy(\.isASCII) {
-                let pattern = "\\b\(NSRegularExpression.escapedPattern(for: keyword))\\b"
+                let pattern = "(?<![A-Za-z0-9])\(NSRegularExpression.escapedPattern(for: keyword))(?![A-Za-z0-9])"
                 return text.range(of: pattern, options: .regularExpression) != nil
             }
 

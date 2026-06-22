@@ -109,3 +109,41 @@ private func classifiesLatinKeywordSubstringsAsUnknown(title: String) {
 
     #expect(kind == .unknown)
 }
+
+@Test(
+    arguments: [
+        ClassificationCase(
+            title: "Zoom会议",
+            location: nil,
+            notes: nil,
+            source: .calendar,
+            expectedKind: .meeting
+        ),
+        ClassificationCase(
+            title: "Train行程",
+            location: nil,
+            notes: nil,
+            source: .calendar,
+            expectedKind: .train
+        ),
+        ClassificationCase(
+            title: "Gate登机",
+            location: nil,
+            notes: nil,
+            source: .calendar,
+            expectedKind: .flight
+        )
+    ]
+)
+private func classifiesLatinKeywordsAdjacentToChinese(testCase: ClassificationCase) {
+    let classifier = TimelineClassifier()
+
+    let kind = classifier.classify(
+        title: testCase.title,
+        location: testCase.location,
+        notes: testCase.notes,
+        source: testCase.source
+    )
+
+    #expect(kind == testCase.expectedKind)
+}

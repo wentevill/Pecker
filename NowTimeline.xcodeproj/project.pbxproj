@@ -7,12 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		215DBABEEFAA279E62EC1C14 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E926ECC903D04FACC3E28416 /* SettingsStore.swift */; };
 		6349D3C06EE327BC14AEC967 /* NowTimelineCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0FD4596C2887D18B9C004E71 /* NowTimelineCore */; };
 		9B139A484421D174F6864B4A /* EventKitGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD74443F43A156CE993808C0 /* EventKitGateway.swift */; };
 		A5682A6555707707BEC1B4E2 /* EventKitMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45EB3C760CA226C17E550254 /* EventKitMapperTests.swift */; };
 		AA98445EF55BFB42EB218580 /* SmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E195CED876345D9D26C2DD8B /* SmokeTests.swift */; };
 		AA9B863E4A4E6E6D61C8160F /* EventKitMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71D009B5B56D331896DDB6AA /* EventKitMapper.swift */; };
 		B24427B6CA486ADDB808CB40 /* EventKitGatewayProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4240252118E58E9892AA63F5 /* EventKitGatewayProtocol.swift */; };
+		C7A5D262F70ED48CF623D788 /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EF8F672F333BEF4A5D5B314 /* AppGroup.swift */; };
+		EFC281163EA514C25D08660C /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F1FE5E8400B955D306C345 /* SettingsStoreTests.swift */; };
 		F193A8AC72B8BF92D99191E0 /* NowTimelineApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D18DFA2D94E878C145168DF9 /* NowTimelineApp.swift */; };
 /* End PBXBuildFile section */
 
@@ -28,6 +31,7 @@
 
 /* Begin PBXFileReference section */
 		09CABA956CAB973D2632633C /* NowTimelineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = NowTimelineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2EF8F672F333BEF4A5D5B314 /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		4240252118E58E9892AA63F5 /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
 		45EB3C760CA226C17E550254 /* EventKitMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapperTests.swift; sourceTree = "<group>"; };
 		71D009B5B56D331896DDB6AA /* EventKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapper.swift; sourceTree = "<group>"; };
@@ -36,6 +40,8 @@
 		D18DFA2D94E878C145168DF9 /* NowTimelineApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowTimelineApp.swift; sourceTree = "<group>"; };
 		DFF8F083E369CBCAF6B229C5 /* now-timeline-mvp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "now-timeline-mvp"; path = .; sourceTree = SOURCE_ROOT; };
 		E195CED876345D9D26C2DD8B /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
+		E3F1FE5E8400B955D306C345 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
+		E926ECC903D04FACC3E28416 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -94,15 +100,27 @@
 				1E0C13BF431ED175AEA77B9E /* EventKit */,
 				78ADA99C24D9E828F8B298D8 /* NowTimelineTests */,
 				A8F022E3A9796A89E2BA808B /* Packages */,
+				75F871BE7BEADDFE358FFF31 /* Persistence */,
 				0DC2652871B4ABCE727C3266 /* Resources */,
 				068A31F139CE77E6EAA293C1 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		75F871BE7BEADDFE358FFF31 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				2EF8F672F333BEF4A5D5B314 /* AppGroup.swift */,
+				E926ECC903D04FACC3E28416 /* SettingsStore.swift */,
+			);
+			name = Persistence;
+			path = NowTimeline/Persistence;
 			sourceTree = "<group>";
 		};
 		78ADA99C24D9E828F8B298D8 /* NowTimelineTests */ = {
 			isa = PBXGroup;
 			children = (
 				45EB3C760CA226C17E550254 /* EventKitMapperTests.swift */,
+				E3F1FE5E8400B955D306C345 /* SettingsStoreTests.swift */,
 				E195CED876345D9D26C2DD8B /* SmokeTests.swift */,
 			);
 			path = NowTimelineTests;
@@ -196,6 +214,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A5682A6555707707BEC1B4E2 /* EventKitMapperTests.swift in Sources */,
+				EFC281163EA514C25D08660C /* SettingsStoreTests.swift in Sources */,
 				AA98445EF55BFB42EB218580 /* SmokeTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -204,10 +223,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7A5D262F70ED48CF623D788 /* AppGroup.swift in Sources */,
 				9B139A484421D174F6864B4A /* EventKitGateway.swift in Sources */,
 				B24427B6CA486ADDB808CB40 /* EventKitGatewayProtocol.swift in Sources */,
 				AA9B863E4A4E6E6D61C8160F /* EventKitMapper.swift in Sources */,
 				F193A8AC72B8BF92D99191E0 /* NowTimelineApp.swift in Sources */,
+				215DBABEEFAA279E62EC1C14 /* SettingsStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

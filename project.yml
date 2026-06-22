@@ -1,0 +1,56 @@
+name: NowTimeline
+
+options:
+  deploymentTarget:
+    iOS: "26.0"
+
+packages:
+  NowTimelineCore:
+    path: .
+
+settings:
+  base:
+    GENERATE_INFOPLIST_FILE: NO
+    SWIFT_VERSION: "6.0"
+
+targets:
+  NowTimeline:
+    type: application
+    platform: iOS
+    sources:
+      - path: NowTimeline/App
+      - path: NowTimeline/Resources
+        buildPhase: resources
+        excludes:
+          - Info.plist
+          - NowTimeline.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimeline
+        INFOPLIST_FILE: NowTimeline/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: NowTimeline/Resources/NowTimeline.entitlements
+    dependencies:
+      - package: NowTimelineCore
+        product: NowTimelineCore
+
+  NowTimelineTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: NowTimelineTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimelineTests
+    dependencies:
+      - target: NowTimeline
+
+schemes:
+  NowTimeline:
+    shared: true
+    build:
+      targets:
+        NowTimeline: all
+        NowTimelineTests: [test]
+    test:
+      targets:
+        - NowTimelineTests

@@ -15,35 +15,35 @@ private struct ClassificationCase: Sendable {
             title: "SQ833 Flight to Singapore",
             location: "T3 Gate B7",
             notes: nil,
-            source: .calendar,
+            source: .reminder,
             expectedKind: .flight
         ),
         ClassificationCase(
             title: "高铁 G123",
             location: "上海虹桥站",
             notes: nil,
-            source: .calendar,
+            source: .reminder,
             expectedKind: .train
         ),
         ClassificationCase(
             title: "Product Interview Meeting",
             location: nil,
             notes: nil,
-            source: .calendar,
+            source: .reminder,
             expectedKind: .interview
         ),
         ClassificationCase(
             title: "Project Deadline",
             location: nil,
             notes: "截止今天",
-            source: .calendar,
+            source: .reminder,
             expectedKind: .deadline
         ),
         ClassificationCase(
             title: "Daily Standup",
             location: nil,
             notes: "Zoom",
-            source: .calendar,
+            source: .reminder,
             expectedKind: .meeting
         ),
         ClassificationCase(

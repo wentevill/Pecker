@@ -1,0 +1,143 @@
+import Foundation
+
+public struct TimelineEngine: Sendable {
+    private let classifier: TimelineClassifier
+
+    public init(classifier: TimelineClassifier = .init()) {
+        self.classifier = classifier
+    }
+
+    public func makeSnapshot(
+        items: [TimelineItem],
+        now: Date,
+        settings: TimelineSettings,
+        staleInterval: TimeInterval
+    ) -> TodaySnapshot {
+        _ = classifier
+
+        let snapshotItems = items
+            .filter { item in
+                switch item.source {
+                case .calendar:
+                    settings.calendarEnabled
+                case .reminder:
+                    settings.remindersEnabled
+                }
+            }
+            .map { item in
+                guard !settings.showTravelEvents,
+                      item.kind == .flight
+                        || item.kind == .train
+                        || item.kind == .travel
+                else {
+                    return item
+                }
+
+                return TimelineItem(
+                    id: item.id,
+                    sourceIdentifier: item.sourceIdentifier,
+                    title: item.title,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    isAllDay: item.isAllDay,
+                    source: item.source,
+                    kind: .unknown,
+                    location: item.location,
+                    notes: item.notes
+                )
+            }
+            .sorted(by: itemSortsBefore)
+
+        let activeItems = snapshotItems
+            .filter { item in
+                guard !item.isAllDay, let endDate = item.endDate else {
+                    return false
+                }
+
+                return item.startDate <= now && endDate > now
+            }
+            .sorted(by: nowItemSortsBefore)
+        let nextItem = snapshotItems.first { item in
+            !item.isAllDay && item.startDate > now
+        }
+
+        return TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: now.addingTimeInterval(staleInterval),
+            items: snapshotItems,
+            nowItemID: activeItems.first?.id,
+            concurrentNowCount: max(0, activeItems.count - 1),
+            nextItemID: nextItem?.id,
+            pinnedItemID: nil,
+            pinOrigin: nil
+        )
+    }
+
+    private func itemSortsBefore(
+        _ left: TimelineItem,
+        _ right: TimelineItem
+    ) -> Bool {
+        if left.startDate != right.startDate {
+            return left.startDate < right.startDate
+        }
+
+        let leftEnd = left.endDate ?? .distantFuture
+        let rightEnd = right.endDate ?? .distantFuture
+        if leftEnd != rightEnd {
+            return leftEnd < rightEnd
+        }
+
+        if left.title != right.title {
+            return left.title < right.title
+        }
+
+        return left.id < right.id
+    }
+
+    private func nowItemSortsBefore(
+        _ left: TimelineItem,
+        _ right: TimelineItem
+    ) -> Bool {
+        let leftPriority = priority(for: left.kind)
+        let rightPriority = priority(for: right.kind)
+        if leftPriority != rightPriority {
+            return leftPriority < rightPriority
+        }
+
+        let leftEnd = left.endDate ?? .distantFuture
+        let rightEnd = right.endDate ?? .distantFuture
+        if leftEnd != rightEnd {
+            return leftEnd < rightEnd
+        }
+
+        if left.startDate != right.startDate {
+            return left.startDate < right.startDate
+        }
+
+        if left.title != right.title {
+            return left.title < right.title
+        }
+
+        return left.id < right.id
+    }
+
+    private func priority(for kind: TimelineKind) -> Int {
+        switch kind {
+        case .flight:
+            0
+        case .train:
+            1
+        case .interview:
+            2
+        case .meeting:
+            3
+        case .deadline:
+            4
+        case .task:
+            5
+        case .travel, .unknown:
+            6
+        }
+    }
+}

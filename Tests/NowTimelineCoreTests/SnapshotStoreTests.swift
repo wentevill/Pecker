@@ -79,6 +79,28 @@ import Testing
         #expect(version == 999)
     }
 
+    @Test func rejectsUnsupportedSchemaBeforeDecodingCurrentModel() async throws {
+        let directoryURL = temporaryDirectoryURL()
+        defer { try? FileManager.default.removeItem(at: directoryURL) }
+        try FileManager.default.createDirectory(
+            at: directoryURL,
+            withIntermediateDirectories: true
+        )
+        let json = #"{"schemaVersion":999,"futurePayload":{"x":1}}"#
+        try Data(json.utf8).write(
+            to: directoryURL.appendingPathComponent("today_snapshot.json")
+        )
+        let store = SnapshotStore(directoryURL: directoryURL)
+
+        let result = await store.load()
+
+        guard case let .unsupportedSchema(version) = result else {
+            Issue.record("Expected an unsupported schema, got \(result)")
+            return
+        }
+        #expect(version == 999)
+    }
+
     @Test func saveCreatesDirectoryAndReplacesPreviousSnapshot() async throws {
         let directoryURL = temporaryDirectoryURL()
         defer { try? FileManager.default.removeItem(at: directoryURL) }

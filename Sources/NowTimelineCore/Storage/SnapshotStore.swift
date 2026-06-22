@@ -1,5 +1,9 @@
 import Foundation
 
+private struct SnapshotEnvelope: Codable {
+    let schemaVersion: Int
+}
+
 public enum SnapshotLoadResult: Sendable {
     case value(TodaySnapshot)
     case missing
@@ -31,10 +35,12 @@ public actor SnapshotStore {
         decoder.dateDecodingStrategy = .millisecondsSince1970
 
         do {
-            let snapshot = try decoder.decode(TodaySnapshot.self, from: data)
-            guard snapshot.schemaVersion == TodaySnapshot.currentSchemaVersion else {
-                return .unsupportedSchema(snapshot.schemaVersion)
+            let envelope = try decoder.decode(SnapshotEnvelope.self, from: data)
+            guard envelope.schemaVersion == TodaySnapshot.currentSchemaVersion else {
+                return .unsupportedSchema(envelope.schemaVersion)
             }
+
+            let snapshot = try decoder.decode(TodaySnapshot.self, from: data)
             return .value(snapshot)
         } catch {
             return .corrupt

@@ -7,16 +7,28 @@ import Observation
 final class AppModel {
     let dependencies: AppDependencies
     let todayViewModel: TodayViewModel
+    let onboardingModel: OnboardingModel
 
     private let notificationCenter: NotificationCenter
     private nonisolated let lifetime: AppModelLifetime
 
+    var onboardingCompleted: Bool {
+        onboardingModel.isComplete
+    }
+
     init(
         dependencies: AppDependencies,
+        onboardingDefaults: UserDefaults? = nil,
         notificationCenter: NotificationCenter = .default
     ) {
         self.dependencies = dependencies
         todayViewModel = TodayViewModel(dependencies: dependencies)
+        onboardingModel = OnboardingModel(
+            gateway: dependencies.gateway,
+            settingsStore: dependencies.settingsStore,
+            defaults: onboardingDefaults ?? .standard,
+            completionOverride: onboardingDefaults == nil ? true : nil
+        )
         self.notificationCenter = notificationCenter
         lifetime = AppModelLifetime(notificationCenter: notificationCenter)
     }
@@ -29,20 +41,33 @@ final class AppModel {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    self?.scheduleRefresh()
+                    self?.eventStoreDidChange()
                 }
             }
             lifetime.installEventStoreObserver(observer)
         }
-        scheduleRefresh()
+        if onboardingCompleted {
+            scheduleRefresh()
+        }
     }
 
     func becameActive() {
+        if onboardingCompleted {
+            scheduleRefresh()
+        }
+    }
+
+    func onboardingDidComplete() {
+        guard onboardingCompleted else {
+            return
+        }
         scheduleRefresh()
     }
 
     func relevantSettingsDidChange() {
-        scheduleRefresh()
+        if onboardingCompleted {
+            scheduleRefresh()
+        }
     }
 
     func refresh() async {
@@ -57,6 +82,12 @@ final class AppModel {
             await todayViewModel.refresh()
         }
         lifetime.replaceRefreshTask(with: task)
+    }
+
+    private func eventStoreDidChange() {
+        if onboardingCompleted {
+            scheduleRefresh()
+        }
     }
 
     deinit {

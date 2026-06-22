@@ -10,7 +10,6 @@ packages:
 
 settings:
   base:
-    GENERATE_INFOPLIST_FILE: NO
     SWIFT_VERSION: "6.0"
 
 targets:
@@ -27,6 +26,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimeline
+        GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: NowTimeline/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: NowTimeline/Resources/NowTimeline.entitlements
     dependencies:
@@ -41,6 +41,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimelineTests
+        GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: NowTimeline
 

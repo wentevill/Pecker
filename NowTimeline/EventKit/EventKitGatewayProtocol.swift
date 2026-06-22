@@ -26,20 +26,7 @@ enum SourceAuthorizationStatus: Sendable, Equatable {
     case writeOnly
 
     init(_ status: EKAuthorizationStatus) {
-        switch status {
-        case .notDetermined:
-            self = .notDetermined
-        case .denied:
-            self = .denied
-        case .restricted:
-            self = .restricted
-        case .fullAccess:
-            self = .fullAccess
-        case .writeOnly:
-            self = .writeOnly
-        @unknown default:
-            self = .restricted
-        }
+        self = EventKitGatewaySupport.authorizationStatus(status)
     }
 }
 

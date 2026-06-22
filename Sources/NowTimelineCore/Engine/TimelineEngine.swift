@@ -92,7 +92,7 @@ public struct TimelineEngine: Sendable {
             return left.title < right.title
         }
 
-        return left.id < right.id
+        return false
     }
 
     private func nowItemSortsBefore(
@@ -119,7 +119,7 @@ public struct TimelineEngine: Sendable {
             return left.title < right.title
         }
 
-        return left.id < right.id
+        return false
     }
 
     private func priority(for kind: TimelineKind) -> Int {

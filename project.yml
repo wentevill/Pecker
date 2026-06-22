@@ -18,6 +18,7 @@ targets:
     platform: iOS
     sources:
       - path: NowTimeline/App
+      - path: NowTimeline/EventKit
       - path: NowTimeline/Resources
         buildPhase: resources
         excludes:

@@ -8,6 +8,7 @@ final class TodayViewModel {
     private static let staleInterval: TimeInterval = 15 * 60
 
     private let dependencies: AppDependencies
+    private let snapshotCommitter: SnapshotCommitter
     private var previousSnapshot: TodaySnapshot?
     private var refreshGeneration = 0
 
@@ -15,6 +16,9 @@ final class TodayViewModel {
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
+        snapshotCommitter = SnapshotCommitter(
+            store: dependencies.snapshotStore
+        )
     }
 
     func refresh(now: Date = .now) async {
@@ -89,7 +93,7 @@ final class TodayViewModel {
             guard isCurrent(generation) else {
                 return
             }
-            try await dependencies.snapshotStore.save(snapshot)
+            try await snapshotCommitter.save(snapshot)
             try Task.checkCancellation()
             guard isCurrent(generation) else {
                 return
@@ -154,6 +158,37 @@ final class TodayViewModel {
 
     private func isCurrent(_ generation: Int) -> Bool {
         generation == refreshGeneration
+    }
+}
+
+actor SnapshotCommitter {
+    private let store: any SnapshotStoring
+    private var nextCommitID = 0
+    private var latestCommit: (id: Int, task: Task<Void, any Error>)?
+
+    init(store: any SnapshotStoring) {
+        self.store = store
+    }
+
+    func save(_ snapshot: TodaySnapshot) async throws {
+        nextCommitID += 1
+        let commitID = nextCommitID
+        let precedingCommit = latestCommit?.task
+        let store = store
+        let commit = Task {
+            if let precedingCommit {
+                _ = try? await precedingCommit.value
+            }
+            try await store.save(snapshot)
+        }
+        latestCommit = (commitID, commit)
+
+        defer {
+            if latestCommit?.id == commitID {
+                latestCommit = nil
+            }
+        }
+        try await commit.value
     }
 }
 

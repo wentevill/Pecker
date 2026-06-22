@@ -393,6 +393,42 @@ final class TodayViewModelTests: XCTestCase {
         XCTAssertEqual(snapshot.items.map(\.id), ["calendar:newer"])
     }
 
+    func testNewerSnapshotPersistsLastWhenOlderSaveIsAlreadyInFlight() async throws {
+        let olderNow = Date(timeIntervalSince1970: 1_800_000_000)
+        let newerNow = olderNow.addingTimeInterval(60)
+        let olderSnapshot = snapshot(
+            at: olderNow,
+            items: [EventKitMapper().mapEvent(
+                event(identifier: "older", at: olderNow)
+            )]
+        )
+        let newerSnapshot = snapshot(
+            at: newerNow,
+            items: [EventKitMapper().mapEvent(
+                event(identifier: "newer", at: newerNow)
+            )]
+        )
+        let store = FakeSnapshotStore(saveIsGated: true)
+        let committer = SnapshotCommitter(store: store)
+
+        let olderCommit = Task {
+            try await committer.save(olderSnapshot)
+        }
+        await store.waitUntilSaveEntered()
+
+        let newerCommit = Task {
+            try await committer.save(newerSnapshot)
+        }
+        await store.releaseSave()
+        try await olderCommit.value
+        try await newerCommit.value
+
+        let savedSnapshots = await store.savedSnapshots()
+        XCTAssertEqual(savedSnapshots.count, 2)
+        XCTAssertEqual(savedSnapshots.last?.generatedAt, newerNow)
+        XCTAssertEqual(savedSnapshots.last?.items.map(\.id), ["calendar:newer"])
+    }
+
     @MainActor
     func testProductionFailsExplicitlyWhenAppGroupContainerIsUnavailable() {
         XCTAssertThrowsError(
@@ -691,6 +727,7 @@ private actor FakeSnapshotStore: SnapshotStoring {
     private var saveEntered = false
     private var saveEnteredContinuations: [CheckedContinuation<Void, Never>] = []
     private var saveReleaseContinuation: CheckedContinuation<Void, Never>?
+    private var gatedSaveCount = 0
 
     init(
         loadResult: SnapshotLoadResult = .missing,
@@ -711,7 +748,8 @@ private actor FakeSnapshotStore: SnapshotStoring {
         let enteredContinuations = saveEnteredContinuations
         saveEnteredContinuations.removeAll()
         enteredContinuations.forEach { $0.resume() }
-        if saveIsGated {
+        if saveIsGated && gatedSaveCount == 0 {
+            gatedSaveCount += 1
             await withCheckedContinuation {
                 saveReleaseContinuation = $0
             }

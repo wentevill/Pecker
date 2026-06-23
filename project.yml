@@ -4,15 +4,17 @@ options:
   deploymentTarget:
     iOS: "26.0"
 
-packages:
-  PeckerCore:
-    path: .
-
 settings:
   base:
     SWIFT_VERSION: "6.0"
 
 targets:
+  PeckerCore:
+    type: library.static
+    platform: iOS
+    sources:
+      - path: Sources/PeckerCore
+
   Pecker:
     type: application
     platform: iOS
@@ -44,8 +46,7 @@ targets:
         CODE_SIGN_IDENTITY: Apple Development
         PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
-      - package: PeckerCore
-        product: PeckerCore
+      - target: PeckerCore
 
   PeckerTests:
     type: bundle.unit-test
@@ -59,6 +60,18 @@ targets:
     dependencies:
       - target: Pecker
 
+  PeckerCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/PeckerCoreTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.went.PeckerCoreTests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: PeckerCore
+
 schemes:
   Pecker:
     shared: true
@@ -66,6 +79,8 @@ schemes:
       targets:
         Pecker: all
         PeckerTests: [test]
+        PeckerCoreTests: [test]
     test:
       targets:
         - PeckerTests
+        - PeckerCoreTests

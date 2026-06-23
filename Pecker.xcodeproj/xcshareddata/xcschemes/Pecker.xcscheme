@@ -29,6 +29,20 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "941CF7A271892604EA390BF1"
+               BuildableName = "PeckerCoreTests.xctest"
+               BlueprintName = "PeckerCoreTests"
+               ReferencedContainer = "container:Pecker.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "598057C341DA1B20314BE7BE"
                BuildableName = "PeckerTests.xctest"
                BlueprintName = "PeckerTests"
@@ -60,6 +74,16 @@
                BlueprintIdentifier = "598057C341DA1B20314BE7BE"
                BuildableName = "PeckerTests.xctest"
                BlueprintName = "PeckerTests"
+               ReferencedContainer = "container:Pecker.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "941CF7A271892604EA390BF1"
+               BuildableName = "PeckerCoreTests.xctest"
+               BlueprintName = "PeckerCoreTests"
                ReferencedContainer = "container:Pecker.xcodeproj">
             </BuildableReference>
          </TestableReference>

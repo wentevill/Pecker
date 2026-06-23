@@ -4,6 +4,11 @@ Date: 2026-06-22
 Status: Ready for user review
 Reference visual: `demo.png`
 
+> Historical note: this product/design document predates the rename. The
+> shipping app and project identity is now Pecker: Xcode project/scheme/app
+> target `Pecker`, core module `PeckerCore`, bundle identifier
+> `com.wenttang.pecker`, and App Group `group.com.wenttang.pecker`.
+
 ## 1. Product Summary
 
 Now Timeline is a native iPhone utility that turns Apple Calendar and Apple

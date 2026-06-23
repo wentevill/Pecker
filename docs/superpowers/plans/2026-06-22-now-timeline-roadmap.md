@@ -3,6 +3,11 @@
 > **For agentic workers:** Execute the linked plans in order. Each plan is a
 > separately testable delivery milestone.
 
+> Historical note: this roadmap predates the rename. The shipping app and
+> project identity is now Pecker: Xcode project/scheme/app target `Pecker`,
+> core module `PeckerCore`, bundle identifier `com.wenttang.pecker`, and App
+> Group `group.com.wenttang.pecker`.
+
 **Goal:** Deliver the approved Now Timeline iOS 26 MVP without coupling the
 pure timeline rules, EventKit/UI workflow, and ActivityKit extension into one
 unreviewable change.

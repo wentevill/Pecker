@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> Historical note: this implementation plan predates the rename. The shipping
+> app and project identity is now Pecker: Xcode project/scheme/app target
+> `Pecker`, core module `PeckerCore`, bundle identifier `com.wenttang.pecker`,
+> and App Group `group.com.wenttang.pecker`.
+
 **Goal:** Build a platform-neutral Swift package that deterministically converts normalized calendar and reminder records into a versioned Today snapshot.
 
 **Architecture:** `NowTimelineCore` contains value types and pure services with no SwiftUI, EventKit, ActivityKit, or iOS dependency. Classification, ranking, settings, snapshot construction, and file persistence are independently testable.

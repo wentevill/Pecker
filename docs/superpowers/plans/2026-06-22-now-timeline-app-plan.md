@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> Historical note: this implementation plan predates the rename. The shipping
+> app and project identity is now Pecker: Xcode project/scheme/app target
+> `Pecker`, core module `PeckerCore`, bundle identifier `com.wenttang.pecker`,
+> and App Group `group.com.wenttang.pecker`.
+
 **Goal:** Build the complete approved iOS app flow on top of `NowTimelineCore`, including EventKit permissions, refresh orchestration, Today, full timeline, detail, settings, and all failure states.
 
 **Architecture:** XcodeGen creates a reproducible iOS 26 project. EventKit is isolated behind an actor/protocol; an observable app model converts gateway records through `TimelineEngine`, persists snapshots, and supplies focused SwiftUI screens.

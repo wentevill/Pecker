@@ -2,6 +2,11 @@
 
 Date: 2026-06-22
 
+> Rename note: this visual design still uses the original “Now Timeline”
+> wording because it describes the Pecker app’s Now Timeline feature and
+> experience. The shipping app identity is Pecker, with bundle identifier
+> `com.wenttang.pecker` and App Group `group.com.wenttang.pecker`.
+
 These previews preserve the visual design reviewed during product
 brainstorming. The approved direction is **A · 深色时间舱**, with `demo.png` as
 the primary visual reference.

@@ -4,7 +4,7 @@
 
 **Goal:** Atomically rename the app, Xcode project, Swift modules, source trees, tests, bundle identifiers, and App Group from NowTimeline to Pecker.
 
-**Architecture:** `project.yml` and `Package.swift` remain the authoritative project definitions. The filesystem and Swift module rename happen first, followed by identity/signing configuration and clean Xcode regeneration, then repository-wide validation and documentation updates.
+**Architecture:** `project.yml` is the authoritative XcodeGen definition, with `PeckerCore` modeled directly as an Xcode target. `Package.swift` remains for CLI SwiftPM tests. The filesystem and Swift module rename happened first, followed by identity/signing configuration and clean Xcode regeneration, then active documentation validation.
 
 **Tech Stack:** Swift 6, Swift Package Manager, SwiftUI, XcodeGen, Xcode 26, XCTest.
 
@@ -25,13 +25,13 @@ The old generated `NowTimeline.xcodeproj` also contains Xcode-format upgrades.
 It will be removed rather than hand-merged because `Pecker.xcodeproj` is
 regenerated from `project.yml`.
 
-The canonical identifiers from the approved design override the intermediate
-Xcode edits:
+The final canonical identifiers preserve installable signing configuration:
 
 ```text
-com.went.Pecker
-com.went.PeckerTests
-group.com.went.pecker
+com.wenttang.pecker
+com.wenttang.PeckerTests
+com.wenttang.PeckerCoreTests
+group.com.wenttang.pecker
 ```
 
 ### Task 1: Rename the Swift package, source trees, modules, and tests
@@ -165,16 +165,18 @@ because the old project no longer matches the renamed trees.
 
 - [ ] **Step 2: Rewrite `project.yml` as the Pecker source of truth**
 
-Set:
+Final implementation:
 
 ```yaml
 name: Pecker
 
-packages:
-  PeckerCore:
-    path: .
-
 targets:
+  PeckerCore:
+    type: library.static
+    platform: iOS
+    sources:
+      - path: Sources/PeckerCore
+
   Pecker:
     type: application
     platform: iOS
@@ -196,7 +198,7 @@ targets:
           - Pecker.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.Pecker
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.pecker
         PRODUCT_NAME: Pecker
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Pecker/Resources/Info.plist
@@ -206,8 +208,7 @@ targets:
         CODE_SIGN_IDENTITY: Apple Development
         PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
-      - package: PeckerCore
-        product: PeckerCore
+      - target: PeckerCore
 
   PeckerTests:
     type: bundle.unit-test
@@ -216,10 +217,22 @@ targets:
       - path: PeckerTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.PeckerTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.PeckerTests
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Pecker
+
+  PeckerCoreTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/PeckerCoreTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.PeckerCoreTests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: PeckerCore
 
 schemes:
   Pecker:
@@ -228,9 +241,11 @@ schemes:
       targets:
         Pecker: all
         PeckerTests: [test]
+        PeckerCoreTests: [test]
     test:
       targets:
         - PeckerTests
+        - PeckerCoreTests
 ```
 
 Retain the existing deployment target and Swift version settings.
@@ -250,7 +265,7 @@ struct PeckerApp: App {
 }
 
 enum AppGroup {
-    static let identifier = "group.com.went.pecker"
+    static let identifier = "group.com.wenttang.pecker"
 }
 ```
 
@@ -265,7 +280,7 @@ Reminders permission copy begins with “Pecker”
 Update `Pecker.entitlements`:
 
 ```xml
-<string>group.com.went.pecker</string>
+<string>group.com.wenttang.pecker</string>
 ```
 
 Update configuration-error copy so it references the new App Group.
@@ -284,8 +299,8 @@ xcodebuild -list -project Pecker.xcodeproj
 Expected:
 
 ```text
-Targets: Pecker, PeckerTests
-Schemes: Pecker, PeckerCore
+Targets: Pecker, PeckerCore, PeckerCoreTests, PeckerTests
+Schemes: Pecker
 ```
 
 - [ ] **Step 5: Run app tests and builds**
@@ -309,7 +324,9 @@ xcodebuild build \
   CODE_SIGNING_ALLOWED=NO
 ```
 
-Expected: the complete app suite passes and Release build succeeds.
+Expected: the complete app and core Xcode test suite passes and Release build
+succeeds. The final rename verification observed 125 tests in the `Pecker`
+scheme.
 
 - [ ] **Step 6: Commit**
 
@@ -332,11 +349,12 @@ Run:
 
 ```bash
 rg -n \
-  'NowTimeline|Now Timeline|NowTimelineCore|NowTimelineTests|group\.com\.went\.nowtimeline|group\.went\.com\.pecker|com\.went\.NowTimeline|com\.went\.pecker' \
-  Package.swift project.yml Pecker PeckerTests Sources Tests Pecker.xcodeproj
+  'NowTimeline|Now Timeline|NowTimelineCore|NowTimelineTests|NowTimeline\.xcodeproj|group\.com\.went\.nowtimeline|group\.went\.com\.pecker|com\.went\.NowTimeline' \
+  Package.swift project.yml Pecker PeckerTests Sources Tests Pecker.xcodeproj || true
 ```
 
-Expected: no matches.
+Expected: no matches. Do not treat canonical current identifiers
+`com.wenttang.pecker` or `group.com.wenttang.pecker` as forbidden.
 
 - [ ] **Step 2: Update active technical documentation**
 
@@ -392,8 +410,9 @@ git diff --check
 git status --short
 ```
 
-Expected: 40 core tests pass, the full app suite passes, Release build
-succeeds, and the worktree is clean.
+Expected: 40 CLI core tests pass, the full Xcode app and core suite passes
+(125 tests observed in the final rename verification), Release build succeeds,
+and only intentional in-flight work remains in the worktree.
 
 - [ ] **Step 6: Commit**
 
@@ -401,4 +420,3 @@ succeeds, and the worktree is clean.
 git add docs
 git commit -m "docs: update project identity to Pecker"
 ```
-

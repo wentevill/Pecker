@@ -2,6 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> Historical note: this implementation plan predates the rename. The shipping
+> app and project identity is now Pecker: Xcode project/scheme/app target
+> `Pecker`, core module `PeckerCore`, bundle identifier `com.wenttang.pecker`,
+> and App Group `group.com.wenttang.pecker`.
+
 **Goal:** Add explicit Live Activity activation, deterministic lifecycle coordination, and approved Lock Screen and Dynamic Island presentations.
 
 **Architecture:** App and Widget Extension share a small ActivityKit attributes file. A protocol-wrapped activity client lets `ActivityCoordinator` decisions be unit tested without creating real activities. The extension only renders supplied state and never accesses EventKit.

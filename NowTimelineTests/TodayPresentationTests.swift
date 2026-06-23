@@ -123,6 +123,35 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertEqual(TodayStateCopy.failureTitle, "今天暂时不可用")
     }
 
+    func testHeaderDateTextUsesInjectedCalendarAndTimeZone() {
+        let date = Date(timeIntervalSince1970: 1_735_693_200)
+        let locale = Locale(identifier: "en_US_POSIX")
+
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.locale = locale
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+
+        var losAngelesCalendar = Calendar(identifier: .gregorian)
+        losAngelesCalendar.locale = locale
+        losAngelesCalendar.timeZone = TimeZone(secondsFromGMT: -8 * 3_600)!
+
+        let utcContent = TodayScreenContent.make(
+            from: .empty,
+            now: date,
+            locale: locale,
+            calendar: utcCalendar
+        )
+        let losAngelesContent = TodayScreenContent.make(
+            from: .empty,
+            now: date,
+            locale: locale,
+            calendar: losAngelesCalendar
+        )
+
+        XCTAssertEqual(utcContent.header.dateText, "Wednesday, January 1")
+        XCTAssertEqual(losAngelesContent.header.dateText, "Tuesday, December 31")
+    }
+
     private func makeItem(id: String) -> TimelineItem {
         TimelineItem(
             id: id,

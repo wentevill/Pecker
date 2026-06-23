@@ -374,11 +374,13 @@ struct TodayScreenContent: Equatable {
         locale: Locale,
         calendar: Calendar
     ) -> String {
-        let style = Date.FormatStyle()
+        var style = Date.FormatStyle()
             .month(.wide)
             .day()
             .weekday(.wide)
             .locale(locale)
+        style.calendar = calendar
+        style.timeZone = calendar.timeZone
         return date.formatted(style)
     }
 

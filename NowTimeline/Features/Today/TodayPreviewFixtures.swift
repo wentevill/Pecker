@@ -51,6 +51,10 @@ enum TodayPreviewFixtures {
         )
     }
 
+    static func loadingContent() -> TodayScreenContent {
+        TodayScreenContent.make(from: .loading, now: sampleNow, locale: zhLocale, calendar: calendar)
+    }
+
     static func concurrentNowContent() -> TodayScreenContent {
         content(
             snapshot: snapshot(
@@ -323,6 +327,17 @@ struct TodayPreviewHost: View {
 }
 
 #if DEBUG
+#Preview("Loading") {
+    TodayScreen(
+        content: TodayPreviewFixtures.loadingContent(),
+        refreshAction: {},
+        onOpenSettings: {},
+        onOpenCard: { _ in },
+        onOpenSummary: {},
+        onRetry: {}
+    )
+}
+
 #Preview("Default") {
     TodayScreen(
         content: TodayPreviewFixtures.defaultContent(),

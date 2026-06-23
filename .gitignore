@@ -2,5 +2,7 @@
 .superpowers/
 .worktrees/
 DerivedData/
+.build/
+.swiftpm/
 *.xcuserstate
 xcuserdata/

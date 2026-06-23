@@ -36,7 +36,7 @@ targets:
           - Pecker.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.Pecker
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.pecker
         PRODUCT_NAME: Pecker
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Pecker/Resources/Info.plist
@@ -55,7 +55,7 @@ targets:
       - path: PeckerTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.PeckerTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.PeckerTests
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: Pecker
@@ -67,7 +67,7 @@ targets:
       - path: Tests/PeckerCoreTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.PeckerCoreTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.PeckerCoreTests
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
       - target: PeckerCore

@@ -611,7 +611,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.PeckerCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.PeckerCoreTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -631,7 +631,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.PeckerCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.PeckerCoreTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -723,7 +723,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.PeckerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.PeckerTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pecker.app/Pecker";
@@ -748,7 +748,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.Pecker;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.pecker;
 				PRODUCT_NAME = Pecker;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
@@ -830,7 +830,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.Pecker;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.pecker;
 				PRODUCT_NAME = Pecker;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
@@ -848,7 +848,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.went.PeckerTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wenttang.PeckerTests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Pecker.app/Pecker";

@@ -7,32 +7,34 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            TodayScreen(
-                content: content,
-                refreshAction: { await model.refresh() },
-                onOpenSettings: {
-                    path.append(.settings)
-                },
-                onOpenCard: { card in
-                    path.append(.detail(card))
-                },
-                onOpenSummary: {
-                    path.append(.timeline)
-                },
-                onRetry: {
-                    Task { await model.refresh() }
-                }
-            )
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                TodayScreen(
+                    content: content(now: context.date),
+                    refreshAction: { await model.refresh() },
+                    onOpenSettings: {
+                        path.append(.settings)
+                    },
+                    onOpenCard: { card in
+                        path.append(.detail(card))
+                    },
+                    onOpenSummary: {
+                        path.append(.timeline)
+                    },
+                    onRetry: {
+                        Task { await model.refresh() }
+                    }
+                )
+            }
             .navigationDestination(for: TodayRoute.self) { route in
                 TodayRoutePlaceholder(route: route)
             }
         }
     }
 
-    private var content: TodayScreenContent {
+    private func content(now: Date) -> TodayScreenContent {
         TodayScreenContent.make(
             from: model.state,
-            now: .now,
+            now: now,
             locale: Locale(identifier: "zh_CN"),
             calendar: calendar
         )
@@ -83,13 +85,13 @@ struct TodayScreen: View {
                 Text(content.header.dateText)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(TimelineTheme.textSecondary)
-                    .accessibilityHidden(true)
 
                 Text(content.header.todayText)
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .kerning(-0.3)
-                    .accessibilityLabel("Today")
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(content.header.accessibilityLabel)
 
             Spacer(minLength: 12)
 

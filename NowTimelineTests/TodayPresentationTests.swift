@@ -123,6 +123,22 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertEqual(TodayStateCopy.failureTitle, "今天暂时不可用")
     }
 
+    func testHeaderAccessibilityLabelCombinesDateAndTodayTitle() {
+        let content = TodayScreenContent.make(
+            from: .empty,
+            now: Date(timeIntervalSince1970: 1_735_693_200),
+            locale: Locale(identifier: "en_US_POSIX"),
+            calendar: {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.locale = Locale(identifier: "en_US_POSIX")
+                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+                return calendar
+            }()
+        )
+
+        XCTAssertEqual(content.header.accessibilityLabel, "Wednesday, January 1，Today")
+    }
+
     func testHeaderDateTextUsesInjectedCalendarAndTimeZone() {
         let date = Date(timeIntervalSince1970: 1_735_693_200)
         let locale = Locale(identifier: "en_US_POSIX")

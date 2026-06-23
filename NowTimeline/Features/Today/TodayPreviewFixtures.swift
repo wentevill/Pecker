@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import NowTimelineCore
 
@@ -427,4 +428,5 @@ struct TodayPreviewHost: View {
     )
     .environment(\.timelineReduceTransparencyOverride, true)
 }
+#endif
 #endif

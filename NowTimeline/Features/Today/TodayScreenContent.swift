@@ -6,6 +6,7 @@ struct TodayScreenContent: Equatable {
         let dateText: String
         let todayText: String
         let settingsButtonLabel: String
+        let accessibilityLabel: String
     }
 
     struct Card: Equatable, Hashable, Identifiable {
@@ -82,10 +83,12 @@ struct TodayScreenContent: Equatable {
         locale: Locale = .autoupdatingCurrent,
         calendar: Calendar = .autoupdatingCurrent
     ) -> TodayScreenContent {
+        let dateText = Self.headerDateText(now, locale: locale, calendar: calendar)
         let header = Header(
-            dateText: Self.headerDateText(now, locale: locale, calendar: calendar),
+            dateText: dateText,
             todayText: "Today",
-            settingsButtonLabel: "设置"
+            settingsButtonLabel: "设置",
+            accessibilityLabel: "\(dateText)，Today"
         )
 
         switch state {

@@ -60,7 +60,9 @@ struct NowTimelineApp: App {
 
 private enum AppRoot {
     case ready(AppModel)
+#if DEBUG
     case previewToday
+#endif
     case configurationFailure(String)
 }
 
@@ -71,8 +73,10 @@ private struct AppRootView: View {
         switch root {
         case let .ready(model):
             ReadyRootView(model: model)
+#if DEBUG
         case .previewToday:
             TodayPreviewHost()
+#endif
         case let .configurationFailure(message):
             ConfigurationFailureView(message: message)
         }

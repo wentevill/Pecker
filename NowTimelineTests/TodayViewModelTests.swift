@@ -122,7 +122,7 @@ final class TodayViewModelTests: XCTestCase {
 
         await viewModel.refresh(now: now)
 
-        XCTAssertEqual(viewModel.state, .empty)
+        XCTAssertEqual(viewModel.state, .empty(nil))
         let saved = await store.savedSnapshots()
         XCTAssertEqual(saved.count, 1)
         XCTAssertEqual(saved.first?.items, [])
@@ -149,7 +149,11 @@ final class TodayViewModelTests: XCTestCase {
 
         await viewModel.refresh(now: now)
 
-        XCTAssertEqual(viewModel.state, .empty)
+        let expectedNotice = TimelineAuthorizationNotice.make(
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            settings: .init()
+        )
+        XCTAssertEqual(viewModel.state, .empty(expectedNotice))
         let savedSnapshots = await store.savedSnapshots()
         XCTAssertEqual(savedSnapshots.first?.items, [])
     }

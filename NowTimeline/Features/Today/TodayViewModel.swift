@@ -102,7 +102,7 @@ final class TodayViewModel {
             }
 
             previousSnapshot = snapshot
-            state = snapshot.items.isEmpty ? .empty : .content(snapshot)
+            state = snapshot.items.isEmpty ? emptyState() : .content(snapshot)
         } catch is CancellationError {
             return
         } catch {
@@ -123,6 +123,10 @@ final class TodayViewModel {
             authorization: latestAuthorization,
             settings: dependencies.settingsStore.value
         )
+    }
+
+    private func emptyState() -> TimelineScreenState {
+        .empty(authorizationNotice())
     }
 
     private func loadSnapshot(now: Date, generation: Int) async {
@@ -161,7 +165,7 @@ final class TodayViewModel {
         if snapshot.isStale(at: now) {
             state = .stale(snapshot, TimelineErrorMessage.cacheStale)
         } else {
-            state = snapshot.items.isEmpty ? .empty : .content(snapshot)
+            state = snapshot.items.isEmpty ? emptyState() : .content(snapshot)
         }
     }
 

@@ -3,7 +3,7 @@ import NowTimelineCore
 enum TimelineScreenState: Equatable {
     case loading
     case content(TodaySnapshot)
-    case empty
+    case empty(TimelineAuthorizationNotice?)
     case permissionRequired(SourceAuthorization)
     case stale(TodaySnapshot, String)
     case failure(String)
@@ -69,7 +69,7 @@ extension TimelineScreenState {
             snapshot
         case let .stale(snapshot, _):
             snapshot
-        case .loading, .empty, .permissionRequired, .failure:
+        case .loading, .empty(_), .permissionRequired, .failure:
             nil
         }
     }

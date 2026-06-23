@@ -66,7 +66,7 @@ struct TodayScreenContent: Equatable {
 
     enum Mode: Equatable {
         case loading
-        case empty
+        case empty(SourceNotice?)
         case permission
         case stale
         case failure
@@ -116,10 +116,11 @@ struct TodayScreenContent: Equatable {
                 stale: nil,
                 sourceNotice: nil
             )
-        case .empty:
+        case let .empty(notice):
+            let sourceNotice = notice.map { mappedNotice(from: $0) }
             return TodayScreenContent(
                 header: header,
-                mode: .empty,
+                mode: .empty(sourceNotice),
                 nowCard: nil,
                 nextCard: nil,
                 pinnedCard: nil,
@@ -128,7 +129,7 @@ struct TodayScreenContent: Equatable {
                 permission: nil,
                 failure: nil,
                 stale: nil,
-                sourceNotice: nil
+                sourceNotice: sourceNotice
             )
         case let .permissionRequired(authorization):
             return TodayScreenContent(
@@ -170,10 +171,9 @@ struct TodayScreenContent: Equatable {
                 stale: Stale(
                     bannerText: message,
                     retryText: TodayStateCopy.staleRetry
-                )
-                ,
+                ),
                 sourceNotice: timeline.sourceNotice
-            )
+                )
         case let .failure(message):
             return TodayScreenContent(
                 header: header,
@@ -213,8 +213,17 @@ struct TodayScreenContent: Equatable {
                 failure: nil,
                 stale: nil,
                 sourceNotice: timeline.sourceNotice
-            )
+                )
         }
+    }
+
+    private static func mappedNotice(from notice: TimelineAuthorizationNotice) -> SourceNotice {
+        SourceNotice(
+            titleText: notice.titleText,
+            bodyText: notice.bodyText,
+            buttonText: notice.buttonText,
+            accessibilityLabel: notice.accessibilityLabel
+        )
     }
 
     private struct TimelineContent {

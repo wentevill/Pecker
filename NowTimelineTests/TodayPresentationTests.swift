@@ -34,6 +34,45 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertEqual(content.sourceNotice?.buttonText, "去系统设置")
     }
 
+    func testEmptyStatePreservesPartialAuthorizationNotice() {
+        let notice = TimelineAuthorizationNotice.make(
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            settings: .init(calendarEnabled: true, remindersEnabled: true)
+        )
+        let content = TodayScreenContent.make(
+            from: .empty(notice),
+            now: Date(timeIntervalSince1970: 1_000),
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            settings: .init(calendarEnabled: true, remindersEnabled: true),
+            locale: Locale(identifier: "en_US_POSIX"),
+            calendar: utcCalendar()
+        )
+
+        guard case let .empty(sourceNotice) = content.mode else {
+            return XCTFail("Expected empty mode")
+        }
+        XCTAssertEqual(sourceNotice?.titleText, "部分权限受限")
+        XCTAssertEqual(sourceNotice?.buttonText, "去系统设置")
+        XCTAssertEqual(content.sourceNotice, sourceNotice)
+    }
+
+    func testEmptyStateOmitsNoticeWhenAllEnabledSourcesAreAuthorized() {
+        let content = TodayScreenContent.make(
+            from: .empty(nil),
+            now: Date(timeIntervalSince1970: 1_000),
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            settings: .init(calendarEnabled: true, remindersEnabled: true),
+            locale: Locale(identifier: "en_US_POSIX"),
+            calendar: utcCalendar()
+        )
+
+        guard case let .empty(sourceNotice) = content.mode else {
+            return XCTFail("Expected empty mode")
+        }
+        XCTAssertNil(sourceNotice)
+        XCTAssertNil(content.sourceNotice)
+    }
+
     func testSnapshotResolvesNowNextAndPinnedItemsSafely() throws {
         let items = [
             makeItem(id: "now"),
@@ -155,7 +194,7 @@ final class TodayPresentationTests: XCTestCase {
 
     func testHeaderAccessibilityLabelCombinesDateAndTodayTitle() {
         let content = TodayScreenContent.make(
-            from: .empty,
+            from: .empty(nil),
             now: Date(timeIntervalSince1970: 1_735_693_200),
             locale: Locale(identifier: "en_US_POSIX"),
             calendar: {
@@ -182,13 +221,13 @@ final class TodayPresentationTests: XCTestCase {
         losAngelesCalendar.timeZone = TimeZone(secondsFromGMT: -8 * 3_600)!
 
         let utcContent = TodayScreenContent.make(
-            from: .empty,
+            from: .empty(nil),
             now: date,
             locale: locale,
             calendar: utcCalendar
         )
         let losAngelesContent = TodayScreenContent.make(
-            from: .empty,
+            from: .empty(nil),
             now: date,
             locale: locale,
             calendar: losAngelesCalendar
@@ -196,6 +235,13 @@ final class TodayPresentationTests: XCTestCase {
 
         XCTAssertEqual(utcContent.header.dateText, "Wednesday, January 1")
         XCTAssertEqual(losAngelesContent.header.dateText, "Tuesday, December 31")
+    }
+
+    private func utcCalendar() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
     }
 
     private func makeItem(id: String) -> TimelineItem {

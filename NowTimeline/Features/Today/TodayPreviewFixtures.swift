@@ -176,7 +176,7 @@ enum TodayPreviewFixtures {
     }
 
     static func emptyContent() -> TodayScreenContent {
-        TodayScreenContent.make(from: .empty, now: sampleNow, locale: zhLocale, calendar: calendar)
+        TodayScreenContent.make(from: .empty(nil), now: sampleNow, locale: zhLocale, calendar: calendar)
     }
 
     static func staleContent() -> TodayScreenContent {

@@ -193,8 +193,8 @@ struct TodayScreen: View {
         switch content.mode {
         case .loading:
             loadingState
-        case .empty:
-            emptyState
+        case let .empty(sourceNotice):
+            emptyState(sourceNotice)
         case .permission:
             permissionState
         case .stale:
@@ -217,18 +217,24 @@ struct TodayScreen: View {
         }
     }
 
-    private var emptyState: some View {
-        centeredState(
-            icon: "calendar.badge.clock",
-            title: TodayStateCopy.emptyTitle,
-            message: "下拉即可刷新。"
-        ) {
-            Button(TodayStateCopy.staleRetry) {
-                onRetry()
+    private func emptyState(_ sourceNotice: TodayScreenContent.SourceNotice?) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let sourceNotice {
+                sourceNoticeBanner(sourceNotice)
             }
-            .buttonStyle(.plain)
-            .font(.headline.weight(.semibold))
-            .foregroundStyle(TimelineTheme.now)
+
+            centeredState(
+                icon: "calendar.badge.clock",
+                title: TodayStateCopy.emptyTitle,
+                message: "下拉即可刷新。"
+            ) {
+                Button(TodayStateCopy.staleRetry) {
+                    onRetry()
+                }
+                .buttonStyle(.plain)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(TimelineTheme.now)
+            }
         }
     }
 

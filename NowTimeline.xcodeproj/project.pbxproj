@@ -73,10 +73,10 @@
 		B1B7D097B76A2989CDB992A1 /* TodayViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayViewModel.swift; sourceTree = "<group>"; };
 		B45CD0508207D5966C625C8A /* NowTimeline.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = NowTimeline.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD19981FD636E131B0C760ED /* TodayScreenContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayScreenContent.swift; sourceTree = "<group>"; };
+		C6D39CD10ABF820C634FB154 /* pecker */ = {isa = PBXFileReference; lastKnownFileType = folder; name = pecker; path = .; sourceTree = SOURCE_ROOT; };
 		CD74443F43A156CE993808C0 /* EventKitGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGateway.swift; sourceTree = "<group>"; };
 		D18DFA2D94E878C145168DF9 /* NowTimelineApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NowTimelineApp.swift; sourceTree = "<group>"; };
 		D3F1BE0B824F8A44BE576CD8 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		DFF8F083E369CBCAF6B229C5 /* now-timeline-mvp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "now-timeline-mvp"; path = .; sourceTree = SOURCE_ROOT; };
 		E195CED876345D9D26C2DD8B /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		E25349E9E2125BF69C7D7962 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E3F1FE5E8400B955D306C345 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
@@ -230,7 +230,7 @@
 		A8F022E3A9796A89E2BA808B /* Packages */ = {
 			isa = PBXGroup;
 			children = (
-				DFF8F083E369CBCAF6B229C5 /* now-timeline-mvp */,
+				C6D39CD10ABF820C634FB154 /* pecker */,
 			);
 			name = Packages;
 			sourceTree = "<group>";

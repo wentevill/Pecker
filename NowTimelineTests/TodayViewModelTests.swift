@@ -11,9 +11,14 @@ final class TodayViewModelTests: XCTestCase {
         let gateway = FakeEventKitGateway(
             authorization: .init(calendar: .fullAccess, reminders: .denied)
         )
+        let onboardingDefaults = UserDefaults(
+            suiteName: "TodayViewModelTests.\(UUID().uuidString)"
+        )!
+        onboardingDefaults.set(true, forKey: OnboardingModel.completionKey)
         let dependencies = makeDependencies(gateway: gateway)
         let appModel = AppModel(
             dependencies: dependencies,
+            onboardingDefaults: onboardingDefaults,
             notificationCenter: notificationCenter
         )
 

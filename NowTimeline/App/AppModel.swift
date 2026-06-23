@@ -21,7 +21,7 @@ final class AppModel {
 
     init(
         dependencies: AppDependencies,
-        onboardingDefaults: UserDefaults? = nil,
+        onboardingDefaults: UserDefaults,
         notificationCenter: NotificationCenter = .default,
         refreshOperation: (@MainActor () async -> Void)? = nil
     ) {
@@ -31,8 +31,7 @@ final class AppModel {
         onboardingModel = OnboardingModel(
             gateway: dependencies.gateway,
             settingsStore: dependencies.settingsStore,
-            defaults: onboardingDefaults ?? .standard,
-            completionOverride: onboardingDefaults == nil ? true : nil
+            defaults: onboardingDefaults
         )
         self.notificationCenter = notificationCenter
         self.refreshOperation = refreshOperation ?? {

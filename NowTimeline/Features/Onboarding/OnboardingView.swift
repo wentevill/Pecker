@@ -116,9 +116,12 @@ struct OnboardingView: View {
             }
 
             Button {
+                let expectedStep = model.currentStep
                 Task {
-                    await model.performPrimaryAction()
-                    if model.isComplete {
+                    let completed = await model.performPrimaryAction(
+                        expectedStep: expectedStep
+                    )
+                    if completed && model.isComplete {
                         onComplete()
                     }
                 }
@@ -148,7 +151,10 @@ struct OnboardingView: View {
             if model.currentStep == .calendar
                 || model.currentStep == .reminders {
                 Button("跳过此来源") {
-                    model.skipCurrentPermission()
+                    let expectedStep = model.currentStep
+                    _ = model.skipCurrentPermission(
+                        expectedStep: expectedStep
+                    )
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.76))
@@ -156,8 +162,12 @@ struct OnboardingView: View {
                 .accessibilityHint("不请求权限并继续下一步")
             } else if model.currentStep == .liveActivityIntroduction {
                 Button("稍后开启") {
-                    model.completeWithoutLiveActivity()
-                    onComplete()
+                    let expectedStep = model.currentStep
+                    if model.completeWithoutLiveActivity(
+                        expectedStep: expectedStep
+                    ) {
+                        onComplete()
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white.opacity(0.76))

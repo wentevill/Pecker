@@ -53,53 +53,78 @@ final class OnboardingModel {
         currentStep == .complete
     }
 
-    func performPrimaryAction() async {
-        guard !isBusy else {
-            return
+    @discardableResult
+    func performPrimaryAction(
+        expectedStep: OnboardingStep? = nil
+    ) async -> Bool {
+        let expectedStep = expectedStep ?? currentStep
+        errorMessage = nil
+        guard !isBusy, currentStep == expectedStep else {
+            return false
         }
 
-        switch currentStep {
+        switch expectedStep {
         case .welcome:
             currentStep = .calendar
+            return true
         case .calendar:
-            await requestCalendar()
+            return await requestCalendar(expectedStep: expectedStep)
         case .reminders:
-            await requestReminders()
+            return await requestReminders(expectedStep: expectedStep)
         case .liveActivityIntroduction:
-            complete(liveActivityEnabled: true)
+            return complete(
+                liveActivityEnabled: true,
+                expectedStep: expectedStep
+            )
         case .complete:
-            break
+            return false
         }
     }
 
-    func skipCurrentPermission() {
-        guard !isBusy else {
-            return
+    @discardableResult
+    func skipCurrentPermission(expectedStep: OnboardingStep? = nil) -> Bool {
+        let expectedStep = expectedStep ?? currentStep
+        errorMessage = nil
+        guard !isBusy, currentStep == expectedStep else {
+            return false
         }
 
-        switch currentStep {
+        switch expectedStep {
         case .calendar:
             currentStep = .reminders
+            return true
         case .reminders:
             currentStep = .liveActivityIntroduction
+            return true
         case .welcome, .liveActivityIntroduction, .complete:
-            break
+            return false
         }
     }
 
-    func completeWithoutLiveActivity() {
-        guard currentStep == .liveActivityIntroduction, !isBusy else {
-            return
-        }
-        complete(liveActivityEnabled: false)
-    }
-
-    private func requestCalendar() async {
-        isBusy = true
+    @discardableResult
+    func completeWithoutLiveActivity(
+        expectedStep: OnboardingStep? = nil
+    ) -> Bool {
+        let expectedStep = expectedStep ?? currentStep
         errorMessage = nil
+        guard !isBusy, currentStep == expectedStep else {
+            return false
+        }
+        return complete(
+            liveActivityEnabled: false,
+            expectedStep: expectedStep
+        )
+    }
+
+    private func requestCalendar(
+        expectedStep: OnboardingStep
+    ) async -> Bool {
+        isBusy = true
         defer {
             isBusy = false
-            currentStep = .reminders
+            if currentStep == expectedStep {
+                currentStep = .reminders
+            }
         }
 
         do {
@@ -110,14 +135,19 @@ final class OnboardingModel {
             calendarStatus = .failed
             errorMessage = "无法访问日历，请稍后在系统设置中重试。"
         }
+
+        return true
     }
 
-    private func requestReminders() async {
+    private func requestReminders(
+        expectedStep: OnboardingStep
+    ) async -> Bool {
         isBusy = true
-        errorMessage = nil
         defer {
             isBusy = false
-            currentStep = .liveActivityIntroduction
+            if currentStep == expectedStep {
+                currentStep = .liveActivityIntroduction
+            }
         }
 
         do {
@@ -128,13 +158,23 @@ final class OnboardingModel {
             reminderStatus = .failed
             errorMessage = "无法访问提醒事项，请稍后在系统设置中重试。"
         }
+
+        return true
     }
 
-    private func complete(liveActivityEnabled: Bool) {
+    private func complete(
+        liveActivityEnabled: Bool,
+        expectedStep: OnboardingStep
+    ) -> Bool {
+        guard currentStep == expectedStep,
+              expectedStep == .liveActivityIntroduction else {
+            return false
+        }
         settingsStore.update {
             $0.liveActivityEnabled = liveActivityEnabled
         }
         defaults.set(true, forKey: Self.completionKey)
         currentStep = .complete
+        return true
     }
 }

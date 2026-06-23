@@ -29,6 +29,25 @@ final class OnboardingStateTests: XCTestCase {
     }
 
     @MainActor
+    func testDuplicateBeginWithStaleStepDoesNotStartCalendarRequest() async {
+        let fixture = makeFixture()
+        let expectedStep = fixture.model.currentStep
+
+        let firstResult = await fixture.model.performPrimaryAction(
+            expectedStep: expectedStep
+        )
+        let secondResult = await fixture.model.performPrimaryAction(
+            expectedStep: expectedStep
+        )
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(fixture.model.currentStep, .calendar)
+        let requestCounts = await fixture.gateway.requestCounts()
+        XCTAssertEqual(requestCounts, .init())
+    }
+
+    @MainActor
     func testCalendarRequestOccursOnlyOnPrimaryActionAndGrantedAdvances() async {
         let fixture = makeFixture(calendarResult: .success(true))
         await fixture.model.performPrimaryAction()
@@ -68,6 +87,26 @@ final class OnboardingStateTests: XCTestCase {
     }
 
     @MainActor
+    func testDuplicateCalendarSkipWithStaleStepDoesNotAdvancePastReminders() async {
+        let fixture = makeFixture()
+        await fixture.model.performPrimaryAction()
+        let expectedStep = fixture.model.currentStep
+
+        let firstResult = fixture.model.skipCurrentPermission(
+            expectedStep: expectedStep
+        )
+        let secondResult = fixture.model.skipCurrentPermission(
+            expectedStep: expectedStep
+        )
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(fixture.model.currentStep, .reminders)
+        let requestCounts = await fixture.gateway.requestCounts()
+        XCTAssertEqual(requestCounts, .init())
+    }
+
+    @MainActor
     func testCalendarErrorAdvancesAndRecordsMessage() async {
         let fixture = makeFixture(calendarResult: .failure(TestError.calendar))
         await fixture.model.performPrimaryAction()
@@ -77,6 +116,27 @@ final class OnboardingStateTests: XCTestCase {
         XCTAssertEqual(fixture.model.currentStep, .reminders)
         XCTAssertEqual(fixture.model.calendarStatus, .failed)
         XCTAssertEqual(fixture.model.errorMessage, "无法访问日历，请稍后在系统设置中重试。")
+    }
+
+    @MainActor
+    func testCalendarErrorClearsWhenSkippingToReminders() async {
+        let fixture = makeFixture(calendarResult: .failure(TestError.calendar))
+        await fixture.model.performPrimaryAction()
+        await fixture.model.performPrimaryAction(
+            expectedStep: .calendar
+        )
+        XCTAssertEqual(
+            fixture.model.errorMessage,
+            "无法访问日历，请稍后在系统设置中重试。"
+        )
+
+        let skipped = fixture.model.skipCurrentPermission(
+            expectedStep: fixture.model.currentStep
+        )
+
+        XCTAssertTrue(skipped)
+        XCTAssertEqual(fixture.model.currentStep, .liveActivityIntroduction)
+        XCTAssertNil(fixture.model.errorMessage)
     }
 
     @MainActor
@@ -141,6 +201,28 @@ final class OnboardingStateTests: XCTestCase {
     }
 
     @MainActor
+    func testDuplicateEnableWithStaleStepDoesNotRepeatCompletion() async {
+        let fixture = makeFixture()
+        await advanceToLiveActivity(fixture.model)
+        let expectedStep = fixture.model.currentStep
+
+        let firstResult = await fixture.model.performPrimaryAction(
+            expectedStep: expectedStep
+        )
+        let secondResult = await fixture.model.performPrimaryAction(
+            expectedStep: expectedStep
+        )
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(fixture.model.currentStep, .complete)
+        XCTAssertTrue(fixture.settingsStore.value.liveActivityEnabled)
+        XCTAssertTrue(
+            fixture.defaults.bool(forKey: "onboarding.completed.v1")
+        )
+    }
+
+    @MainActor
     func testEnableLiveActivityPersistsSettingAndCompletion() async {
         let fixture = makeFixture()
         await advanceToLiveActivity(fixture.model)
@@ -149,6 +231,28 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(fixture.model.currentStep, .complete)
         XCTAssertTrue(fixture.settingsStore.value.liveActivityEnabled)
+        XCTAssertTrue(
+            fixture.defaults.bool(forKey: "onboarding.completed.v1")
+        )
+    }
+
+    @MainActor
+    func testDuplicateEnableLaterWithStaleStepDoesNotRepeatCompletion() async {
+        let fixture = makeFixture(liveActivityEnabled: true)
+        await advanceToLiveActivity(fixture.model)
+        let expectedStep = fixture.model.currentStep
+
+        let firstResult = fixture.model.completeWithoutLiveActivity(
+            expectedStep: expectedStep
+        )
+        let secondResult = fixture.model.completeWithoutLiveActivity(
+            expectedStep: expectedStep
+        )
+
+        XCTAssertTrue(firstResult)
+        XCTAssertFalse(secondResult)
+        XCTAssertEqual(fixture.model.currentStep, .complete)
+        XCTAssertFalse(fixture.settingsStore.value.liveActivityEnabled)
         XCTAssertTrue(
             fixture.defaults.bool(forKey: "onboarding.completed.v1")
         )
@@ -194,14 +298,14 @@ final class OnboardingStateTests: XCTestCase {
         let firstTap = Task { await fixture.model.performPrimaryAction() }
         await gateway.waitForCalendarRequest()
         let secondTap = Task { await fixture.model.performPrimaryAction() }
-        await secondTap.value
+        _ = await secondTap.value
 
         XCTAssertTrue(fixture.model.isBusy)
         let requestCounts = await gateway.requestCounts()
         XCTAssertEqual(requestCounts, .init(calendar: 1))
 
         await gateway.releaseCalendarRequest()
-        await firstTap.value
+        _ = await firstTap.value
         XCTAssertEqual(fixture.model.currentStep, .reminders)
     }
 

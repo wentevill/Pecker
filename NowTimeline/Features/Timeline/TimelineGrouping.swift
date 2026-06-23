@@ -53,7 +53,7 @@ enum TimelineGrouping {
     }
 
     private static func isOverdueReminder(_ item: TimelineItem, now: Date) -> Bool {
-        guard item.source == .reminder, let endDate = item.endDate else {
+        guard !item.isAllDay, item.source == .reminder, let endDate = item.endDate else {
             return false
         }
 

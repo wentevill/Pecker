@@ -54,9 +54,11 @@ struct ItemDetailView: View {
         }
         .background(TimelineTheme.backgroundGradient.ignoresSafeArea())
         .foregroundStyle(TimelineTheme.textPrimary)
-        .navigationTitle(item.title)
+        .navigationTitle(Self.navigationTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
+
+    static let navigationTitle = "详情"
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {

@@ -179,6 +179,116 @@ final class TimelineGroupingTests: XCTestCase {
         )
     }
 
+    func testAllItemsAppearInExactlyOneSectionAndAllDayRemindersStayOnlyInAllDay() {
+        let now = date(1_000)
+        let allDayReminder = item(
+            id: "all-day-reminder",
+            title: "All-day reminder",
+            start: 800,
+            end: 900,
+            source: .reminder,
+            kind: .task,
+            isAllDay: true
+        )
+        let activeEvent = item(
+            id: "active-event",
+            title: "Active event",
+            start: 900,
+            end: 1_100,
+            source: .calendar,
+            kind: .meeting
+        )
+        let upcomingEvent = item(
+            id: "upcoming-event",
+            title: "Upcoming event",
+            start: 1_100,
+            end: 1_200,
+            source: .calendar,
+            kind: .meeting
+        )
+        let elapsedEvent = item(
+            id: "elapsed-event",
+            title: "Elapsed event",
+            start: 700,
+            end: 900,
+            source: .calendar,
+            kind: .meeting
+        )
+        let overdueReminder = item(
+            id: "overdue-reminder",
+            title: "Overdue reminder",
+            start: 800,
+            end: 900,
+            source: .reminder,
+            kind: .task
+        )
+
+        let sections = TimelineGrouping.sections(
+            items: [
+                allDayReminder,
+                activeEvent,
+                upcomingEvent,
+                elapsedEvent,
+                overdueReminder
+            ],
+            now: now
+        )
+
+        XCTAssertEqual(
+            sections.first(where: { $0.kind == .allDay })?.items.map(\.id),
+            [allDayReminder.id]
+        )
+        XCTAssertFalse(
+            sections.first(where: { $0.kind == .overdue })?.items.contains(where: { $0.id == allDayReminder.id }) ?? false
+        )
+
+        let flattenedIDs = sections.flatMap(\.items).map(\.id)
+        XCTAssertEqual(Set(flattenedIDs).count, flattenedIDs.count)
+        XCTAssertEqual(Set(flattenedIDs), [
+            allDayReminder.id,
+            activeEvent.id,
+            upcomingEvent.id,
+            elapsedEvent.id,
+            overdueReminder.id
+        ])
+    }
+
+    func testNoDuplicateIDsAcrossSectionsGenerally() {
+        let now = date(1_000)
+        let reminderEndingNow = item(
+            id: "reminder-ending-now",
+            title: "Reminder ending now",
+            start: 900,
+            end: 1_000,
+            source: .reminder,
+            kind: .task
+        )
+        let activeEvent = item(
+            id: "active-event",
+            title: "Active event",
+            start: 900,
+            end: 1_100,
+            source: .calendar,
+            kind: .meeting
+        )
+        let upcomingEvent = item(
+            id: "upcoming-event",
+            title: "Upcoming event",
+            start: 1_100,
+            end: 1_200,
+            source: .calendar,
+            kind: .meeting
+        )
+
+        let sections = TimelineGrouping.sections(
+            items: [upcomingEvent, activeEvent, reminderEndingNow],
+            now: now
+        )
+
+        let flattenedIDs = sections.flatMap(\.items).map(\.id)
+        XCTAssertEqual(Set(flattenedIDs).count, flattenedIDs.count)
+    }
+
     private func item(
         id: String,
         title: String,

@@ -3,6 +3,11 @@ import XCTest
 @testable import NowTimelineCore
 
 final class ItemDetailActionTests: XCTestCase {
+    @MainActor
+    func testNavigationTitleUsesStableShortCopy() {
+        XCTAssertEqual(ItemDetailView.navigationTitle, "详情")
+    }
+
     func testPrimaryButtonTitleReflectsPinnedState() {
         let item = makeItem()
         let pinnedSettings = TimelineSettings(

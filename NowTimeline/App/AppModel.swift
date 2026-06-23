@@ -75,10 +75,14 @@ final class AppModel {
         isActive = false
     }
 
-    func relevantSettingsDidChange() {
+    func settingsChanged() {
         if hasStarted {
             scheduleRefresh()
         }
+    }
+
+    func relevantSettingsDidChange() {
+        settingsChanged()
     }
 
     func refresh() async {

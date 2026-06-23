@@ -4,6 +4,36 @@ import XCTest
 @testable import NowTimeline
 
 final class TodayPresentationTests: XCTestCase {
+    func testPartialAuthorizationProducesNonBlockingNotice() {
+        let snapshot = TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: Date(timeIntervalSince1970: 1_000),
+            staleAfter: Date(timeIntervalSince1970: 2_000),
+            items: [makeItem(id: "now")],
+            nowItemID: "now",
+            concurrentNowCount: 0,
+            nextItemID: nil,
+            pinnedItemID: nil,
+            pinOrigin: nil
+        )
+        let content = TodayScreenContent.make(
+            from: .content(snapshot),
+            now: Date(timeIntervalSince1970: 1_000),
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            settings: .init(),
+            locale: Locale(identifier: "en_US_POSIX"),
+            calendar: {
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.locale = Locale(identifier: "en_US_POSIX")
+                calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+                return calendar
+            }()
+        )
+
+        XCTAssertEqual(content.sourceNotice?.titleText, "部分权限受限")
+        XCTAssertEqual(content.sourceNotice?.buttonText, "去系统设置")
+    }
+
     func testSnapshotResolvesNowNextAndPinnedItemsSafely() throws {
         let items = [
             makeItem(id: "now"),

@@ -13,6 +13,7 @@ final class TodayViewModel {
     private var refreshGeneration = 0
 
     private(set) var state: TimelineScreenState = .loading
+    private(set) var latestAuthorization: SourceAuthorization?
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -38,6 +39,7 @@ final class TodayViewModel {
             guard isCurrent(generation) else {
                 return
             }
+            latestAuthorization = authorization
             let fetchCalendar =
                 settings.calendarEnabled
                 && authorization.calendar == .fullAccess
@@ -114,6 +116,13 @@ final class TodayViewModel {
                 state = .failure(message)
             }
         }
+    }
+
+    func authorizationNotice() -> TimelineAuthorizationNotice? {
+        TimelineAuthorizationNotice.make(
+            authorization: latestAuthorization,
+            settings: dependencies.settingsStore.value
+        )
     }
 
     private func loadSnapshot(now: Date, generation: Int) async {

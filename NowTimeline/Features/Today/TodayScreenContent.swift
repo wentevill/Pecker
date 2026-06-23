@@ -52,6 +52,13 @@ struct TodayScreenContent: Equatable {
         let retryText: String
     }
 
+    struct SourceNotice: Equatable {
+        let titleText: String
+        let bodyText: String
+        let buttonText: String
+        let accessibilityLabel: String
+    }
+
     struct Stale: Equatable {
         let bannerText: String
         let retryText: String
@@ -76,10 +83,13 @@ struct TodayScreenContent: Equatable {
     let permission: Permission?
     let failure: Failure?
     let stale: Stale?
+    let sourceNotice: SourceNotice?
 
     static func make(
         from state: TimelineScreenState,
         now: Date,
+        authorization: SourceAuthorization? = nil,
+        settings: TimelineSettings = .init(),
         locale: Locale = .autoupdatingCurrent,
         calendar: Calendar = .autoupdatingCurrent
     ) -> TodayScreenContent {
@@ -103,7 +113,8 @@ struct TodayScreenContent: Equatable {
                 footer: nil,
                 permission: nil,
                 failure: nil,
-                stale: nil
+                stale: nil,
+                sourceNotice: nil
             )
         case .empty:
             return TodayScreenContent(
@@ -116,7 +127,8 @@ struct TodayScreenContent: Equatable {
                 footer: nil,
                 permission: nil,
                 failure: nil,
-                stale: nil
+                stale: nil,
+                sourceNotice: nil
             )
         case let .permissionRequired(authorization):
             return TodayScreenContent(
@@ -133,12 +145,15 @@ struct TodayScreenContent: Equatable {
                     buttonText: TodayStateCopy.permissionButton
                 ),
                 failure: nil,
-                stale: nil
+                stale: nil,
+                sourceNotice: nil
             )
         case let .stale(snapshot, message):
             let timeline = Self.timelineContent(
                 snapshot: snapshot,
                 now: now,
+                authorization: authorization,
+                settings: settings,
                 locale: locale,
                 calendar: calendar
             )
@@ -156,6 +171,8 @@ struct TodayScreenContent: Equatable {
                     bannerText: message,
                     retryText: TodayStateCopy.staleRetry
                 )
+                ,
+                sourceNotice: timeline.sourceNotice
             )
         case let .failure(message):
             return TodayScreenContent(
@@ -172,12 +189,15 @@ struct TodayScreenContent: Equatable {
                     bodyText: message,
                     retryText: TodayStateCopy.failureRetry
                 ),
-                stale: nil
+                stale: nil,
+                sourceNotice: nil
             )
         case let .content(snapshot):
             let timeline = Self.timelineContent(
                 snapshot: snapshot,
                 now: now,
+                authorization: authorization,
+                settings: settings,
                 locale: locale,
                 calendar: calendar
             )
@@ -191,7 +211,8 @@ struct TodayScreenContent: Equatable {
                 footer: timeline.footer,
                 permission: nil,
                 failure: nil,
-                stale: nil
+                stale: nil,
+                sourceNotice: timeline.sourceNotice
             )
         }
     }
@@ -202,11 +223,14 @@ struct TodayScreenContent: Equatable {
         let pinnedCard: Card?
         let summary: Summary?
         let footer: Footer?
+        let sourceNotice: SourceNotice?
     }
 
     private static func timelineContent(
         snapshot: TodaySnapshot,
         now: Date,
+        authorization: SourceAuthorization?,
+        settings: TimelineSettings,
         locale: Locale,
         calendar: Calendar
     ) -> TimelineContent {
@@ -235,7 +259,30 @@ struct TodayScreenContent: Equatable {
             ),
             footer: Footer(
                 generatedAtText: generatedAtText(snapshot.generatedAt, now: now, locale: locale)
+            ),
+            sourceNotice: sourceNotice(
+                authorization: authorization,
+                settings: settings
             )
+        )
+    }
+
+    private static func sourceNotice(
+        authorization: SourceAuthorization?,
+        settings: TimelineSettings
+    ) -> SourceNotice? {
+        guard let notice = TimelineAuthorizationNotice.make(
+            authorization: authorization,
+            settings: settings
+        ) else {
+            return nil
+        }
+
+        return SourceNotice(
+            titleText: notice.titleText,
+            bodyText: notice.bodyText,
+            buttonText: notice.buttonText,
+            accessibilityLabel: notice.accessibilityLabel
         )
     }
 

@@ -3,51 +3,72 @@ import SwiftUI
 import NowTimelineCore
 
 enum TodayPreviewFixtures {
+    static func makeSampleNow() -> Date {
+        sampleDate()
+    }
+
+    static func defaultSnapshot() -> TodaySnapshot {
+        snapshot(
+            generatedAt: sampleNow,
+            nowItemID: "now",
+            concurrentNowCount: 1,
+            nextItemID: "next",
+            pinnedItemID: "pinned",
+            pinOrigin: .automatic,
+            items: [
+                item(
+                    id: "now",
+                    title: "Daily Standup",
+                    start: sampleNow.addingTimeInterval(-18 * 60),
+                    end: sampleNow.addingTimeInterval(12 * 60),
+                    source: .calendar,
+                    kind: .meeting
+                ),
+                item(
+                    id: "shadow",
+                    title: "Shadow Sync",
+                    start: sampleNow.addingTimeInterval(-7 * 60),
+                    end: sampleNow.addingTimeInterval(18 * 60),
+                    source: .calendar,
+                    kind: .meeting
+                ),
+                item(
+                    id: "next",
+                    title: "Product Review",
+                    start: sampleNow.addingTimeInterval(12 * 60),
+                    end: sampleNow.addingTimeInterval(57 * 60),
+                    source: .calendar,
+                    kind: .meeting
+                ),
+                item(
+                    id: "pinned",
+                    title: "SQ 833 新加坡航空",
+                    start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
+                    end: sampleNow.addingTimeInterval(6 * 3_600),
+                    source: .calendar,
+                    kind: .flight,
+                    location: "T3 航站楼 · Gate B7"
+                )
+            ]
+        )
+    }
+
+    static func flightItem() -> TimelineItem {
+        item(
+            id: "flight",
+            title: "SQ 833 新加坡航空 · 上海飞新加坡",
+            start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
+            end: sampleNow.addingTimeInterval(6 * 3_600),
+            source: .calendar,
+            kind: .flight,
+            location: "T3 航站楼 · Gate B7",
+            notes: "登机口可能变更，请留意机场通知。此处用于验证长备注在详情页里的换行与可读性。"
+        )
+    }
+
     static func defaultContent() -> TodayScreenContent {
         content(
-            snapshot: snapshot(
-                generatedAt: sampleNow,
-                nowItemID: "now",
-                concurrentNowCount: 1,
-                nextItemID: "next",
-                pinnedItemID: "pinned",
-                pinOrigin: .automatic,
-                items: [
-                    item(
-                        id: "now",
-                        title: "Daily Standup",
-                        start: sampleNow.addingTimeInterval(-18 * 60),
-                        end: sampleNow.addingTimeInterval(12 * 60),
-                        source: .calendar,
-                        kind: .meeting
-                    ),
-                    item(
-                        id: "shadow",
-                        title: "Shadow Sync",
-                        start: sampleNow.addingTimeInterval(-7 * 60),
-                        end: sampleNow.addingTimeInterval(18 * 60),
-                        source: .calendar,
-                        kind: .meeting
-                    ),
-                    item(
-                        id: "next",
-                        title: "Product Review",
-                        start: sampleNow.addingTimeInterval(12 * 60),
-                        end: sampleNow.addingTimeInterval(57 * 60),
-                        source: .calendar,
-                        kind: .meeting
-                    ),
-                    item(
-                        id: "pinned",
-                        title: "SQ 833 新加坡航空",
-                        start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
-                        end: sampleNow.addingTimeInterval(6 * 3_600),
-                        source: .calendar,
-                        kind: .flight,
-                        location: "T3 航站楼 · Gate B7"
-                    )
-                ]
-            ),
+            snapshot: defaultSnapshot(),
             now: sampleNow
         )
     }
@@ -284,6 +305,7 @@ enum TodayPreviewFixtures {
         source: TimelineSource,
         kind: TimelineKind,
         location: String? = nil,
+        notes: String? = nil,
         isAllDay: Bool = false
     ) -> TimelineItem {
         TimelineItem(
@@ -296,7 +318,7 @@ enum TodayPreviewFixtures {
             source: source,
             kind: kind,
             location: location,
-            notes: nil
+            notes: notes
         )
     }
 
@@ -321,6 +343,7 @@ struct TodayPreviewHost: View {
             refreshAction: {},
             onOpenSettings: {},
             onOpenCard: { _ in },
+            onOpenConcurrentItems: {},
             onOpenSummary: {},
             onRetry: {}
         )
@@ -334,6 +357,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -345,6 +369,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -356,6 +381,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -367,6 +393,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -379,6 +406,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -390,6 +418,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -401,6 +430,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -412,6 +442,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )
@@ -423,6 +454,7 @@ struct TodayPreviewHost: View {
         refreshAction: {},
         onOpenSettings: {},
         onOpenCard: { _ in },
+        onOpenConcurrentItems: {},
         onOpenSummary: {},
         onRetry: {}
     )

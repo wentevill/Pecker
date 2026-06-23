@@ -1,9 +1,14 @@
 import SwiftUI
+import NowTimelineCore
 
 struct TodayView: View {
     @Environment(\.calendar) private var calendar
+    @Environment(\.openURL) private var openURL
     @Bindable var model: TodayViewModel
+    @Bindable var settingsStore: SettingsStore
+    let onSettingsChanged: @MainActor @Sendable () -> Void
     @State private var path: [TodayRoute] = []
+    @State private var isSettingsPresented = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -12,13 +17,16 @@ struct TodayView: View {
                     content: content(now: context.date),
                     refreshAction: { await model.refresh() },
                     onOpenSettings: {
-                        path.append(.settings)
+                        isSettingsPresented = true
                     },
                     onOpenCard: { card in
-                        path.append(.detail(card))
+                        path.append(.detail(itemID: card.id))
+                    },
+                    onOpenConcurrentItems: {
+                        path.append(.timeline(activeOnly: true))
                     },
                     onOpenSummary: {
-                        path.append(.timeline)
+                        path.append(.timeline(activeOnly: false))
                     },
                     onRetry: {
                         Task { await model.refresh() }
@@ -26,7 +34,23 @@ struct TodayView: View {
                 )
             }
             .navigationDestination(for: TodayRoute.self) { route in
-                TodayRoutePlaceholder(route: route)
+                destination(for: route)
+            }
+            .sheet(isPresented: $isSettingsPresented) {
+                SettingsView(
+                    settingsStore: settingsStore,
+                    viewModel: SettingsViewModel(
+                        settingsStore: settingsStore,
+                        authorization: model.latestAuthorization ?? .init(
+                            calendar: .notDetermined,
+                            reminders: .notDetermined
+                        ),
+                        onSettingsChanged: onSettingsChanged,
+                        openURL: { url in
+                            openURL(url)
+                        }
+                    )
+                )
             }
         }
     }
@@ -35,16 +59,64 @@ struct TodayView: View {
         TodayScreenContent.make(
             from: model.state,
             now: now,
+            authorization: model.latestAuthorization,
+            settings: settingsStore.value,
             locale: Locale(identifier: "zh_CN"),
             calendar: calendar
         )
     }
+
+    @ViewBuilder
+    private func destination(for route: TodayRoute) -> some View {
+        if let snapshot = model.state.snapshot {
+            switch route {
+            case let .timeline(activeOnly):
+                FullTimelineView(
+                    snapshot: snapshot,
+                    now: .now,
+                    settings: settingsStore.value,
+                    activeOnly: activeOnly,
+                    onSelectItem: { item in
+                        path.append(.detail(itemID: item.id))
+                    },
+                    onTogglePin: { item in
+                        togglePin(for: item)
+                    },
+                    onOpenSettings: {
+                        isSettingsPresented = true
+                    }
+                )
+            case let .detail(itemID):
+                if let item = snapshot.item(resolving: itemID) {
+                    ItemDetailView(
+                        item: item,
+                        now: .now,
+                        settingsStore: settingsStore,
+                        onSettingsChanged: onSettingsChanged
+                    )
+                } else {
+                    TodayRoutePlaceholder(route: route)
+                }
+            }
+        } else {
+            TodayRoutePlaceholder(route: route)
+        }
+    }
+
+    private func togglePin(for item: TimelineItem) {
+        settingsStore.update {
+            $0 = ItemDetailAction.updatedSettings(
+                byTogglingPinFor: item,
+                settings: $0
+            )
+        }
+        onSettingsChanged()
+    }
 }
 
 private enum TodayRoute: Hashable {
-    case settings
-    case timeline
-    case detail(TodayScreenContent.Card)
+    case timeline(activeOnly: Bool)
+    case detail(itemID: String)
 }
 
 struct TodayScreen: View {
@@ -52,6 +124,7 @@ struct TodayScreen: View {
     let refreshAction: () async -> Void
     let onOpenSettings: () -> Void
     let onOpenCard: (TodayScreenContent.Card) -> Void
+    let onOpenConcurrentItems: () -> Void
     let onOpenSummary: () -> Void
     let onRetry: () -> Void
 
@@ -251,8 +324,45 @@ struct TodayScreen: View {
         }
     }
 
+    private func sourceNoticeBanner(
+        _ notice: TodayScreenContent.SourceNotice
+    ) -> some View {
+        TimelineCard(accent: .neutral) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .foregroundStyle(Color.orange)
+                        .accessibilityHidden(true)
+
+                    Text(notice.titleText)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(TimelineTheme.textPrimary)
+
+                    Spacer(minLength: 8)
+                }
+
+                Text(notice.bodyText)
+                    .font(.subheadline)
+                    .foregroundStyle(TimelineTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button(notice.buttonText) {
+                    onOpenSettings()
+                }
+                .buttonStyle(.plain)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(TimelineTheme.next)
+                .accessibilityLabel(notice.accessibilityLabel)
+            }
+        }
+    }
+
     private var liveTimeline: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let sourceNotice = content.sourceNotice {
+                sourceNoticeBanner(sourceNotice)
+            }
+
             if let nowCard = content.nowCard {
                 timelineRow(
                     card: nowCard,
@@ -339,9 +449,15 @@ struct TodayScreen: View {
             }
 
             if let secondary = card.secondaryText {
-                Text(secondary)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.color(for: card.accent))
+                Button {
+                    onOpenConcurrentItems()
+                } label: {
+                    Text(secondary)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(TimelineTheme.color(for: card.accent))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(secondary)
             }
 
             if let progress = card.progress {
@@ -647,23 +763,19 @@ private struct TodayRoutePlaceholder: View {
 
     private var title: String {
         switch route {
-        case .settings:
-            "设置"
         case .timeline:
             "完整时间线"
-        case .detail(let card):
-            card.titleText
+        case .detail:
+            "日程详情"
         }
     }
 
     private var message: String {
         switch route {
-        case .settings:
-            "完整设置页留待下一步实现。"
         case .timeline:
-            "完整时间线留待下一步实现。"
-        case .detail(let card):
-            "\(card.statusText) · \(card.timeText)"
+            "没有可用的快照来显示此页面。"
+        case .detail:
+            "没有可用的项目来显示详情。"
         }
     }
 }

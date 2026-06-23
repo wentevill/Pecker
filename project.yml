@@ -20,7 +20,12 @@ targets:
       - path: NowTimeline/App
       - path: NowTimeline/Design
       - path: NowTimeline/EventKit
-      - path: NowTimeline/Features
+      - path: NowTimeline/Features/Onboarding
+      - path: NowTimeline/Features/Shared
+      - path: NowTimeline/Features/Today
+      - path: NowTimeline/Features/Detail
+      - path: NowTimeline/Features/Settings
+      - path: NowTimeline/Features/Timeline
       - path: NowTimeline/Persistence
       - path: NowTimeline/Resources
         buildPhase: resources

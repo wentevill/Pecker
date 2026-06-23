@@ -10,6 +10,12 @@ struct NowTimelineApp: App {
     private let root: AppRoot
 
     init() {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-previewToday") {
+            root = .previewToday
+            return
+        }
+#endif
         do {
             guard let defaults = UserDefaults(suiteName: AppGroup.identifier)
             else {
@@ -54,6 +60,7 @@ struct NowTimelineApp: App {
 
 private enum AppRoot {
     case ready(AppModel)
+    case previewToday
     case configurationFailure(String)
 }
 
@@ -64,6 +71,8 @@ private struct AppRootView: View {
         switch root {
         case let .ready(model):
             ReadyRootView(model: model)
+        case .previewToday:
+            TodayPreviewHost()
         case let .configurationFailure(message):
             ConfigurationFailureView(message: message)
         }
@@ -76,7 +85,7 @@ private struct ReadyRootView: View {
     var body: some View {
         Group {
             if model.onboardingCompleted {
-                PostOnboardingPlaceholder()
+                TodayView(model: model.todayViewModel)
             } else {
                 OnboardingView(model: model.onboardingModel) {
                     model.start()
@@ -87,27 +96,6 @@ private struct ReadyRootView: View {
             if model.onboardingCompleted {
                 model.start()
             }
-        }
-    }
-}
-
-private struct PostOnboardingPlaceholder: View {
-    var body: some View {
-        ZStack {
-            Color(red: 0.025, green: 0.055, blue: 0.13)
-                .ignoresSafeArea()
-            VStack(spacing: 12) {
-                Image(systemName: "timeline.selection")
-                    .font(.largeTitle)
-                Text(AppIdentity.displayName)
-                    .font(.title.bold())
-                Text("Today timeline is coming in Task 6.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-            }
-            .multilineTextAlignment(.center)
-            .padding(24)
-            .foregroundStyle(.white)
         }
     }
 }

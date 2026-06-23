@@ -43,3 +43,25 @@ public struct TodaySnapshot: Codable, Equatable, Sendable {
         date >= staleAfter
     }
 }
+
+public extension TodaySnapshot {
+    func item(resolving identifier: String?) -> TimelineItem? {
+        guard let identifier else {
+            return nil
+        }
+
+        return items.first { $0.id == identifier }
+    }
+
+    var resolvedNowItem: TimelineItem? {
+        item(resolving: nowItemID)
+    }
+
+    var resolvedNextItem: TimelineItem? {
+        item(resolving: nextItemID)
+    }
+
+    var resolvedPinnedItem: TimelineItem? {
+        item(resolving: pinnedItemID)
+    }
+}

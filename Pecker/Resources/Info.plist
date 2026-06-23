@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Now Timeline</string>
+	<string>Pecker</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -21,9 +21,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Now Timeline needs calendar access to show your upcoming events.</string>
+	<string>Pecker needs calendar access to show your upcoming events.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>Now Timeline needs reminders access to show your upcoming tasks.</string>
+	<string>Pecker needs reminders access to show your upcoming tasks.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

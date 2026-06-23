@@ -3,6 +3,6 @@ import XCTest
 
 final class SmokeTests: XCTestCase {
     func testAppModuleLoads() {
-        XCTAssertEqual(AppIdentity.displayName, "Now Timeline")
+        XCTAssertEqual(AppIdentity.displayName, "Pecker")
     }
 }

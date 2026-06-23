@@ -2,7 +2,7 @@ import SwiftUI
 import PeckerCore
 
 enum AppIdentity {
-    static let displayName = "Now Timeline"
+    static let displayName = "Pecker"
 }
 
 @main
@@ -47,7 +47,7 @@ struct PeckerApp: App {
             )
         } catch {
             root = .configurationFailure(
-                "无法打开共享 App Group（\(AppGroup.identifier)）。请检查签名与 entitlements 配置。"
+                "无法打开 Pecker 的共享 App Group（\(AppGroup.identifier)）。请检查签名与 entitlements 配置。"
             )
         }
     }

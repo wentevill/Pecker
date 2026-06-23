@@ -1,11 +1,11 @@
-name: NowTimeline
+name: Pecker
 
 options:
   deploymentTarget:
     iOS: "26.0"
 
 packages:
-  NowTimelineCore:
+  PeckerCore:
     path: .
 
 settings:
@@ -13,54 +13,59 @@ settings:
     SWIFT_VERSION: "6.0"
 
 targets:
-  NowTimeline:
+  Pecker:
     type: application
     platform: iOS
     sources:
-      - path: NowTimeline/App
-      - path: NowTimeline/Design
-      - path: NowTimeline/EventKit
-      - path: NowTimeline/Features/Onboarding
-      - path: NowTimeline/Features/Shared
-      - path: NowTimeline/Features/Today
-      - path: NowTimeline/Features/Detail
-      - path: NowTimeline/Features/Settings
-      - path: NowTimeline/Features/Timeline
-      - path: NowTimeline/Persistence
-      - path: NowTimeline/Resources
+      - path: Pecker/App
+      - path: Pecker/Design
+      - path: Pecker/EventKit
+      - path: Pecker/Features/Onboarding
+      - path: Pecker/Features/Shared
+      - path: Pecker/Features/Today
+      - path: Pecker/Features/Detail
+      - path: Pecker/Features/Settings
+      - path: Pecker/Features/Timeline
+      - path: Pecker/Persistence
+      - path: Pecker/Resources
         buildPhase: resources
         excludes:
           - Info.plist
-          - NowTimeline.entitlements
+          - Pecker.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimeline
+        PRODUCT_BUNDLE_IDENTIFIER: com.went.Pecker
+        PRODUCT_NAME: Pecker
         GENERATE_INFOPLIST_FILE: NO
-        INFOPLIST_FILE: NowTimeline/Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: NowTimeline/Resources/NowTimeline.entitlements
+        INFOPLIST_FILE: Pecker/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Pecker/Resources/Pecker.entitlements
+        DEVELOPMENT_TEAM: LNQGSLWW24
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+        PROVISIONING_PROFILE_SPECIFIER: ""
     dependencies:
-      - package: NowTimelineCore
-        product: NowTimelineCore
+      - package: PeckerCore
+        product: PeckerCore
 
-  NowTimelineTests:
+  PeckerTests:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: NowTimelineTests
+      - path: PeckerTests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.went.NowTimelineTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.went.PeckerTests
         GENERATE_INFOPLIST_FILE: YES
     dependencies:
-      - target: NowTimeline
+      - target: Pecker
 
 schemes:
-  NowTimeline:
+  Pecker:
     shared: true
     build:
       targets:
-        NowTimeline: all
-        NowTimelineTests: [test]
+        Pecker: all
+        PeckerTests: [test]
     test:
       targets:
-        - NowTimelineTests
+        - PeckerTests

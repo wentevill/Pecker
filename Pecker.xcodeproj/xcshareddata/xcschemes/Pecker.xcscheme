@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B1FBCE2CC9E5805E5DD9CB06"
-               BuildableName = "NowTimeline.app"
-               BlueprintName = "NowTimeline"
-               ReferencedContainer = "container:NowTimeline.xcodeproj">
+               BlueprintIdentifier = "07F424BE48489BC5EF2C968E"
+               BuildableName = "Pecker.app"
+               BlueprintName = "Pecker"
+               ReferencedContainer = "container:Pecker.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -29,10 +29,10 @@
             buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0A57A80C972C5A369A4BEBB0"
-               BuildableName = "NowTimelineTests.xctest"
-               BlueprintName = "NowTimelineTests"
-               ReferencedContainer = "container:NowTimeline.xcodeproj">
+               BlueprintIdentifier = "598057C341DA1B20314BE7BE"
+               BuildableName = "PeckerTests.xctest"
+               BlueprintName = "PeckerTests"
+               ReferencedContainer = "container:Pecker.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -46,10 +46,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B1FBCE2CC9E5805E5DD9CB06"
-            BuildableName = "NowTimeline.app"
-            BlueprintName = "NowTimeline"
-            ReferencedContainer = "container:NowTimeline.xcodeproj">
+            BlueprintIdentifier = "07F424BE48489BC5EF2C968E"
+            BuildableName = "Pecker.app"
+            BlueprintName = "Pecker"
+            ReferencedContainer = "container:Pecker.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -57,10 +57,10 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "0A57A80C972C5A369A4BEBB0"
-               BuildableName = "NowTimelineTests.xctest"
-               BlueprintName = "NowTimelineTests"
-               ReferencedContainer = "container:NowTimeline.xcodeproj">
+               BlueprintIdentifier = "598057C341DA1B20314BE7BE"
+               BuildableName = "PeckerTests.xctest"
+               BlueprintName = "PeckerTests"
+               ReferencedContainer = "container:Pecker.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -81,10 +81,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B1FBCE2CC9E5805E5DD9CB06"
-            BuildableName = "NowTimeline.app"
-            BlueprintName = "NowTimeline"
-            ReferencedContainer = "container:NowTimeline.xcodeproj">
+            BlueprintIdentifier = "07F424BE48489BC5EF2C968E"
+            BuildableName = "Pecker.app"
+            BlueprintName = "Pecker"
+            ReferencedContainer = "container:Pecker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -98,10 +98,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B1FBCE2CC9E5805E5DD9CB06"
-            BuildableName = "NowTimeline.app"
-            BlueprintName = "NowTimeline"
-            ReferencedContainer = "container:NowTimeline.xcodeproj">
+            BlueprintIdentifier = "07F424BE48489BC5EF2C968E"
+            BuildableName = "Pecker.app"
+            BlueprintName = "Pecker"
+            ReferencedContainer = "container:Pecker.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

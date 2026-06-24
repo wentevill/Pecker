@@ -24,6 +24,8 @@
 	<string>Pecker needs calendar access to show your upcoming events.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Pecker needs reminders access to show your upcoming tasks.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

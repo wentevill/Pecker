@@ -29,6 +29,7 @@ targets:
       - path: Pecker/Features/Settings
       - path: Pecker/Features/Timeline
       - path: Pecker/Persistence
+      - path: Shared
       - path: Pecker/Resources
         buildPhase: resources
         excludes:
@@ -45,6 +46,29 @@ targets:
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: Apple Development
         PROVISIONING_PROFILE_SPECIFIER: ""
+    dependencies:
+      - target: PeckerCore
+      - target: PeckerLiveActivity
+        embed: true
+
+  PeckerLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: PeckerLiveActivity
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wenttang.pecker.liveactivity
+        PRODUCT_NAME: PeckerLiveActivity
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: PeckerLiveActivity/Info.plist
+        CODE_SIGN_ENTITLEMENTS: PeckerLiveActivity/PeckerLiveActivity.entitlements
+        DEVELOPMENT_TEAM: LNQGSLWW24
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: Apple Development
+        PROVISIONING_PROFILE_SPECIFIER: ""
+        SKIP_INSTALL: YES
     dependencies:
       - target: PeckerCore
 
@@ -78,6 +102,7 @@ schemes:
     build:
       targets:
         Pecker: all
+        PeckerLiveActivity: all
         PeckerTests: [test]
         PeckerCoreTests: [test]
     test:

@@ -196,6 +196,71 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testPermissionRequiredDoesNotReconcileWhenEmptySnapshotSaveFails() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let activityClient = RecordingActivityClient(
+            snapshots: [
+                ActivityClientSnapshot(
+                    id: "activity-1",
+                    localDayIdentifier: "2027-01-15",
+                    contentState: contentState(title: "Private content", at: now)
+                )
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(
+                authorization: .init(calendar: .writeOnly, reminders: .denied)
+            ),
+            store: FakeSnapshotStore(saveError: TestError.save),
+            settings: .init(
+                remindersEnabled: false,
+                liveActivityEnabled: false
+            ),
+            activityClient: activityClient
+        )
+
+        await viewModel.refresh(now: now)
+
+        XCTAssertEqual(activityClient.operations(), [])
+    }
+
+    @MainActor
+    func testPermissionRequiredSavesEmptySnapshotAndEndsEnabledLiveActivity() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let store = FakeSnapshotStore()
+        let activityClient = RecordingActivityClient(
+            snapshots: [
+                ActivityClientSnapshot(
+                    id: "activity-1",
+                    localDayIdentifier: "2027-01-15",
+                    contentState: contentState(title: "Private content", at: now)
+                )
+            ]
+        )
+        let authorization = SourceAuthorization(
+            calendar: .writeOnly,
+            reminders: .denied
+        )
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(authorization: authorization),
+            store: store,
+            settings: .init(
+                remindersEnabled: false,
+                liveActivityEnabled: true
+            ),
+            activityClient: activityClient
+        )
+
+        await viewModel.refresh(now: now)
+
+        XCTAssertEqual(viewModel.state, .permissionRequired(authorization))
+        let savedSnapshots = await store.savedSnapshots()
+        XCTAssertEqual(savedSnapshots.count, 1)
+        XCTAssertEqual(savedSnapshots.first?.items, [])
+        XCTAssertEqual(activityClient.operations(), [.end(id: "activity-1")])
+    }
+
+    @MainActor
     func testDisabledSourcesProduceAndSaveEmptySnapshotWithoutPermissionPrompt() async {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let authorization = SourceAuthorization(
@@ -491,6 +556,43 @@ final class TodayViewModelTests: XCTestCase {
         }
         XCTAssertEqual(snapshot.generatedAt, newerNow)
         XCTAssertEqual(snapshot.items.map(\.id), ["calendar:newer"])
+    }
+
+    @MainActor
+    func testOlderLiveActivityReconcileCannotCompleteAfterNewerRefresh() async throws {
+        let olderNow = Date(timeIntervalSince1970: 1_800_000_000)
+        let newerNow = olderNow.addingTimeInterval(60)
+        let activityClient = DelayedFirstStartActivityClient()
+        let viewModel = makeViewModel(
+            gateway: SequencedEventsGateway(
+                events: [
+                    event(identifier: "older", title: "Older meeting", at: olderNow),
+                    event(identifier: "newer", title: "Newer meeting", at: newerNow)
+                ],
+                authorization: .init(calendar: .fullAccess, reminders: .denied)
+            ),
+            settings: .init(remindersEnabled: false, liveActivityEnabled: true),
+            activityClient: activityClient
+        )
+
+        let olderRefresh = Task {
+            await viewModel.refresh(now: olderNow)
+        }
+        await activityClient.waitUntilFirstStartEntered()
+
+        let newerRefresh = Task {
+            await viewModel.refresh(now: newerNow)
+        }
+        try await Task.sleep(for: .milliseconds(50))
+        activityClient.releaseFirstStart()
+
+        await olderRefresh.value
+        await newerRefresh.value
+
+        XCTAssertEqual(
+            activityClient.startedTitles(),
+            ["Older meeting", "Newer meeting"]
+        )
     }
 
     func testNewerSnapshotPersistsLastWhenOlderSaveIsAlreadyInFlight() async throws {
@@ -804,6 +906,37 @@ private actor OverlappingRefreshGateway: EventKitGatewayProtocol {
     }
 }
 
+private actor SequencedEventsGateway: EventKitGatewayProtocol {
+    private let events: [EventRecord]
+    private let sourceAuthorization: SourceAuthorization
+    private var fetchCount = 0
+
+    init(events: [EventRecord], authorization: SourceAuthorization) {
+        self.events = events
+        sourceAuthorization = authorization
+    }
+
+    func authorization() -> SourceAuthorization {
+        sourceAuthorization
+    }
+
+    func requestCalendarAccess() async throws -> Bool { false }
+    func requestReminderAccess() async throws -> Bool { false }
+
+    func fetchToday(calendar: Calendar, now: Date) async throws -> [EventRecord] {
+        let index = min(fetchCount, events.count - 1)
+        fetchCount += 1
+        return [events[index]]
+    }
+
+    func fetchReminders(
+        calendar: Calendar,
+        now: Date
+    ) async throws -> [ReminderRecord] {
+        []
+    }
+}
+
 private actor FetchBarrier {
     private var enteredCount = 0
     private var continuations: [CheckedContinuation<Void, Never>] = []
@@ -946,6 +1079,118 @@ private final class RecordingActivityClient: ActivityClient, @unchecked Sendable
     }
 }
 
+private final class DelayedFirstStartActivityClient: ActivityClient, @unchecked Sendable {
+    private let lock = NSLock()
+    private var recordedOperations: [ActivityClientOperation] = []
+    private var startCount = 0
+    private var firstStartEntered = false
+    private var firstStartWaiters: [CheckedContinuation<Void, Never>] = []
+    private var firstStartRelease: CheckedContinuation<Void, Never>?
+    private var firstStartReleaseRequested = false
+
+    func activitySnapshots() async -> [ActivityClientSnapshot] {
+        []
+    }
+
+    func start(
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date,
+        attributes: PeckerActivityAttributes
+    ) async throws {
+        let shouldDelay = lock.withLock {
+            startCount += 1
+            guard startCount == 1 else {
+                return false
+            }
+
+            firstStartEntered = true
+            let waiters = firstStartWaiters
+            firstStartWaiters.removeAll()
+            waiters.forEach { $0.resume() }
+            return true
+        }
+
+        if shouldDelay {
+            await withCheckedContinuation { continuation in
+                let shouldResumeImmediately = lock.withLock {
+                    if firstStartReleaseRequested {
+                        return true
+                    }
+                    firstStartRelease = continuation
+                    return false
+                }
+                if shouldResumeImmediately {
+                    continuation.resume()
+                }
+            }
+        }
+
+        lock.withLock {
+            recordedOperations.append(
+                .start(state: state, staleDate: staleDate, attributes: attributes)
+            )
+        }
+    }
+
+    func update(
+        id: String,
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date
+    ) async {
+        lock.withLock {
+            recordedOperations.append(
+                .update(id: id, state: state, staleDate: staleDate)
+            )
+        }
+    }
+
+    func end(id: String) async {
+        lock.withLock {
+            recordedOperations.append(.end(id: id))
+        }
+    }
+
+    func waitUntilFirstStartEntered() async {
+        let alreadyEntered = lock.withLock { firstStartEntered }
+        if alreadyEntered {
+            return
+        }
+
+        await withCheckedContinuation { continuation in
+            lock.withLock {
+                if firstStartEntered {
+                    continuation.resume()
+                } else {
+                    firstStartWaiters.append(continuation)
+                }
+            }
+        }
+    }
+
+    func releaseFirstStart() {
+        let continuation = lock.withLock {
+            let continuation = firstStartRelease
+            firstStartRelease = nil
+            if continuation == nil {
+                firstStartReleaseRequested = true
+            }
+            return continuation
+        }
+        continuation?.resume()
+    }
+
+    func startedTitles() -> [String] {
+        lock.withLock {
+            recordedOperations.compactMap { operation in
+                guard case let .start(state, _, _) = operation else {
+                    return nil
+                }
+                return state.primaryTitle
+            }
+        }
+    }
+}
+
 private func contentState(
     title: String,
     at date: Date
@@ -966,10 +1211,14 @@ private func contentState(
     )
 }
 
-private func event(identifier: String = "event", at date: Date) -> EventRecord {
+private func event(
+    identifier: String = "event",
+    title: String = "Team meeting",
+    at date: Date
+) -> EventRecord {
     EventRecord(
         identifier: identifier,
-        title: "Team meeting",
+        title: title,
         startDate: date,
         endDate: date.addingTimeInterval(1_800),
         isAllDay: false,

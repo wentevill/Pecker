@@ -9,6 +9,7 @@ final class TodayViewModel {
 
     private let dependencies: AppDependencies
     private let snapshotCommitter: SnapshotCommitter
+    private let activityReconciliationQueue = ActivityReconciliationQueue()
     private var previousSnapshot: TodaySnapshot?
     private var refreshGeneration = 0
 
@@ -51,16 +52,22 @@ final class TodayViewModel {
             guard fetchCalendar || fetchReminders
                     || (!settings.calendarEnabled && !settings.remindersEnabled)
             else {
-                if isCurrent(generation) {
-                    if !settings.liveActivityEnabled {
-                        await reconcileLiveActivity(
-                            snapshot: emptySnapshot(now: now),
-                            settings: settings,
-                            now: now
-                        )
-                    }
-                    state = .permissionRequired(authorization)
+                let snapshot = emptySnapshot(now: now)
+                try await snapshotCommitter.save(snapshot)
+                try Task.checkCancellation()
+                guard isCurrent(generation) else {
+                    return
                 }
+                await reconcileLiveActivity(
+                    snapshot: snapshot,
+                    settings: settings,
+                    now: now,
+                    generation: generation
+                )
+                guard isCurrent(generation) else {
+                    return
+                }
+                state = .permissionRequired(authorization)
                 return
             }
 
@@ -111,7 +118,8 @@ final class TodayViewModel {
             await reconcileLiveActivity(
                 snapshot: snapshot,
                 settings: settings,
-                now: now
+                now: now,
+                generation: generation
             )
             guard isCurrent(generation) else {
                 return
@@ -148,21 +156,34 @@ final class TodayViewModel {
     private func reconcileLiveActivity(
         snapshot: TodaySnapshot,
         settings: TimelineSettings,
-        now: Date
+        now: Date,
+        generation: Int
     ) async {
+        await activityReconciliationQueue.acquire()
+        guard isCurrent(generation), !Task.isCancelled else {
+            await activityReconciliationQueue.release()
+            return
+        }
+
+        let statusText: String
         do {
             let decision = try await dependencies.activityCoordinator.reconcile(
                 snapshot: snapshot,
                 settings: settings,
                 now: now
             )
-            liveActivityStatusText = statusText(
+            statusText = self.statusText(
                 for: decision,
                 settings: settings
             )
         } catch {
-            liveActivityStatusText = "暂不可用"
+            statusText = "暂不可用"
         }
+
+        if isCurrent(generation), !Task.isCancelled {
+            liveActivityStatusText = statusText
+        }
+        await activityReconciliationQueue.release()
     }
 
     private func statusText(
@@ -232,6 +253,32 @@ final class TodayViewModel {
 
     private func isCurrent(_ generation: Int) -> Bool {
         generation == refreshGeneration
+    }
+}
+
+private actor ActivityReconciliationQueue {
+    private var isRunning = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func acquire() async {
+        if !isRunning {
+            isRunning = true
+            return
+        }
+
+        await withCheckedContinuation {
+            waiters.append($0)
+        }
+    }
+
+    func release() {
+        guard !waiters.isEmpty else {
+            isRunning = false
+            return
+        }
+
+        let next = waiters.removeFirst()
+        next.resume()
     }
 }
 

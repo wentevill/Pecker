@@ -7,30 +7,52 @@ final class SettingsViewModel {
     let settingsStore: SettingsStore
     let authorization: SourceAuthorization
 
+    private let liveActivityStatusProvider: @MainActor () -> String
     private let onSettingsChanged: @MainActor () -> Void
     private let openURL: (URL) -> Void
 
     init(
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
+        liveActivityStatusText: @escaping @MainActor () -> String = {
+            "等待内容"
+        },
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
     ) {
         self.settingsStore = settingsStore
         self.authorization = authorization
+        liveActivityStatusProvider = liveActivityStatusText
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
     }
 
     var liveActivityStatusText: String {
-        settingsStore.value.liveActivityEnabled ? "等待内容" : "已暂停"
+        guard settingsStore.value.liveActivityEnabled else {
+            return "已暂停"
+        }
+
+        switch liveActivityStatusProvider() {
+        case "运行中":
+            return "运行中"
+        case "暂不可用":
+            return "暂不可用"
+        default:
+            return "等待内容"
+        }
     }
 
     var liveActivityDescriptionText: String {
-        if settingsStore.value.liveActivityEnabled {
-            return "开启后，Pecker 会在刷新出当前安排时更新锁定屏幕与灵动岛。"
+        switch liveActivityStatusText {
+        case "已暂停":
+            return "已暂停锁定屏幕与灵动岛显示；再次开启后会在下次刷新时恢复。"
+        case "运行中":
+            return "锁定屏幕与灵动岛会跟随时间线刷新更新。"
+        case "暂不可用":
+            return "系统暂时无法更新 Live Activity；时间线仍会正常显示。"
+        default:
+            return "开启后，刷新出当前安排时会显示在锁定屏幕与灵动岛。"
         }
-        return "已暂停锁定屏幕与灵动岛显示；再次开启后会在下次刷新时恢复。"
     }
 
     func sourceStatusText(for source: TimelineSource) -> String {

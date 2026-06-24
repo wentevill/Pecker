@@ -15,7 +15,7 @@ final class TodayViewModel {
 
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
-    private(set) var liveActivityStatusText = "已暂停"
+    private(set) var liveActivityStatusText = "等待内容"
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies

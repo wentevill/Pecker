@@ -39,12 +39,15 @@ struct TodayView: View {
             .sheet(isPresented: $isSettingsPresented) {
                 SettingsView(
                     settingsStore: settingsStore,
-                    viewModel: SettingsViewModel(
+                    viewModel: Self.makeSettingsViewModel(
                         settingsStore: settingsStore,
                         authorization: model.latestAuthorization ?? .init(
                             calendar: .notDetermined,
                             reminders: .notDetermined
                         ),
+                        liveActivityStatusText: {
+                            model.liveActivityStatusText
+                        },
                         onSettingsChanged: onSettingsChanged,
                         openURL: { url in
                             openURL(url)
@@ -111,6 +114,23 @@ struct TodayView: View {
             )
         }
         onSettingsChanged()
+    }
+
+    @MainActor
+    static func makeSettingsViewModel(
+        settingsStore: SettingsStore,
+        authorization: SourceAuthorization,
+        liveActivityStatusText: @escaping @MainActor () -> String,
+        onSettingsChanged: @escaping @MainActor () -> Void,
+        openURL: @escaping (URL) -> Void
+    ) -> SettingsViewModel {
+        SettingsViewModel(
+            settingsStore: settingsStore,
+            authorization: authorization,
+            liveActivityStatusText: liveActivityStatusText,
+            onSettingsChanged: onSettingsChanged,
+            openURL: openURL
+        )
     }
 }
 

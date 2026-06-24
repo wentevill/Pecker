@@ -84,6 +84,33 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLiveActivityRowUsesKnownRuntimeStatusWhenEnabled() {
+        let store = makeStore()
+        store.update { $0.liveActivityEnabled = true }
+
+        let unavailable = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            liveActivityStatusText: { "暂不可用" },
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+        XCTAssertEqual(unavailable.liveActivityStatusText, "暂不可用")
+
+        let running = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            liveActivityStatusText: { "运行中" },
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+        XCTAssertEqual(running.liveActivityStatusText, "运行中")
+
+        store.update { $0.liveActivityEnabled = false }
+        XCTAssertEqual(running.liveActivityStatusText, "已暂停")
+    }
+
+    @MainActor
     private func makeStore() -> SettingsStore {
         SettingsStore(
             defaults: UserDefaults(

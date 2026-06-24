@@ -4,6 +4,26 @@ import XCTest
 @testable import Pecker
 
 final class TodayPresentationTests: XCTestCase {
+    @MainActor
+    func testTodayViewSettingsViewModelSurfacesTodayLiveActivityStatus() {
+        let store = SettingsStore(
+            defaults: UserDefaults(
+                suiteName: "TodayPresentationTests.\(UUID().uuidString)"
+            )!
+        )
+        store.update { $0.liveActivityEnabled = true }
+
+        let viewModel = TodayView.makeSettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            liveActivityStatusText: { "暂不可用" },
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+
+        XCTAssertEqual(viewModel.liveActivityStatusText, "暂不可用")
+    }
+
     func testPartialAuthorizationProducesNonBlockingNotice() {
         let snapshot = TodaySnapshot(
             schemaVersion: TodaySnapshot.currentSchemaVersion,

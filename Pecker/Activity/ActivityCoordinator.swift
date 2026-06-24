@@ -19,21 +19,60 @@ struct ActivityCoordinator: Sendable {
         let attributes = PeckerActivityAttributes(
             localDayIdentifier: localDayIdentifier(for: now)
         )
-        let decision = await decision(
+        let activitySnapshots = await client.activitySnapshots()
+        let staleSnapshots = activitySnapshots
+            .filter { $0.localDayIdentifier != attributes.localDayIdentifier }
+            .sorted { $0.id < $1.id }
+        let currentDaySnapshots = activitySnapshots
+            .filter { $0.localDayIdentifier == attributes.localDayIdentifier }
+            .sorted { $0.id < $1.id }
+        let currentDaySnapshot = currentDaySnapshots.first
+        let duplicateSnapshots = Array(currentDaySnapshots.dropFirst())
+        let decision = decision(
             snapshot: snapshot,
             settings: settings,
-            now: now
+            now: now,
+            currentDaySnapshot: currentDaySnapshot
         )
 
-        try await client.apply(decision, attributes: attributes)
+        if case .end = decision {
+            for snapshot in staleSnapshots + currentDaySnapshots {
+                await client.end(id: snapshot.id)
+            }
+            return decision
+        }
+
+        for snapshot in staleSnapshots + duplicateSnapshots {
+            await client.end(id: snapshot.id)
+        }
+
+        switch decision {
+        case .none, .end:
+            return decision
+        case let .start(state, staleDate):
+            try await client.start(
+                state: state,
+                staleDate: staleDate,
+                attributes: attributes
+            )
+        case let .update(state, staleDate):
+            if let currentDaySnapshot {
+                await client.update(
+                    id: currentDaySnapshot.id,
+                    state: state,
+                    staleDate: staleDate
+                )
+            }
+        }
         return decision
     }
 
     private func decision(
         snapshot: TodaySnapshot,
         settings: TimelineSettings,
-        now: Date
-    ) async -> ActivityDecision {
+        now: Date,
+        currentDaySnapshot: ActivityClientSnapshot?
+    ) -> ActivityDecision {
         guard settings.liveActivityEnabled else {
             return .end
         }
@@ -43,7 +82,7 @@ struct ActivityCoordinator: Sendable {
         }
 
         let staleDate = staleDate(for: state, snapshot: snapshot, now: now)
-        guard let currentState = await client.currentState() else {
+        guard let currentState = currentDaySnapshot?.contentState else {
             return .start(state, staleDate)
         }
 

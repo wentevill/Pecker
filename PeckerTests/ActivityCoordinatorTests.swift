@@ -18,8 +18,7 @@ final class ActivityCoordinatorTests: XCTestCase {
         )
 
         XCTAssertEqual(decision, .end)
-        let appliedDecisions = client.appliedDecisions()
-        XCTAssertEqual(appliedDecisions, [.end])
+        XCTAssertEqual(client.appliedOperations(), [])
     }
 
     func testFirstActivationStartsWithNowStateAndLocalDayAttributes() async throws {
@@ -81,10 +80,18 @@ final class ActivityCoordinatorTests: XCTestCase {
         let expectedStaleDate = nextItem.startDate
 
         XCTAssertEqual(decision, .start(expectedState, expectedStaleDate))
-        let appliedDecisions = client.appliedDecisions()
-        XCTAssertEqual(appliedDecisions, [decision])
-        let appliedAttributes = client.appliedAttributes()
-        XCTAssertEqual(appliedAttributes.first?.localDayIdentifier, "2026-06-24")
+        XCTAssertEqual(
+            client.appliedOperations(),
+            [
+                .start(
+                    state: expectedState,
+                    staleDate: expectedStaleDate,
+                    attributes: PeckerActivityAttributes(
+                        localDayIdentifier: "2026-06-24"
+                    )
+                )
+            ]
+        )
     }
 
     func testChangedContentUpdatesCurrentActivity() async throws {
@@ -109,8 +116,16 @@ final class ActivityCoordinatorTests: XCTestCase {
             generatedAt: snapshot.generatedAt
         )
         XCTAssertEqual(decision, .update(expectedState, nowItem.endDate!))
-        let appliedDecisions = client.appliedDecisions()
-        XCTAssertEqual(appliedDecisions, [decision])
+        XCTAssertEqual(
+            client.appliedOperations(),
+            [
+                .update(
+                    id: "current",
+                    state: expectedState,
+                    staleDate: nowItem.endDate!
+                )
+            ]
+        )
     }
 
     func testEqualContentProducesNoneAndAppliesNoOp() async throws {
@@ -134,8 +149,7 @@ final class ActivityCoordinatorTests: XCTestCase {
         )
 
         XCTAssertEqual(decision, .none)
-        let appliedDecisions = client.appliedDecisions()
-        XCTAssertEqual(appliedDecisions, [.none])
+        XCTAssertEqual(client.appliedOperations(), [])
     }
 
     func testEmptySnapshotEndsActivity() async throws {
@@ -150,8 +164,7 @@ final class ActivityCoordinatorTests: XCTestCase {
         )
 
         XCTAssertEqual(decision, .end)
-        let appliedDecisions = client.appliedDecisions()
-        XCTAssertEqual(appliedDecisions, [.end])
+        XCTAssertEqual(client.appliedOperations(), [])
     }
 
     func testFallsBackFromNowToNextThenUnfinishedPinnedOnly() async throws {
@@ -239,6 +252,88 @@ final class ActivityCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(decision.staleDate, snapshot.staleAfter)
     }
+
+    func testStaleDayActivityDoesNotSuppressStartForCurrentDayAndIsEnded() async throws {
+        let staleState = makeContentState(primaryTitle: "Yesterday")
+        let client = FakeActivityClient(
+            snapshots: [
+                ActivityClientSnapshot(
+                    id: "stale",
+                    localDayIdentifier: "2026-06-23",
+                    contentState: staleState
+                )
+            ]
+        )
+        let coordinator = ActivityCoordinator(client: client, calendar: utcCalendar())
+        let nowItem = makeItem(id: "now", title: "Today")
+        let snapshot = makeSnapshot(now: nowItem)
+
+        let decision = try await coordinator.reconcile(
+            snapshot: snapshot,
+            settings: TimelineSettings(liveActivityEnabled: true),
+            now: testNow
+        )
+
+        XCTAssertEqual(decision.primaryTitle, "Today")
+        XCTAssertEqual(
+            client.appliedOperations(),
+            [
+                .end(id: "stale"),
+                .start(
+                    state: makeContentState(
+                        primaryTitle: "Today",
+                        primarySubtitle: "Room",
+                        primaryStartDate: nowItem.startDate,
+                        primaryEndDate: nowItem.endDate,
+                        primarySourceIdentifier: nowItem.sourceIdentifier,
+                        generatedAt: snapshot.generatedAt
+                    ),
+                    staleDate: nowItem.endDate!,
+                    attributes: PeckerActivityAttributes(
+                        localDayIdentifier: "2026-06-24"
+                    )
+                )
+            ]
+        )
+    }
+
+    func testDuplicateCurrentDayActivitiesAreCollapsedWhileKeepingOneMatchingActivity() async throws {
+        let nowItem = makeItem(id: "now", title: "Updated")
+        let snapshot = makeSnapshot(now: nowItem)
+        let currentState = makeContentState(
+            primaryTitle: "Updated",
+            primarySubtitle: "Room",
+            primaryStartDate: nowItem.startDate,
+            primaryEndDate: nowItem.endDate,
+            primarySourceIdentifier: nowItem.sourceIdentifier,
+            generatedAt: snapshot.generatedAt
+        )
+        let duplicateState = makeContentState(primaryTitle: "Duplicate")
+        let client = FakeActivityClient(
+            snapshots: [
+                ActivityClientSnapshot(
+                    id: "current-b",
+                    localDayIdentifier: "2026-06-24",
+                    contentState: duplicateState
+                ),
+                ActivityClientSnapshot(
+                    id: "current-a",
+                    localDayIdentifier: "2026-06-24",
+                    contentState: currentState
+                )
+            ]
+        )
+        let coordinator = ActivityCoordinator(client: client, calendar: utcCalendar())
+
+        let decision = try await coordinator.reconcile(
+            snapshot: snapshot,
+            settings: TimelineSettings(liveActivityEnabled: true),
+            now: testNow
+        )
+
+        XCTAssertEqual(decision, .none)
+        XCTAssertEqual(client.appliedOperations(), [.end(id: "current-b")])
+    }
 }
 
 private let testNow = DateComponents(
@@ -250,32 +345,55 @@ private let testNow = DateComponents(
 ).date!
 
 private final class FakeActivityClient: ActivityClient, @unchecked Sendable {
-    private let state: PeckerActivityAttributes.ContentState?
-    private var decisions: [ActivityDecision] = []
-    private var attributes: [PeckerActivityAttributes] = []
+    private let snapshots: [ActivityClientSnapshot]
+    private var operations: [ActivityClientOperation] = []
 
     init(currentState: PeckerActivityAttributes.ContentState? = nil) {
-        self.state = currentState
+        if let currentState {
+            self.snapshots = [
+                ActivityClientSnapshot(
+                    id: "current",
+                    localDayIdentifier: "2026-06-24",
+                    contentState: currentState
+                )
+            ]
+        } else {
+            self.snapshots = []
+        }
     }
 
-    func currentState() async -> PeckerActivityAttributes.ContentState? {
-        state
+    init(snapshots: [ActivityClientSnapshot]) {
+        self.snapshots = snapshots
     }
 
-    func apply(
-        _ decision: ActivityDecision,
+    func activitySnapshots() async -> [ActivityClientSnapshot] {
+        snapshots
+    }
+
+    func start(
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date,
         attributes: PeckerActivityAttributes
     ) async throws {
-        decisions.append(decision)
-        self.attributes.append(attributes)
+        operations.append(
+            .start(state: state, staleDate: staleDate, attributes: attributes)
+        )
     }
 
-    func appliedDecisions() -> [ActivityDecision] {
-        decisions
+    func update(
+        id: String,
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date
+    ) async {
+        operations.append(.update(id: id, state: state, staleDate: staleDate))
     }
 
-    func appliedAttributes() -> [PeckerActivityAttributes] {
-        attributes
+    func end(id: String) async {
+        operations.append(.end(id: id))
+    }
+
+    func appliedOperations() -> [ActivityClientOperation] {
+        operations
     }
 }
 

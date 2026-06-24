@@ -53,6 +53,7 @@
 		D1BD5DBE059A7F95A632E521 /* ActivityCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */; };
 		D41DB4A684B26856DE13AC09 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8134030577E59314232590A8 /* SettingsStore.swift */; };
 		D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */; };
+		D76AECD6E370FF8D3B403D41 /* DynamicIslandLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B446A131697E3ED5E70BA8 /* DynamicIslandLiveActivityView.swift */; };
 		D949375BFD6BFC679D8AD801 /* TimelineStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8C886AC39412B52044E57BA /* TimelineStates.swift */; };
 		D993DAB4ED7AB12BDECEDE9C /* EventKitMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */; };
 		DC0CECCDD3F4064E0DADC0A0 /* TodayViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4489693CAF3A57D41490D8 /* TodayViewModelTests.swift */; };
@@ -121,6 +122,7 @@
 		0C43BF53CDA6ECA0B1D6EBFF /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
 		0CD66C795E57B87001669D03 /* PeckerCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DD7E2595C59D7468FFFDBED /* TimelineTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTheme.swift; sourceTree = "<group>"; };
+		20B446A131697E3ED5E70BA8 /* DynamicIslandLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandLiveActivityView.swift; sourceTree = "<group>"; };
 		36884117D84F207788BD9DF4 /* TimelineSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSettings.swift; sourceTree = "<group>"; };
 		36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityBundle.swift; sourceTree = "<group>"; };
 		43BE19C94616A5319710B74C /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
@@ -306,6 +308,7 @@
 		71ACB8ECE6666BD90550A4D4 /* PeckerLiveActivity */ = {
 			isa = PBXGroup;
 			children = (
+				20B446A131697E3ED5E70BA8 /* DynamicIslandLiveActivityView.swift */,
 				0BC3B78E0B4324773D3D0158 /* Info.plist */,
 				DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */,
 				F0D4990B02AF45DADBD0CA1B /* PeckerLiveActivity.entitlements */,
@@ -615,6 +618,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D76AECD6E370FF8D3B403D41 /* DynamicIslandLiveActivityView.swift in Sources */,
 				D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */,
 				65B7FC92FCE170EB87F05907 /* PeckerActivityAttributes.swift in Sources */,
 				B7882A7EC5D854AF217F8A92 /* PeckerLiveActivityBundle.swift in Sources */,

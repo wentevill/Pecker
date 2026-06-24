@@ -46,3 +46,12 @@ states, and error states.
 ## 6. Technical architecture
 
 ![Technical architecture](previews/06-technical-design.jpg)
+
+## 7. App icon concept
+
+The first app icon concept uses a “time woodpecker” metaphor: a precise beak
+or pointer pecks the highlighted current node on a vertical timeline. This
+connects the Pecker name with the app’s core behavior of surfacing the most
+important current item.
+
+![Pecker app icon concept](app-icon/pecker-app-icon-concept-v1.png)

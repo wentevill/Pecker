@@ -38,7 +38,7 @@
 		<key>UIColorName</key>
 		<string>PeckerLaunchBackground</string>
 		<key>UIImageName</key>
-		<string>PeckerLaunchMark</string>
+		<string>PeckerLaunchTimeline</string>
 		<key>UIImageRespectsSafeAreaInsets</key>
 		<true/>
 	</dict>

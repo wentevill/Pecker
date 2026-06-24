@@ -1,17 +1,17 @@
 {
   "images" : [
     {
-      "filename" : "pecker-launch-mark.png",
+      "filename" : "pecker-launch-timeline.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "pecker-launch-mark@2x.png",
+      "filename" : "pecker-launch-timeline@2x.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
     {
-      "filename" : "pecker-launch-mark@3x.png",
+      "filename" : "pecker-launch-timeline@3x.png",
       "idiom" : "universal",
       "scale" : "3x"
     }

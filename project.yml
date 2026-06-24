@@ -20,6 +20,7 @@ targets:
     platform: iOS
     sources:
       - path: Pecker/App
+      - path: Pecker/Activity
       - path: Pecker/Design
       - path: Pecker/EventKit
       - path: Pecker/Features/Onboarding

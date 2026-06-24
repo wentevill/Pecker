@@ -52,6 +52,7 @@
 		CDE02B67D1F9EA0371949419 /* ActivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FF99F545E305EE9C7D4B08 /* ActivityClient.swift */; };
 		D1BD5DBE059A7F95A632E521 /* ActivityCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */; };
 		D41DB4A684B26856DE13AC09 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8134030577E59314232590A8 /* SettingsStore.swift */; };
+		D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */; };
 		D949375BFD6BFC679D8AD801 /* TimelineStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8C886AC39412B52044E57BA /* TimelineStates.swift */; };
 		D993DAB4ED7AB12BDECEDE9C /* EventKitMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */; };
 		DC0CECCDD3F4064E0DADC0A0 /* TodayViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4489693CAF3A57D41490D8 /* TodayViewModelTests.swift */; };
@@ -154,6 +155,7 @@
 		CE836F09322111FAF97F46BD /* ItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailView.swift; sourceTree = "<group>"; };
 		D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStoreTests.swift; sourceTree = "<group>"; };
 		D7F9CCAD95A8B3BC31FAC73D /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenLiveActivityView.swift; sourceTree = "<group>"; };
 		DFFA24CB4A84FFD20D7317CC /* SnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStore.swift; sourceTree = "<group>"; };
 		E125643CB612C366015BCD60 /* OnboardingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateTests.swift; sourceTree = "<group>"; };
 		E376ECD8DD9B8567E5DAF48A /* PeckerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -305,6 +307,7 @@
 			isa = PBXGroup;
 			children = (
 				0BC3B78E0B4324773D3D0158 /* Info.plist */,
+				DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */,
 				F0D4990B02AF45DADBD0CA1B /* PeckerLiveActivity.entitlements */,
 				36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */,
 				91F6FCD16FB397FB32E84A44 /* PeckerLiveActivityWidget.swift */,
@@ -612,6 +615,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */,
 				65B7FC92FCE170EB87F05907 /* PeckerActivityAttributes.swift in Sources */,
 				B7882A7EC5D854AF217F8A92 /* PeckerLiveActivityBundle.swift in Sources */,
 				C79D43CE924CA80FB6AB63FF /* PeckerLiveActivityWidget.swift in Sources */,

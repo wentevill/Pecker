@@ -20,8 +20,13 @@ behavior cannot be fully proven in simulator-only checks.
 
 ## Current automated result
 
-Pending final run in this branch. Update this section with physical-device
-results after installing on a Dynamic Island-capable iPhone.
+- `swift test`: 40 tests passed.
+- `xcodegen generate --spec project.yml`: generated project remained clean.
+- Active old-identity scan: no active `NowTimeline` identity remained in
+  source/config.
+- `xcodebuild test -scheme Pecker`: 103 app tests and 40 core tests passed.
+- `xcodebuild build -scheme Pecker -configuration Release`: simulator Release
+  build succeeded and embedded `PeckerLiveActivity.appex`.
 
 ## Physical-device result
 

@@ -70,6 +70,96 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshReconcilesLiveActivityAfterSnapshotIsSaved() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .denied),
+            events: [event(at: now)]
+        )
+        let store = FakeSnapshotStore(saveIsGated: true)
+        let activityClient = RecordingActivityClient()
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            store: store,
+            settings: .init(remindersEnabled: false, liveActivityEnabled: true),
+            activityClient: activityClient
+        )
+
+        let refresh = Task { await viewModel.refresh(now: now) }
+
+        await store.waitUntilSaveEntered()
+        let operationsBeforeSave = activityClient.operations()
+        XCTAssertEqual(operationsBeforeSave, [])
+
+        await store.releaseSave()
+        await refresh.value
+
+        let savedSnapshots = await store.savedSnapshots()
+        XCTAssertEqual(savedSnapshots.count, 1)
+        let operations = activityClient.operations()
+        XCTAssertEqual(operations.count, 1)
+        guard case let .start(state, _, attributes) = operations.first else {
+            return XCTFail("Expected start, got \(operations)")
+        }
+        XCTAssertEqual(state.primaryTitle, "Team meeting")
+        XCTAssertEqual(attributes.localDayIdentifier, "2027-01-15")
+    }
+
+    @MainActor
+    func testDisabledLiveActivityRefreshEndsCurrentActivityAfterEmptySave() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let activityClient = RecordingActivityClient(
+            snapshots: [
+                ActivityClientSnapshot(
+                    id: "activity-1",
+                    localDayIdentifier: "2027-01-15",
+                    contentState: contentState(title: "Old meeting", at: now)
+                )
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(
+                authorization: .init(calendar: .fullAccess, reminders: .fullAccess)
+            ),
+            store: FakeSnapshotStore(),
+            settings: .init(
+                calendarEnabled: false,
+                remindersEnabled: false,
+                liveActivityEnabled: false
+            ),
+            activityClient: activityClient
+        )
+
+        await viewModel.refresh(now: now)
+
+        XCTAssertEqual(viewModel.state, .empty(nil))
+        let operations = activityClient.operations()
+        XCTAssertEqual(operations, [.end(id: "activity-1")])
+    }
+
+    @MainActor
+    func testLiveActivityFailureDoesNotPreventPublishingContent() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let activityClient = RecordingActivityClient(startError: TestError.activity)
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(
+                authorization: .init(calendar: .fullAccess, reminders: .denied),
+                events: [event(at: now)]
+            ),
+            settings: .init(remindersEnabled: false, liveActivityEnabled: true),
+            activityClient: activityClient
+        )
+
+        await viewModel.refresh(now: now)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected content despite ActivityKit failure, got \(viewModel.state)")
+        }
+        XCTAssertEqual(snapshot.items.map(\.title), ["Team meeting"])
+        XCTAssertEqual(viewModel.liveActivityStatusText, "暂不可用")
+    }
+
+    @MainActor
     func testDeniedCalendarFetchesAuthorizedRemindersOnly() async {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let gateway = FakeEventKitGateway(
@@ -479,14 +569,16 @@ final class TodayViewModelTests: XCTestCase {
         gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
         settings: TimelineSettings = .init(),
-        calendar: Calendar = Calendar(identifier: .gregorian)
+        calendar: Calendar = Calendar(identifier: .gregorian),
+        activityClient: (any ActivityClient)? = nil
     ) -> TodayViewModel {
         TodayViewModel(
             dependencies: makeDependencies(
                 gateway: gateway,
                 store: store,
                 settings: settings,
-                calendar: calendar
+                calendar: calendar,
+                activityClient: activityClient
             )
         )
     }
@@ -496,7 +588,8 @@ final class TodayViewModelTests: XCTestCase {
         gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
         settings: TimelineSettings = .init(),
-        calendar: Calendar = Calendar(identifier: .gregorian)
+        calendar: Calendar = Calendar(identifier: .gregorian),
+        activityClient: (any ActivityClient)? = nil
     ) -> AppDependencies {
         let defaults = UserDefaults(
             suiteName: "TodayViewModelTests.\(UUID().uuidString)"
@@ -509,7 +602,8 @@ final class TodayViewModelTests: XCTestCase {
             engine: TimelineEngine(),
             snapshotStore: store,
             settingsStore: settingsStore,
-            calendar: calendar
+            calendar: calendar,
+            activityClient: activityClient ?? RecordingActivityClient()
         )
     }
 }
@@ -793,6 +887,83 @@ private enum TestError: Error {
     case fetch
     case save
     case settings
+    case activity
+}
+
+private final class RecordingActivityClient: ActivityClient, @unchecked Sendable {
+    private let lock = NSLock()
+    private var snapshots: [ActivityClientSnapshot]
+    private var recordedOperations: [ActivityClientOperation] = []
+    private let startError: Error?
+
+    init(
+        snapshots: [ActivityClientSnapshot] = [],
+        startError: Error? = nil
+    ) {
+        self.snapshots = snapshots
+        self.startError = startError
+    }
+
+    func activitySnapshots() async -> [ActivityClientSnapshot] {
+        lock.withLock { snapshots }
+    }
+
+    func start(
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date,
+        attributes: PeckerActivityAttributes
+    ) async throws {
+        if let startError {
+            throw startError
+        }
+        lock.withLock {
+            recordedOperations.append(
+                .start(state: state, staleDate: staleDate, attributes: attributes)
+            )
+        }
+    }
+
+    func update(
+        id: String,
+        state: PeckerActivityAttributes.ContentState,
+        staleDate: Date
+    ) async {
+        lock.withLock {
+            recordedOperations.append(
+                .update(id: id, state: state, staleDate: staleDate)
+            )
+        }
+    }
+
+    func end(id: String) async {
+        lock.withLock {
+            recordedOperations.append(.end(id: id))
+        }
+    }
+
+    func operations() -> [ActivityClientOperation] {
+        lock.withLock { recordedOperations }
+    }
+}
+
+private func contentState(
+    title: String,
+    at date: Date
+) -> PeckerActivityAttributes.ContentState {
+    PeckerActivityAttributes.ContentState(
+        primaryTitle: title,
+        primarySubtitle: nil,
+        primaryStartDate: date,
+        primaryEndDate: date.addingTimeInterval(1_800),
+        primaryKindRawValue: TimelineKind.meeting.rawValue,
+        primarySourceIdentifier: nil,
+        nextTitle: nil,
+        nextStartDate: nil,
+        pinnedTitle: nil,
+        pinnedSubtitle: nil,
+        additionalActiveCount: 0,
+        generatedAt: date
+    )
 }
 
 private func event(identifier: String = "event", at date: Date) -> EventRecord {

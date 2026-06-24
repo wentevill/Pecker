@@ -96,7 +96,7 @@ struct OnboardingView: View {
                 symbol: "livephoto",
                 eyebrow: "LIVE ACTIVITY",
                 title: "开启 Live Activity",
-                message: "在锁定屏幕与灵动岛快速查看当前安排。本步骤仅保存偏好，后续版本再接入系统活动。"
+                message: "在锁定屏幕与灵动岛快速查看当前安排。开启后，Pecker 会在下次刷新时同步当前时间线。"
             ) {
                 permissionNote("你可以稍后在设置中开启。")
             }

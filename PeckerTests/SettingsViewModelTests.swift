@@ -77,9 +77,10 @@ final class SettingsViewModelTests: XCTestCase {
             openURL: { _ in }
         )
 
-        XCTAssertEqual(viewModel.liveActivityStatusText, "尚未启用")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "已暂停")
         store.update { $0.liveActivityEnabled = true }
-        XCTAssertEqual(viewModel.liveActivityStatusText, "等待接入")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "等待内容")
+        XCTAssertFalse(viewModel.liveActivityDescriptionText.contains("尚未接入 ActivityKit"))
     }
 
     @MainActor

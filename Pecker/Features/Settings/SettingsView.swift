@@ -23,7 +23,14 @@ final class SettingsViewModel {
     }
 
     var liveActivityStatusText: String {
-        settingsStore.value.liveActivityEnabled ? "等待接入" : "尚未启用"
+        settingsStore.value.liveActivityEnabled ? "等待内容" : "已暂停"
+    }
+
+    var liveActivityDescriptionText: String {
+        if settingsStore.value.liveActivityEnabled {
+            return "开启后，Pecker 会在刷新出当前安排时更新锁定屏幕与灵动岛。"
+        }
+        return "已暂停锁定屏幕与灵动岛显示；再次开启后会在下次刷新时恢复。"
     }
 
     func sourceStatusText(for source: TimelineSource) -> String {
@@ -75,6 +82,11 @@ final class SettingsViewModel {
 
     func setReminderDurationMinutes(_ minutes: Int) {
         settingsStore.update { $0.reminderDurationMinutes = minutes }
+        notifySettingsChanged()
+    }
+
+    func setLiveActivityEnabled(_ enabled: Bool) {
+        settingsStore.update { $0.liveActivityEnabled = enabled }
         notifySettingsChanged()
     }
 
@@ -135,7 +147,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("设置")
                 .font(.largeTitle.weight(.bold))
-            Text("控制数据源、显示偏好和当前的 Live Activity 占位状态。")
+            Text("控制数据源、显示偏好和 Live Activity 状态。")
                 .font(.subheadline)
                 .foregroundStyle(TimelineTheme.textSecondary)
         }
@@ -204,6 +216,14 @@ struct SettingsView: View {
                 Text("Live Activity")
                     .font(.headline.weight(.semibold))
 
+                Toggle(
+                    "锁定屏幕与灵动岛",
+                    isOn: Binding(
+                        get: { settingsStore.value.liveActivityEnabled },
+                        set: { viewModel.setLiveActivityEnabled($0) }
+                    )
+                )
+
                 HStack {
                     Text("状态")
                         .foregroundStyle(TimelineTheme.textSecondary)
@@ -212,7 +232,7 @@ struct SettingsView: View {
                         .font(.subheadline.weight(.semibold))
                 }
 
-                Text("此版本仅展示偏好状态，尚未接入 ActivityKit。")
+                Text(viewModel.liveActivityDescriptionText)
                     .font(.subheadline)
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -14,6 +14,7 @@ final class TodayViewModel {
 
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
+    private(set) var liveActivityStatusText = "已暂停"
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -51,6 +52,13 @@ final class TodayViewModel {
                     || (!settings.calendarEnabled && !settings.remindersEnabled)
             else {
                 if isCurrent(generation) {
+                    if !settings.liveActivityEnabled {
+                        await reconcileLiveActivity(
+                            snapshot: emptySnapshot(now: now),
+                            settings: settings,
+                            now: now
+                        )
+                    }
                     state = .permissionRequired(authorization)
                 }
                 return
@@ -100,6 +108,14 @@ final class TodayViewModel {
             guard isCurrent(generation) else {
                 return
             }
+            await reconcileLiveActivity(
+                snapshot: snapshot,
+                settings: settings,
+                now: now
+            )
+            guard isCurrent(generation) else {
+                return
+            }
 
             previousSnapshot = snapshot
             state = snapshot.items.isEmpty ? emptyState() : .content(snapshot)
@@ -127,6 +143,51 @@ final class TodayViewModel {
 
     private func emptyState() -> TimelineScreenState {
         .empty(authorizationNotice())
+    }
+
+    private func reconcileLiveActivity(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date
+    ) async {
+        do {
+            let decision = try await dependencies.activityCoordinator.reconcile(
+                snapshot: snapshot,
+                settings: settings,
+                now: now
+            )
+            liveActivityStatusText = statusText(
+                for: decision,
+                settings: settings
+            )
+        } catch {
+            liveActivityStatusText = "暂不可用"
+        }
+    }
+
+    private func statusText(
+        for decision: ActivityDecision,
+        settings: TimelineSettings
+    ) -> String {
+        guard settings.liveActivityEnabled else {
+            return "已暂停"
+        }
+
+        switch decision {
+        case .none, .start, .update:
+            return "运行中"
+        case .end:
+            return "等待内容"
+        }
+    }
+
+    private func emptySnapshot(now: Date) -> TodaySnapshot {
+        dependencies.engine.makeSnapshot(
+            items: [],
+            now: now,
+            settings: dependencies.settingsStore.value,
+            staleInterval: Self.staleInterval
+        )
     }
 
     private func loadSnapshot(now: Date, generation: Int) async {

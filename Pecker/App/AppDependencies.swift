@@ -20,6 +20,7 @@ struct AppDependencies {
     let snapshotStore: any SnapshotStoring
     let settingsStore: SettingsStore
     let calendar: Calendar
+    let activityCoordinator: ActivityCoordinator
 
     init(
         gateway: any EventKitGatewayProtocol,
@@ -27,7 +28,8 @@ struct AppDependencies {
         engine: TimelineEngine,
         snapshotStore: any SnapshotStoring,
         settingsStore: SettingsStore,
-        calendar: Calendar
+        calendar: Calendar,
+        activityClient: any ActivityClient = LiveActivityClient()
     ) {
         self.gateway = gateway
         self.mapper = mapper
@@ -35,6 +37,10 @@ struct AppDependencies {
         self.snapshotStore = snapshotStore
         self.settingsStore = settingsStore
         self.calendar = calendar
+        activityCoordinator = ActivityCoordinator(
+            client: activityClient,
+            calendar: calendar
+        )
     }
 
     static func production(

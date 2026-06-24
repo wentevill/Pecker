@@ -2,9 +2,14 @@ import Foundation
 
 public struct TimelineEngine: Sendable {
     private let classifier: TimelineClassifier
+    private let templateFactory: EventTemplateFactory
 
-    public init(classifier: TimelineClassifier = .init()) {
+    public init(
+        classifier: TimelineClassifier = .init(),
+        templateFactory: EventTemplateFactory = .init()
+    ) {
         self.classifier = classifier
+        self.templateFactory = templateFactory
     }
 
     public func makeSnapshot(
@@ -27,6 +32,13 @@ public struct TimelineEngine: Sendable {
                     return item
                 }
 
+                let template = templateFactory.makeTemplate(
+                    from: ClassificationInput(
+                        title: item.title,
+                        location: item.location,
+                        notes: item.notes
+                    )
+                )
                 return TimelineItem(
                     id: item.id,
                     sourceIdentifier: item.sourceIdentifier,
@@ -35,14 +47,15 @@ public struct TimelineEngine: Sendable {
                     endDate: item.endDate,
                     isAllDay: item.isAllDay,
                     source: item.source,
-                    kind: classifier.classify(
+                    kind: template?.kind ?? classifier.classify(
                         title: item.title,
                         location: item.location,
                         notes: item.notes,
                         source: item.source
                     ),
                     location: item.location,
-                    notes: item.notes
+                    notes: item.notes,
+                    template: template
                 )
             }
             .map { item in
@@ -64,7 +77,8 @@ public struct TimelineEngine: Sendable {
                     source: item.source,
                     kind: .unknown,
                     location: item.location,
-                    notes: item.notes
+                    notes: item.notes,
+                    template: nil
                 )
             }
             .sorted(by: itemSortsBefore)

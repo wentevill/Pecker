@@ -169,6 +169,69 @@ import Testing
         #expect(snapshot.pinOrigin == .automatic)
     }
 
+    @Test func enrichesUnknownTrainWithTrainTicketTemplate() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let train = TimelineItem(
+            id: "calendar:train",
+            sourceIdentifier: "train",
+            title: "G123 上海虹桥 → 北京南",
+            startDate: Date(timeIntervalSince1970: 1_200),
+            endDate: Date(timeIntervalSince1970: 1_400),
+            isAllDay: false,
+            source: .calendar,
+            kind: .unknown,
+            location: "检票口 B7",
+            notes: "08车 03A"
+        )
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [train],
+            now: now,
+            settings: .init(),
+            staleInterval: 900
+        )
+
+        let enriched = snapshot.items.first { $0.id == train.id }
+        #expect(enriched?.kind == .train)
+        guard case let .trainTicket(ticket) = enriched?.template else {
+            Issue.record("Expected train ticket template")
+            return
+        }
+        #expect(ticket.trainNumber == "G123")
+        #expect(ticket.departureStation == "上海虹桥")
+        #expect(ticket.arrivalStation == "北京南")
+        #expect(ticket.carriageNumber == "08")
+        #expect(ticket.seatNumber == "03A")
+        #expect(ticket.checkInGate == "B7")
+    }
+
+    @Test func clearsTravelTemplateWhenTravelEventsAreHidden() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let train = TimelineItem(
+            id: "calendar:train",
+            sourceIdentifier: "train",
+            title: "G123 上海虹桥 → 北京南",
+            startDate: Date(timeIntervalSince1970: 1_200),
+            endDate: Date(timeIntervalSince1970: 1_400),
+            isAllDay: false,
+            source: .calendar,
+            kind: .unknown,
+            location: nil,
+            notes: nil
+        )
+
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [train],
+            now: now,
+            settings: .init(showTravelEvents: false),
+            staleInterval: 900
+        )
+
+        let hidden = snapshot.items.first { $0.id == train.id }
+        #expect(hidden?.kind == .unknown)
+        #expect(hidden?.template == nil)
+    }
+
     @Test func classifiesUnknownReminderAsTask() {
         let now = Date(timeIntervalSince1970: 1_000)
         let reminder = item(

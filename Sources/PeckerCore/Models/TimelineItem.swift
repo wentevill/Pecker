@@ -19,6 +19,7 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
     public let kind: TimelineKind
     public let location: String?
     public let notes: String?
+    public let template: TimelineEventTemplate?
 
     public init(
         id: String,
@@ -30,7 +31,8 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
         source: TimelineSource,
         kind: TimelineKind,
         location: String?,
-        notes: String?
+        notes: String?,
+        template: TimelineEventTemplate? = nil
     ) {
         self.id = id
         self.sourceIdentifier = sourceIdentifier
@@ -42,5 +44,6 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
         self.kind = kind
         self.location = location
         self.notes = notes
+        self.template = template
     }
 }

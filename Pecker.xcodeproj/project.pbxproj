@@ -20,6 +20,7 @@
 		3C12A890080E7229DD8C5DD4 /* TimelineEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCF00CEA0A559FD7217FD93 /* TimelineEngine.swift */; };
 		46CD6777F1132878CA2097D1 /* TimelineGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654B01ACEFF0AD692C0B2961 /* TimelineGrouping.swift */; };
 		473C1E628C60D03F7236547C /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57445D879DB7069DBC6ACDC5 /* ActivityCoordinator.swift */; };
+		4762E05BD9BE126DE68DA375 /* EventTemplateFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */; };
 		5020840DF9867F8C2440DEC9 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C43BF53CDA6ECA0B1D6EBFF /* ModelTests.swift */; };
 		50F951B68AF5FAB9F5AB9D84 /* SnapshotStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */; };
 		5256453536F82ADE93A6F560 /* TodayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE18E3A3D8462BEF5F0D539 /* TodayViewModel.swift */; };
@@ -58,6 +59,7 @@
 		D949375BFD6BFC679D8AD801 /* TimelineStates.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8C886AC39412B52044E57BA /* TimelineStates.swift */; };
 		D993DAB4ED7AB12BDECEDE9C /* EventKitMapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */; };
 		DC0CECCDD3F4064E0DADC0A0 /* TodayViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B4489693CAF3A57D41490D8 /* TodayViewModelTests.swift */; };
+		E0F9967027C774250F64642D /* EventTemplateFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */; };
 		EE2835E7A4D6DAFFAEDED3CB /* TimelineSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36884117D84F207788BD9DF4 /* TimelineSettings.swift */; };
 		F16DD9FF2C5E48A4A61B655A /* TodayScreenContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7164D146943F27FF67475F /* TodayScreenContent.swift */; };
 		F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */; };
@@ -124,6 +126,7 @@
 		0CD66C795E57B87001669D03 /* PeckerCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DD7E2595C59D7468FFFDBED /* TimelineTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTheme.swift; sourceTree = "<group>"; };
 		20B446A131697E3ED5E70BA8 /* DynamicIslandLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandLiveActivityView.swift; sourceTree = "<group>"; };
+		29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTemplateFactory.swift; sourceTree = "<group>"; };
 		36884117D84F207788BD9DF4 /* TimelineSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSettings.swift; sourceTree = "<group>"; };
 		36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityBundle.swift; sourceTree = "<group>"; };
 		43BE19C94616A5319710B74C /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
@@ -152,6 +155,7 @@
 		A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
 		B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineEngineTests.swift; sourceTree = "<group>"; };
 		B38BC7D2B84277A56EF33208 /* EventKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapper.swift; sourceTree = "<group>"; };
+		B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTemplateFactoryTests.swift; sourceTree = "<group>"; };
 		B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapperTests.swift; sourceTree = "<group>"; };
 		C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C6FF99F545E305EE9C7D4B08 /* ActivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityClient.swift; sourceTree = "<group>"; };
@@ -353,6 +357,7 @@
 		A38601B15EDBA4C078327AA6 /* PeckerCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */,
 				0C43BF53CDA6ECA0B1D6EBFF /* ModelTests.swift */,
 				D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */,
 				5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */,
@@ -392,6 +397,7 @@
 		DA2B46D8CAA71E5F2770864A /* Classification */ = {
 			isa = PBXGroup;
 			children = (
+				29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */,
 				801400D467F38808155B81EA /* TimelineClassifier.swift */,
 			);
 			path = Classification;
@@ -677,6 +683,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E0F9967027C774250F64642D /* EventTemplateFactoryTests.swift in Sources */,
 				5020840DF9867F8C2440DEC9 /* ModelTests.swift in Sources */,
 				50F951B68AF5FAB9F5AB9D84 /* SnapshotStoreTests.swift in Sources */,
 				F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */,
@@ -705,6 +712,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4762E05BD9BE126DE68DA375 /* EventTemplateFactory.swift in Sources */,
 				BC0D9CD918F62FD91633C988 /* SnapshotStore.swift in Sources */,
 				376EAD5035495CC3A7364B48 /* TimelineClassifier.swift in Sources */,
 				3C12A890080E7229DD8C5DD4 /* TimelineEngine.swift in Sources */,

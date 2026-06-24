@@ -1,7 +1,11 @@
 import Foundation
 
 public struct TimelineClassifier: Sendable {
-    public init() {}
+    private let factory: EventTemplateFactory
+
+    public init(factory: EventTemplateFactory = .init()) {
+        self.factory = factory
+    }
 
     public func classify(
         title: String,
@@ -9,13 +13,16 @@ public struct TimelineClassifier: Sendable {
         notes: String?,
         source: TimelineSource
     ) -> TimelineKind {
-        let text = [title, location, notes]
-            .compactMap { $0 }
-            .joined(separator: " ")
-            .folding(
-                options: [.caseInsensitive, .diacriticInsensitive],
-                locale: .current
-            )
+        let input = ClassificationInput(
+            title: title,
+            location: location,
+            notes: notes
+        )
+        let text = input.normalizedText
+
+        if let template = factory.makeTemplate(from: input) {
+            return template.kind
+        }
 
         if containsKeyword(
             in: text,

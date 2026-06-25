@@ -6,8 +6,8 @@ struct PeckerLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PeckerActivityAttributes.self) { context in
             LockScreenLiveActivityView(context: context)
-                .activityBackgroundTint(Color.black.opacity(0.85))
-                .activitySystemActionForegroundColor(.white)
+                .activityBackgroundTint(PeckerLiveActivityPalette.darkBottom.color)
+                .activitySystemActionForegroundColor(PeckerLiveActivityPalette.textPrimary.color)
         } dynamicIsland: { context in
             DynamicIslandLiveActivityView(context: context).body
         }

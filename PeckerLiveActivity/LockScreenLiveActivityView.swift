@@ -3,6 +3,7 @@ import SwiftUI
 import WidgetKit
 
 struct LockScreenLiveActivityView: View {
+    @Environment(\.locale) private var locale
     private let state: PeckerActivityAttributes.ContentState
 
     init(context: ActivityViewContext<PeckerActivityAttributes>) {
@@ -20,18 +21,17 @@ struct LockScreenLiveActivityView: View {
                     Text(primaryLabel)
                         .font(.caption2.weight(.heavy))
                         .foregroundStyle(primaryColor)
-                        .textCase(.uppercase)
 
                     Text(state.primaryTitle)
                         .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     if let subtitle = state.primarySubtitle, !subtitle.isEmpty {
                         Text(subtitle)
                             .font(.caption.monospacedDigit())
-                            .foregroundStyle(.white.opacity(0.68))
+                            .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
                             .lineLimit(1)
                     }
                 }
@@ -52,9 +52,14 @@ struct LockScreenLiveActivityView: View {
             }
 
             if state.additionalActiveCount > 0 {
-                Text("另有 \(state.additionalActiveCount) 项进行中")
+                Text(
+                    PeckerLiveActivityCopy.additionalActiveText(
+                        count: state.additionalActiveCount,
+                        locale: locale
+                    )
+                )
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
                     .lineLimit(1)
             }
 
@@ -64,19 +69,19 @@ struct LockScreenLiveActivityView: View {
                    !isNextPrimary
                 {
                     SupportingRow(
-                        label: "NEXT",
+                        label: PeckerLiveActivityCopy.statusLabel(for: .next, locale: locale),
                         title: nextTitle,
                         detail: nextStartDate.formatted(.relative(presentation: .numeric)),
-                        color: Self.next
+                        color: PeckerLiveActivityPalette.accentColor(for: .next)
                     )
                 }
 
                 if let pinnedTitle = state.pinnedTitle, !isPinnedPrimary {
                     SupportingRow(
-                        label: "PINNED",
+                        label: PeckerLiveActivityCopy.statusLabel(for: .pinned, locale: locale),
                         title: pinnedTitle,
                         detail: state.pinnedSubtitle,
-                        color: Self.pinned,
+                        color: PeckerLiveActivityPalette.accentColor(for: .pinned),
                         systemImage: "pin.fill"
                     )
                 }
@@ -88,7 +93,7 @@ struct LockScreenLiveActivityView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Self.glass)
+                .fill(PeckerLiveActivityPalette.backgroundGradient)
                 .overlay(alignment: .topTrailing) {
                     Circle()
                         .fill(primaryColor.opacity(0.18))
@@ -98,33 +103,29 @@ struct LockScreenLiveActivityView: View {
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(PeckerLiveActivityPalette.hairline.color, lineWidth: 1)
                 }
         }
     }
 
     private var primaryLabel: String {
-        if isPinnedPrimary {
-            return "PINNED"
-        }
-
-        if isNextPrimary {
-            return "NEXT"
-        }
-
-        return "NOW"
+        PeckerLiveActivityCopy.statusLabel(for: primaryStatus, locale: locale)
     }
 
     private var primaryColor: Color {
+        PeckerLiveActivityPalette.accentColor(for: primaryStatus)
+    }
+
+    private var primaryStatus: PeckerLiveActivityStatus {
         if isPinnedPrimary {
-            return Self.pinned
+            return .pinned
         }
 
         if isNextPrimary {
-            return Self.next
+            return .next
         }
 
-        return Self.now
+        return .now
     }
 
     private var isNextPrimary: Bool {
@@ -142,18 +143,6 @@ struct LockScreenLiveActivityView: View {
             || state.primaryKindRawValue.localizedCaseInsensitiveContains("travel")
     }
 
-    private static let now = Color(red: 0.52, green: 0.9, blue: 0.34)
-    private static let next = Color(red: 0.34, green: 0.67, blue: 1.0)
-    private static let pinned = Color(red: 1.0, green: 0.62, blue: 0.16)
-    private static let glass = LinearGradient(
-        colors: [
-            Color(red: 0.018, green: 0.038, blue: 0.092).opacity(0.96),
-            Color(red: 0.034, green: 0.065, blue: 0.145).opacity(0.92),
-            Color.black.opacity(0.88)
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
 }
 
 private struct PrimaryCountdownText: View {
@@ -164,7 +153,7 @@ private struct PrimaryCountdownText: View {
             if let targetDate = state.countdownTargetDate(at: timeline.date) {
                 Text(targetDate, style: state.isPrimaryRunning(at: timeline.date) ? .timer : .relative)
                     .font(.headline.weight(.bold).monospacedDigit())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
                     .lineLimit(1)
             }
         }
@@ -172,6 +161,7 @@ private struct PrimaryCountdownText: View {
 }
 
 private struct ProgressBar: View {
+    @Environment(\.locale) private var locale
     let startDate: Date?
     let endDate: Date?
     let accent: Color
@@ -181,7 +171,7 @@ private struct ProgressBar: View {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(.white.opacity(0.18))
+                        .fill(PeckerLiveActivityPalette.hairline.color)
 
                     Capsule()
                         .fill(accent)
@@ -191,7 +181,7 @@ private struct ProgressBar: View {
         }
         .frame(height: 4)
         .clipShape(Capsule())
-        .accessibilityLabel("进度")
+        .accessibilityLabel(PeckerLiveActivityCopy.progressAccessibilityLabel(locale: locale))
         .accessibilityValue("\(Int(progress(at: .now) * 100))%")
     }
 
@@ -225,7 +215,7 @@ private struct SupportingRow: View {
 
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
+                .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
                 .lineLimit(1)
 
             Spacer(minLength: 6)
@@ -233,7 +223,7 @@ private struct SupportingRow: View {
             if let detail, !detail.isEmpty {
                 Text(detail)
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.white.opacity(0.72))
+                    .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
                     .lineLimit(1)
             }
         }

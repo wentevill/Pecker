@@ -8,6 +8,8 @@ public enum TimelineKind: String, Codable, Sendable {
     case meeting, task, flight, train, travel, interview, deadline, unknown
 }
 
+extension TimelineKind: CaseIterable {}
+
 public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
     public let id: String
     public let sourceIdentifier: String

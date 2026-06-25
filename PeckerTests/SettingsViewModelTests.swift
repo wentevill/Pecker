@@ -111,11 +111,79 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testAISettingsPersistAndNotifyChanges() {
+        let store = makeStore()
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        viewModel.setAIRecognitionMode(.openAI)
+        viewModel.setOpenAIHost(" https://proxy.example.com ")
+        viewModel.setOpenAIModel(" gpt-test ")
+        viewModel.setSyncCalendarToStorage(true)
+        viewModel.setSyncRemindersToStorage(true)
+
+        XCTAssertEqual(refreshCount, 5)
+        XCTAssertEqual(store.value.aiRecognitionMode, .openAI)
+        XCTAssertEqual(store.value.openAIHost, "https://proxy.example.com")
+        XCTAssertEqual(store.value.openAIModel, "gpt-test")
+        XCTAssertTrue(store.value.syncCalendarToStorage)
+        XCTAssertTrue(store.value.syncRemindersToStorage)
+    }
+
+    @MainActor
+    func testOpenAIAPIKeyStatusIsStoredOutsideSettingsPayload() throws {
+        let store = makeStore()
+        let keyStore = InMemoryAPIKeyStore()
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            apiKeyStore: keyStore,
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "未配置")
+
+        try viewModel.saveOpenAIAPIKey(" sk-test ")
+
+        XCTAssertEqual(try keyStore.loadOpenAIAPIKey(), "sk-test")
+        XCTAssertTrue(store.value.openAIAPIKeyConfigured)
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "已配置")
+
+        try viewModel.clearOpenAIAPIKey()
+
+        XCTAssertNil(try keyStore.loadOpenAIAPIKey())
+        XCTAssertFalse(store.value.openAIAPIKeyConfigured)
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "未配置")
+    }
+
+    @MainActor
     private func makeStore() -> SettingsStore {
         SettingsStore(
             defaults: UserDefaults(
                 suiteName: "SettingsViewModelTests.\(UUID().uuidString)"
             )!
         )
+    }
+}
+
+private final class InMemoryAPIKeyStore: APIKeyStoring {
+    private var key: String?
+
+    func saveOpenAIAPIKey(_ key: String) throws {
+        self.key = key
+    }
+
+    func loadOpenAIAPIKey() throws -> String? {
+        key
+    }
+
+    func clearOpenAIAPIKey() throws {
+        key = nil
     }
 }

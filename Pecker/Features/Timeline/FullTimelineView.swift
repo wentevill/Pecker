@@ -159,8 +159,8 @@ struct FullTimelineView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(pinTint(for: item))
                     .frame(width: 34, height: 34)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
-                    .overlay(Circle().stroke(Color.white.opacity(0.14), lineWidth: 1))
+                    .background(Circle().fill(TimelineTheme.controlFill))
+                    .overlay(Circle().stroke(TimelineTheme.cardStroke, lineWidth: 1))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(pinAccessibilityLabel(for: item))

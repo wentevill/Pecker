@@ -6,16 +6,8 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.025, green: 0.055, blue: 0.13),
-                    Color(red: 0.055, green: 0.11, blue: 0.22),
-                    Color(red: 0.08, green: 0.08, blue: 0.18)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            TimelineTheme.backgroundGradient
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
@@ -29,14 +21,14 @@ struct OnboardingView: View {
                 .padding(.vertical, 28)
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(TimelineTheme.textPrimary)
     }
 
     private var progress: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("\(model.currentStep.progress) / 4")
                 .font(.subheadline.monospacedDigit().weight(.semibold))
-                .foregroundStyle(.white.opacity(0.72))
+                .foregroundStyle(TimelineTheme.textSecondary)
                 .accessibilityLabel(
                     "Onboarding step \(model.currentStep.progress) of 4"
                 )
@@ -45,7 +37,7 @@ struct OnboardingView: View {
                 value: Double(model.currentStep.progress),
                 total: 4
             )
-            .tint(Color(red: 0.42, green: 0.76, blue: 1))
+            .tint(TimelineTheme.now)
             .accessibilityHidden(true)
         }
     }
@@ -110,7 +102,7 @@ struct OnboardingView: View {
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
-                    .foregroundStyle(Color(red: 1, green: 0.72, blue: 0.68))
+                    .foregroundStyle(TimelineTheme.now)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityLabel("错误：\(errorMessage)")
             }
@@ -129,21 +121,22 @@ struct OnboardingView: View {
                 HStack(spacing: 10) {
                     if model.isBusy {
                         ProgressView()
-                            .tint(.black)
+                            .tint(.white)
                             .accessibilityHidden(true)
                     }
                     Text(primaryButtonTitle)
-                        .font(.headline)
+                        .font(.headline.weight(.semibold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.black)
+            .foregroundStyle(.white)
             .background(
-                Color(red: 0.62, green: 0.84, blue: 1),
-                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                TimelineTheme.now,
+                in: RoundedRectangle(cornerRadius: 22, style: .continuous)
             )
+            .shadow(color: TimelineTheme.now.opacity(0.24), radius: 18, x: 0, y: 10)
             .disabled(model.isBusy)
             .accessibilityLabel(primaryButtonTitle)
             .accessibilityHint(primaryButtonHint)
@@ -157,7 +150,7 @@ struct OnboardingView: View {
                     )
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.76))
+                .foregroundStyle(TimelineTheme.textSecondary)
                 .disabled(model.isBusy)
                 .accessibilityHint("不请求权限并继续下一步")
             } else if model.currentStep == .liveActivityIntroduction {
@@ -170,7 +163,7 @@ struct OnboardingView: View {
                     }
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.76))
+                .foregroundStyle(TimelineTheme.textSecondary)
                 .accessibilityHint("暂不开启 Live Activity 并完成设置")
             }
         }
@@ -216,20 +209,20 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 22) {
             Image(systemName: symbol)
                 .font(.system(size: 42, weight: .medium))
-                .foregroundStyle(Color(red: 0.52, green: 0.8, blue: 1))
+                .foregroundStyle(TimelineTheme.now)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(eyebrow)
                     .font(.caption.weight(.bold))
                     .tracking(1.6)
-                    .foregroundStyle(.white.opacity(0.58))
+                    .foregroundStyle(TimelineTheme.textTertiary)
                 Text(title)
-                    .font(.largeTitle.bold())
+                    .font(.system(size: 36, weight: .bold, design: .serif))
                     .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                 Text(message)
                     .font(.body)
-                    .foregroundStyle(.white.opacity(0.76))
+                    .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -238,27 +231,28 @@ struct OnboardingView: View {
             }
         }
         .padding(24)
-        .background(.ultraThinMaterial, in: RoundedRectangle(
+        .background(TimelineTheme.cardWarmFill, in: RoundedRectangle(
             cornerRadius: 28,
             style: .continuous
         ))
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .stroke(TimelineTheme.cardStroke, lineWidth: 1)
         }
+        .shadow(color: TimelineTheme.cardShadow, radius: 26, x: 0, y: 16)
     }
 
     private func privacyBullet(symbol: String, text: String) -> some View {
         Label(text, systemImage: symbol)
             .font(.subheadline)
-            .foregroundStyle(.white.opacity(0.82))
+            .foregroundStyle(TimelineTheme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
     private func permissionNote(_ text: String) -> some View {
         Label(text, systemImage: "info.circle")
             .font(.subheadline)
-            .foregroundStyle(.white.opacity(0.72))
+            .foregroundStyle(TimelineTheme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 }

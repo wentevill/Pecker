@@ -207,11 +207,11 @@ private struct TrainTicketTemplateView: View {
                                 .padding(.vertical, 6)
                                 .background(
                                     Capsule()
-                                        .fill(Color.white.opacity(0.10))
+                                        .fill(TimelineTheme.controlFill)
                                 )
                                 .overlay(
                                     Capsule()
-                                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                                        .stroke(TimelineTheme.cardStroke, lineWidth: 1)
                                 )
                         }
                     }
@@ -223,8 +223,9 @@ private struct TrainTicketTemplateView: View {
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.14), lineWidth: 1)
+                .stroke(TimelineTheme.cardStroke, lineWidth: 1)
         )
+        .shadow(color: TimelineTheme.cardShadow, radius: 24, x: 0, y: 14)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
     }
@@ -255,7 +256,7 @@ private struct TrainTicketTemplateView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color.white.opacity(0.08))
+        .background(Color.white.opacity(0.42))
     }
 
     private var routeRow: some View {
@@ -348,8 +349,8 @@ private struct TrainTicketTemplateView: View {
     private var ticketBackground: some ShapeStyle {
         LinearGradient(
             colors: [
-                Color(red: 0.04, green: 0.10, blue: 0.18),
-                Color(red: 0.02, green: 0.06, blue: 0.12)
+                Color(red: 1.0, green: 0.965, blue: 0.90),
+                Color(red: 0.98, green: 0.915, blue: 0.84)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing

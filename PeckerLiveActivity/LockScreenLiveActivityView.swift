@@ -38,20 +38,17 @@ struct LockScreenLiveActivityView: View {
 
                 Spacer(minLength: 8)
 
-                if let endDate = state.primaryEndDate {
-                    Text(endDate, style: .timer)
-                        .font(.headline.weight(.bold).monospacedDigit())
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                }
+                PrimaryCountdownText(state: state)
             }
 
-            if showsPrimaryProgress {
-                ProgressBar(
-                    startDate: state.primaryStartDate,
-                    endDate: state.primaryEndDate,
-                    accent: primaryColor
-                )
+            TimelineView(.periodic(from: .now, by: 30)) { timeline in
+                if state.isPrimaryRunning(at: timeline.date) {
+                    ProgressBar(
+                        startDate: state.primaryStartDate,
+                        endDate: state.primaryEndDate,
+                        accent: primaryColor
+                    )
+                }
             }
 
             if state.additionalActiveCount > 0 {
@@ -106,10 +103,6 @@ struct LockScreenLiveActivityView: View {
         }
     }
 
-    private var showsPrimaryProgress: Bool {
-        state.primaryStartDate != nil && state.primaryEndDate != nil
-    }
-
     private var primaryLabel: String {
         if isPinnedPrimary {
             return "PINNED"
@@ -161,6 +154,21 @@ struct LockScreenLiveActivityView: View {
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
+}
+
+private struct PrimaryCountdownText: View {
+    let state: PeckerActivityAttributes.ContentState
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            if let targetDate = state.countdownTargetDate(at: timeline.date) {
+                Text(targetDate, style: state.isPrimaryRunning(at: timeline.date) ? .timer : .relative)
+                    .font(.headline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
+        }
+    }
 }
 
 private struct ProgressBar: View {

@@ -182,7 +182,7 @@ struct ActivityCoordinator: Sendable {
         now: Date
     ) -> Date {
         let candidates = [
-            state.primaryEndDate,
+            state.countdownTargetDate(at: now),
             state.nextStartDate,
             snapshot.resolvedPinnedItem?.startDate,
             snapshot.resolvedPinnedItem?.endDate,

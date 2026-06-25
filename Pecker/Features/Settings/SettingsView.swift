@@ -115,11 +115,6 @@ final class SettingsViewModel {
         notifySettingsChanged()
     }
 
-    func setReminderDurationMinutes(_ minutes: Int) {
-        settingsStore.update { $0.reminderDurationMinutes = minutes }
-        notifySettingsChanged()
-    }
-
     func setLiveActivityEnabled(_ enabled: Bool) {
         settingsStore.update { $0.liveActivityEnabled = enabled }
         notifySettingsChanged()
@@ -313,25 +308,6 @@ struct SettingsView: View {
                         set: { viewModel.setShowTravelEvents($0) }
                     )
                 )
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("提醒持续时间")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.textSecondary)
-
-                    Picker(
-                        "提醒持续时间",
-                        selection: Binding(
-                            get: { settingsStore.value.reminderDurationMinutes },
-                            set: { viewModel.setReminderDurationMinutes($0) }
-                        )
-                    ) {
-                        ForEach([15, 30, 45, 60], id: \.self) { minutes in
-                            Text("\(minutes) 分钟").tag(minutes)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
             }
         }
     }

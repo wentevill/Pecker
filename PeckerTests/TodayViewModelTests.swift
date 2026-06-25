@@ -498,7 +498,7 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testReminderDurationAndSourceSettingsAreApplied() async throws {
+    func testReminderDueDateDoesNotCreateSyntheticEndDate() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let dueDate = now.addingTimeInterval(300)
         let gateway = FakeEventKitGateway(
@@ -510,8 +510,7 @@ final class TodayViewModelTests: XCTestCase {
             gateway: gateway,
             settings: .init(
                 calendarEnabled: false,
-                remindersEnabled: true,
-                reminderDurationMinutes: 45
+                remindersEnabled: true
             )
         )
 
@@ -522,7 +521,7 @@ final class TodayViewModelTests: XCTestCase {
         }
         let item = try XCTUnwrap(snapshot.items.first)
         XCTAssertEqual(item.id, "reminder:reminder")
-        XCTAssertEqual(item.endDate, dueDate.addingTimeInterval(45 * 60))
+        XCTAssertNil(item.endDate)
         let fetchCounts = await gateway.fetchCounts()
         XCTAssertEqual(fetchCounts, .init(calendar: 0, reminders: 1))
     }

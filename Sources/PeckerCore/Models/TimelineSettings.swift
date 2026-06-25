@@ -4,7 +4,6 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
     public var calendarEnabled: Bool
     public var remindersEnabled: Bool
     public var showTravelEvents: Bool
-    public var reminderDurationMinutes: Int
     public var manualPinnedSourceIdentifier: String?
     public var liveActivityEnabled: Bool
     public var aiRecognitionMode: AIRecognitionMode
@@ -18,7 +17,6 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         calendarEnabled: Bool = true,
         remindersEnabled: Bool = true,
         showTravelEvents: Bool = true,
-        reminderDurationMinutes: Int = 30,
         manualPinnedSourceIdentifier: String? = nil,
         liveActivityEnabled: Bool = false,
         aiRecognitionMode: AIRecognitionMode = .off,
@@ -31,7 +29,6 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         self.calendarEnabled = calendarEnabled
         self.remindersEnabled = remindersEnabled
         self.showTravelEvents = showTravelEvents
-        self.reminderDurationMinutes = reminderDurationMinutes
         self.manualPinnedSourceIdentifier = manualPinnedSourceIdentifier
         self.liveActivityEnabled = liveActivityEnabled
         self.aiRecognitionMode = aiRecognitionMode
@@ -46,7 +43,6 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         case calendarEnabled
         case remindersEnabled
         case showTravelEvents
-        case reminderDurationMinutes
         case manualPinnedSourceIdentifier
         case liveActivityEnabled
         case aiRecognitionMode
@@ -63,7 +59,6 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
             calendarEnabled: try container.decodeIfPresent(Bool.self, forKey: .calendarEnabled) ?? true,
             remindersEnabled: try container.decodeIfPresent(Bool.self, forKey: .remindersEnabled) ?? true,
             showTravelEvents: try container.decodeIfPresent(Bool.self, forKey: .showTravelEvents) ?? true,
-            reminderDurationMinutes: try container.decodeIfPresent(Int.self, forKey: .reminderDurationMinutes) ?? 30,
             manualPinnedSourceIdentifier: try container.decodeIfPresent(String.self, forKey: .manualPinnedSourceIdentifier),
             liveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .liveActivityEnabled) ?? false,
             aiRecognitionMode: try container.decodeIfPresent(AIRecognitionMode.self, forKey: .aiRecognitionMode) ?? .off,

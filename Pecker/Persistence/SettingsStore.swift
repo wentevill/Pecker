@@ -10,7 +10,6 @@ enum SettingsStoreError: Error {
 @Observable
 final class SettingsStore {
     private static let storageKey = "timeline.settings.v1"
-    private static let validReminderDurations = [15, 30, 45, 60]
 
     private let defaults: UserDefaults
     private(set) var value: TimelineSettings
@@ -35,7 +34,6 @@ final class SettingsStore {
     func update(_ mutation: (inout TimelineSettings) -> Void) {
         var updatedValue = value
         mutation(&updatedValue)
-        Self.normalize(&updatedValue)
 
         guard let data = try? JSONEncoder().encode(updatedValue) else {
             return
@@ -48,7 +46,7 @@ final class SettingsStore {
     private static func load(from defaults: UserDefaults) -> TimelineSettings {
         guard
             let data = defaults.data(forKey: storageKey),
-            var settings = try? JSONDecoder().decode(
+            let settings = try? JSONDecoder().decode(
                 TimelineSettings.self,
                 from: data
             )
@@ -56,18 +54,6 @@ final class SettingsStore {
             return TimelineSettings()
         }
 
-        normalize(&settings)
         return settings
-    }
-
-    private static func normalize(_ settings: inout TimelineSettings) {
-        guard
-            validReminderDurations.contains(
-                settings.reminderDurationMinutes
-            )
-        else {
-            settings.reminderDurationMinutes = 30
-            return
-        }
     }
 }

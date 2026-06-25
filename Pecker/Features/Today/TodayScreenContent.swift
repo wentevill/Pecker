@@ -307,7 +307,7 @@ struct TodayScreenContent: Equatable {
             now: now
         )
         let remainingText = relativeDurationText(
-            until: item.endDate ?? now,
+            until: countdownTargetDate(for: item, now: now) ?? now,
             relativeTo: now
         )
         let concurrentText = TodayPresentation.concurrentText(
@@ -398,7 +398,7 @@ struct TodayScreenContent: Equatable {
         let badgeText = TodayPresentation.pinBadgeText(for: pinOrigin)
         let timeText = pinnedTimeText(for: item, locale: locale, includeLocation: true)
         let countdown = relativeCountdownText(
-            start: item.startDate,
+            target: countdownTargetDate(for: item, now: now),
             now: now
         )
         let accessibilityLabel = accessibilityLabel(
@@ -509,8 +509,37 @@ struct TodayScreenContent: Equatable {
         start: Date,
         now: Date
     ) -> String {
-        let interval = max(0, start.timeIntervalSince(now))
+        relativeCountdownText(target: start, now: now)
+    }
+
+    private static func relativeCountdownText(
+        target: Date?,
+        now: Date
+    ) -> String {
+        guard let target else {
+            return ""
+        }
+
+        let interval = max(0, target.timeIntervalSince(now))
         return "还有 \(durationText(for: interval))"
+    }
+
+    private static func countdownTargetDate(
+        for item: TimelineItem,
+        now: Date
+    ) -> Date? {
+        if let endDate = item.endDate,
+           item.startDate <= now,
+           endDate > now
+        {
+            return endDate
+        }
+
+        if item.startDate > now {
+            return item.startDate
+        }
+
+        return nil
     }
 
     private static func relativeDurationText(

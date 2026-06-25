@@ -19,12 +19,10 @@ final class SettingsViewModelTests: XCTestCase {
 
         viewModel.setCalendarEnabled(false)
         viewModel.setShowTravelEvents(false)
-        viewModel.setReminderDurationMinutes(45)
 
-        XCTAssertEqual(refreshCount, 3)
+        XCTAssertEqual(refreshCount, 2)
         XCTAssertFalse(store.value.calendarEnabled)
         XCTAssertFalse(store.value.showTravelEvents)
-        XCTAssertEqual(store.value.reminderDurationMinutes, 45)
     }
 
     @MainActor

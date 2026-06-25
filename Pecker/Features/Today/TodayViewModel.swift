@@ -110,7 +110,6 @@ final class TodayViewModel {
                 + reminders.compactMap {
                     dependencies.mapper.mapReminder(
                         $0,
-                        durationMinutes: settings.reminderDurationMinutes,
                         template: recognizedTemplates["reminder:\($0.identifier)"]
                     )
                 }

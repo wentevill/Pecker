@@ -72,40 +72,27 @@ import Testing
         #expect(snapshot.nowItemID == event.id)
     }
 
-    @Test func selectsOverdueReminderOnlyWhileConfiguredEndIsAfterNow() {
+    @Test func reminderWithoutEndDateDoesNotBecomeCurrentAfterDueDate() {
         let now = Date(
             timeIntervalSince1970: 1_782_122_400 // 2026-06-22T10:00:00Z
         )
-        let activeOverdueReminder = item(
+        let overdueReminder = item(
             "Submit expense report",
             .unknown,
             1_782_118_800, // 2026-06-22T09:00:00Z
-            1_782_126_000, // 2026-06-22T11:00:00Z
-            source: .reminder
-        )
-        let endedOverdueReminder = item(
-            "Submit timesheet",
-            .unknown,
-            1_782_118_800, // 2026-06-22T09:00:00Z
-            1_782_122_400, // 2026-06-22T10:00:00Z
+            nil,
             source: .reminder
         )
 
-        let activeSnapshot = TimelineEngine().makeSnapshot(
-            items: [activeOverdueReminder],
-            now: now,
-            settings: .init(),
-            staleInterval: 900
-        )
-        let endedSnapshot = TimelineEngine().makeSnapshot(
-            items: [endedOverdueReminder],
+        let snapshot = TimelineEngine().makeSnapshot(
+            items: [overdueReminder],
             now: now,
             settings: .init(),
             staleInterval: 900
         )
 
-        #expect(activeSnapshot.nowItemID == activeOverdueReminder.id)
-        #expect(endedSnapshot.nowItemID == nil)
+        #expect(snapshot.nowItemID == nil)
+        #expect(snapshot.nextItemID == nil)
     }
 
     @Test func ranksNowKindsInApprovedOrder() {

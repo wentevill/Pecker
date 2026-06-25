@@ -61,15 +61,20 @@ private struct CompactTrailing: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        if let endDate = state.primaryEndDate {
-            RemainingMinutesText(endDate: endDate, font: .caption2.weight(.bold).monospacedDigit())
-                .foregroundStyle(.white)
-        } else {
-            Text(DynamicIslandStyle.statusLabel(for: state))
-                .font(.caption2.weight(.heavy))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            if let targetDate = state.countdownTargetDate(at: timeline.date) {
+                RemainingMinutesText(
+                    targetDate: targetDate,
+                    font: .caption2.weight(.bold).monospacedDigit()
+                )
+                    .foregroundStyle(.white)
+            } else {
+                Text(DynamicIslandStyle.statusLabel(for: state))
+                    .font(.caption2.weight(.heavy))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
         }
     }
 }
@@ -78,12 +83,17 @@ private struct MinimalIsland: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        if let endDate = state.primaryEndDate {
-            RemainingMinutesText(endDate: endDate, font: .caption2.weight(.heavy).monospacedDigit())
-                .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
-                .minimumScaleFactor(0.66)
-        } else {
-            StatusDot(color: DynamicIslandStyle.statusColor(for: state), size: 8)
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            if let targetDate = state.countdownTargetDate(at: timeline.date) {
+                RemainingMinutesText(
+                    targetDate: targetDate,
+                    font: .caption2.weight(.heavy).monospacedDigit()
+                )
+                    .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
+                    .minimumScaleFactor(0.66)
+            } else {
+                StatusDot(color: DynamicIslandStyle.statusColor(for: state), size: 8)
+            }
         }
     }
 }
@@ -124,34 +134,27 @@ private struct ExpandedCountdown: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 3) {
-            if let endDate = state.primaryEndDate {
-                Text(endDate, style: .timer)
-                    .font(.title3.weight(.bold).monospacedDigit())
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            VStack(alignment: .trailing, spacing: 3) {
+                if let targetDate = state.countdownTargetDate(at: timeline.date) {
+                    Text(targetDate, style: state.isPrimaryRunning(at: timeline.date) ? .timer : .relative)
+                        .font(.title3.weight(.bold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
 
-                Text("left")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.62))
-            } else if let startDate = state.primaryStartDate {
-                Text(startDate, style: .relative)
-                    .font(.caption.weight(.bold).monospacedDigit())
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-
-                Text("starts")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.62))
-            } else {
-                Text(DynamicIslandStyle.statusLabel(for: state))
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
-                    .lineLimit(1)
+                    Text(state.isPrimaryRunning(at: timeline.date) ? "left" : "starts")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.62))
+                } else {
+                    Text(DynamicIslandStyle.statusLabel(for: state))
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
+                        .lineLimit(1)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
@@ -164,12 +167,14 @@ private struct ExpandedBottom: View {
                 NextRow(title: nextTitle, startDate: state.nextStartDate)
             }
 
-            if state.primaryStartDate != nil, state.primaryEndDate != nil {
-                DynamicIslandProgressBar(
-                    startDate: state.primaryStartDate,
-                    endDate: state.primaryEndDate,
-                    accent: DynamicIslandStyle.statusColor(for: state)
-                )
+            TimelineView(.periodic(from: .now, by: 30)) { timeline in
+                if state.isPrimaryRunning(at: timeline.date) {
+                    DynamicIslandProgressBar(
+                        startDate: state.primaryStartDate,
+                        endDate: state.primaryEndDate,
+                        accent: DynamicIslandStyle.statusColor(for: state)
+                    )
+                }
             }
 
             if state.additionalActiveCount > 0 {
@@ -253,7 +258,7 @@ private struct DynamicIslandProgressBar: View {
 }
 
 private struct RemainingMinutesText: View {
-    let endDate: Date
+    let targetDate: Date
     let font: Font
 
     var body: some View {
@@ -265,7 +270,7 @@ private struct RemainingMinutesText: View {
     }
 
     private func label(at date: Date) -> String {
-        let remainingSeconds = max(endDate.timeIntervalSince(date), 0)
+        let remainingSeconds = max(targetDate.timeIntervalSince(date), 0)
         let minutes = max(Int(ceil(remainingSeconds / 60)), 1)
 
         if minutes >= 100 {

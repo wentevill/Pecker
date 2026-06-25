@@ -178,6 +178,86 @@ final class TodayPresentationTests: XCTestCase {
         )
     }
 
+    func testNowCardCountdownUsesEndDateForRunningItem() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let item = TimelineItem(
+            id: "now",
+            sourceIdentifier: "now",
+            title: "Running",
+            startDate: now.addingTimeInterval(-10 * 60),
+            endDate: now.addingTimeInterval(5 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .meeting,
+            location: nil,
+            notes: nil
+        )
+        let snapshot = TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: now.addingTimeInterval(900),
+            items: [item],
+            nowItemID: item.id,
+            concurrentNowCount: 0,
+            nextItemID: nil,
+            pinnedItemID: nil,
+            pinOrigin: nil
+        )
+
+        let content = TodayScreenContent.make(
+            from: .content(snapshot),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+
+        XCTAssertEqual(content.nowCard?.secondaryText, "剩余 5 分钟")
+    }
+
+    func testPinnedCountdownUsesEndDateWhenRunningAndStartDateBeforeStart() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let runningPinned = TimelineItem(
+            id: "running",
+            sourceIdentifier: "running",
+            title: "Running Train",
+            startDate: now.addingTimeInterval(-10 * 60),
+            endDate: now.addingTimeInterval(7 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let upcomingPinned = TimelineItem(
+            id: "upcoming",
+            sourceIdentifier: "upcoming",
+            title: "Upcoming Train",
+            startDate: now.addingTimeInterval(12 * 60),
+            endDate: now.addingTimeInterval(60 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+
+        let runningContent = TodayScreenContent.make(
+            from: .content(snapshot(pinned: runningPinned, now: now)),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+        let upcomingContent = TodayScreenContent.make(
+            from: .content(snapshot(pinned: upcomingPinned, now: now)),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+
+        XCTAssertEqual(runningContent.pinnedCard?.tertiaryText, "还有 7 分钟")
+        XCTAssertEqual(upcomingContent.pinnedCard?.tertiaryText, "还有 12 分钟")
+    }
+
     func testPinBadgeCopyMatchesOrigin() {
         XCTAssertEqual(TodayPresentation.pinBadgeText(for: .automatic), "自动推荐")
         XCTAssertEqual(TodayPresentation.pinBadgeText(for: .manual), "手动固定")
@@ -276,6 +356,23 @@ final class TodayPresentationTests: XCTestCase {
             kind: .meeting,
             location: "Room 1",
             notes: nil
+        )
+    }
+
+    private func snapshot(
+        pinned item: TimelineItem,
+        now: Date
+    ) -> TodaySnapshot {
+        TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: now.addingTimeInterval(900),
+            items: [item],
+            nowItemID: nil,
+            concurrentNowCount: 0,
+            nextItemID: nil,
+            pinnedItemID: item.id,
+            pinOrigin: .automatic
         )
     }
 }

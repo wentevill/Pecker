@@ -48,7 +48,7 @@ import Testing
     #expect(inputs.first?.isAllDay == true)
 }
 
-@Test func coordinatorAlignsReminderStorageAndRecognitionInputWithTimelineDuration() async throws {
+@Test func coordinatorKeepsReminderStorageAndRecognitionInputWithoutSyntheticEndDate() async throws {
     let repository = RecordingEventRepository()
     let provider = RecordingRecognitionProvider()
     let coordinator = SystemEventRecognitionCoordinator(
@@ -57,7 +57,6 @@ import Testing
         providerFactory: { _, _ in provider }
     )
     let dueDate = Date(timeIntervalSince1970: 1_000)
-    let expectedEndDate = dueDate.addingTimeInterval(45 * 60)
     let now = Date(timeIntervalSince1970: 5_000)
 
     _ = await coordinator.synchronize(
@@ -71,7 +70,6 @@ import Testing
             )
         ],
         settings: TimelineSettings(
-            reminderDurationMinutes: 45,
             aiRecognitionMode: .openAI,
             openAIAPIKeyConfigured: true,
             syncRemindersToStorage: true
@@ -82,12 +80,12 @@ import Testing
     let records = await repository.records()
     #expect(records.first?.id == "reminder:reminder-1")
     #expect(records.first?.startDate == dueDate)
-    #expect(records.first?.endDate == expectedEndDate)
+    #expect(records.first?.endDate == nil)
 
     let inputs = await provider.inputs()
     #expect(inputs.first?.id == "reminder:reminder-1")
     #expect(inputs.first?.startDate == dueDate)
-    #expect(inputs.first?.endDate == expectedEndDate)
+    #expect(inputs.first?.endDate == nil)
     #expect(inputs.first?.isAllDay == false)
 }
 

@@ -43,6 +43,34 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             self.additionalActiveCount = additionalActiveCount
             self.generatedAt = generatedAt
         }
+
+        public func countdownTargetDate(at date: Date) -> Date? {
+            if let startDate = primaryStartDate,
+               let endDate = primaryEndDate,
+               startDate <= date,
+               endDate > date
+            {
+                return endDate
+            }
+
+            if let startDate = primaryStartDate,
+               startDate > date
+            {
+                return startDate
+            }
+
+            return nil
+        }
+
+        public func isPrimaryRunning(at date: Date) -> Bool {
+            guard let startDate = primaryStartDate,
+                  let endDate = primaryEndDate
+            else {
+                return false
+            }
+
+            return startDate <= date && endDate > date
+        }
     }
 
     public let localDayIdentifier: String

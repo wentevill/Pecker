@@ -32,7 +32,6 @@ final class SettingsStoreTests: XCTestCase {
             calendarEnabled: false,
             remindersEnabled: false,
             showTravelEvents: false,
-            reminderDurationMinutes: 45,
             manualPinnedSourceIdentifier: "calendar:event-1",
             liveActivityEnabled: true
         )
@@ -63,45 +62,6 @@ final class SettingsStoreTests: XCTestCase {
             SettingsStore(defaults: defaults)
                 .value.manualPinnedSourceIdentifier
         )
-    }
-
-    @MainActor
-    func testInvalidReminderDurationsNormalizeToThirty() {
-        let defaults = makeDefaults()
-
-        for invalidDuration in [-1, 0, 14, 16, 29, 31, 59, 61] {
-            let store = SettingsStore(defaults: defaults)
-
-            store.update {
-                $0.reminderDurationMinutes = invalidDuration
-            }
-
-            XCTAssertEqual(store.value.reminderDurationMinutes, 30)
-            XCTAssertEqual(
-                SettingsStore(defaults: defaults)
-                    .value.reminderDurationMinutes,
-                30
-            )
-        }
-    }
-
-    @MainActor
-    func testValidReminderDurationsArePreserved() {
-        let defaults = makeDefaults()
-
-        for validDuration in [15, 30, 45, 60] {
-            let store = SettingsStore(defaults: defaults)
-
-            store.update {
-                $0.reminderDurationMinutes = validDuration
-            }
-
-            XCTAssertEqual(
-                SettingsStore(defaults: defaults)
-                    .value.reminderDurationMinutes,
-                validDuration
-            )
-        }
     }
 
     @MainActor

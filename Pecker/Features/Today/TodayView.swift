@@ -14,16 +14,17 @@ struct TodayView: View {
     @State private var isSettingsPresented = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isCameraPresented = false
-    @State private var imageRecognitionStatusText = "等待图片"
-    @State private var imageRecognitionErrorText: String?
+    @State private var imageRecognitionPhase: TodayScreenContent.ImageRecognitionPhase = .idle
 
     var body: some View {
         NavigationStack(path: $path) {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 TodayScreen(
                     content: content(now: context.date),
-                    imageRecognitionStatusText: imageRecognitionStatusText,
-                    imageRecognitionErrorText: imageRecognitionErrorText,
+                    recognitionActions: TodayScreenContent.recognitionActions(
+                        settings: settingsStore.value,
+                        phase: imageRecognitionPhase
+                    ),
                     selectedPhoto: $selectedPhoto,
                     isCameraPresented: $isCameraPresented,
                     refreshAction: { await model.refresh() },
@@ -134,16 +135,14 @@ struct TodayView: View {
     }
 
     private func recognizePhoto(_ item: PhotosPickerItem) async {
-        imageRecognitionErrorText = nil
-        imageRecognitionStatusText = "读取图片…"
+        imageRecognitionPhase = .loading("读取图片…")
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                imageRecognitionStatusText = "等待图片"
-                imageRecognitionErrorText = "无法读取这张图片。"
+                imageRecognitionPhase = .failure("无法读取这张图片。")
                 return
             }
 
-            imageRecognitionStatusText = "识别中…"
+            imageRecognitionPhase = .loading("识别中…")
             _ = try await imageRecognizer.recognizeImage(
                 data: data,
                 source: .importedImage,
@@ -151,22 +150,19 @@ struct TodayView: View {
                 settings: settingsStore.value,
                 now: .now
             )
-            imageRecognitionStatusText = "图片识别完成"
+            imageRecognitionPhase = .success("图片识别完成")
             onSettingsChanged()
             await model.refresh()
         } catch {
-            imageRecognitionStatusText = "识别失败"
-            imageRecognitionErrorText = "图片识别失败，请稍后重试。"
+            imageRecognitionPhase = .failure(errorMessage(for: error))
         }
     }
 
     private func recognizeCameraImage(_ image: UIImage) async {
-        imageRecognitionErrorText = nil
-        imageRecognitionStatusText = "识别中…"
+        imageRecognitionPhase = .loading("识别中…")
         do {
             guard let data = image.jpegData(compressionQuality: 0.88) else {
-                imageRecognitionStatusText = "等待图片"
-                imageRecognitionErrorText = "无法读取相机照片。"
+                imageRecognitionPhase = .failure("无法读取相机照片。")
                 return
             }
 
@@ -177,12 +173,32 @@ struct TodayView: View {
                 settings: settingsStore.value,
                 now: .now
             )
-            imageRecognitionStatusText = "相机识别完成"
+            imageRecognitionPhase = .success("相机识别完成")
             onSettingsChanged()
             await model.refresh()
         } catch {
-            imageRecognitionStatusText = "识别失败"
-            imageRecognitionErrorText = "拍照识别失败，请稍后重试。"
+            imageRecognitionPhase = .failure(errorMessage(for: error))
+        }
+    }
+
+    private func errorMessage(for error: Error) -> String {
+        guard let recognitionError = error as? RecognitionError else {
+            return "识别失败，请稍后重试。"
+        }
+
+        switch recognitionError {
+        case .invalidConfiguration:
+            return "API 配置无效，请检查 Host、Model 和 API Key。"
+        case .requestFailed:
+            return "API 请求失败，请检查 Host、Model 或网络。"
+        case .invalidResponse:
+            return "识别结果格式异常，请稍后重试。"
+        case .networkExecutionNotImplemented:
+            return "当前识别服务尚未完成网络执行。"
+        case .localModelUnavailable:
+            return "内置小模型暂不可用，请改用 OpenAI。"
+        case .unsupportedInput:
+            return "暂不支持这类图片内容。"
         }
     }
 
@@ -211,8 +227,7 @@ private enum TodayRoute: Hashable {
 
 struct TodayScreen: View {
     let content: TodayScreenContent
-    let imageRecognitionStatusText: String
-    let imageRecognitionErrorText: String?
+    let recognitionActions: TodayScreenContent.RecognitionActions?
     @Binding var selectedPhoto: PhotosPickerItem?
     @Binding var isCameraPresented: Bool
     let refreshAction: () async -> Void
@@ -226,8 +241,7 @@ struct TodayScreen: View {
 
     init(
         content: TodayScreenContent,
-        imageRecognitionStatusText: String = "等待图片",
-        imageRecognitionErrorText: String? = nil,
+        recognitionActions: TodayScreenContent.RecognitionActions? = nil,
         selectedPhoto: Binding<PhotosPickerItem?> = .constant(nil),
         isCameraPresented: Binding<Bool> = .constant(false),
         refreshAction: @escaping () async -> Void,
@@ -240,8 +254,7 @@ struct TodayScreen: View {
         onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in }
     ) {
         self.content = content
-        self.imageRecognitionStatusText = imageRecognitionStatusText
-        self.imageRecognitionErrorText = imageRecognitionErrorText
+        self.recognitionActions = recognitionActions
         _selectedPhoto = selectedPhoto
         _isCameraPresented = isCameraPresented
         self.refreshAction = refreshAction
@@ -263,7 +276,9 @@ struct TodayScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         header
-                        recognitionActions
+                        if let recognitionActions {
+                            recognitionActionsView(recognitionActions)
+                        }
                         bodyContent
                     }
                     .frame(maxWidth: 640, alignment: .leading)
@@ -334,19 +349,27 @@ struct TodayScreen: View {
         .padding(.top, 4)
     }
 
-    private var recognitionActions: some View {
+    private func recognitionActionsView(
+        _ actions: TodayScreenContent.RecognitionActions
+    ) -> some View {
         TimelineCard(accent: .now) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("识别事件")
                             .font(.headline.weight(.semibold))
-                        Text(imageRecognitionStatusText)
+                        Text(actions.statusText)
                             .font(.caption.weight(.medium))
                             .foregroundStyle(TimelineTheme.textSecondary)
                     }
 
                     Spacer(minLength: 8)
+
+                    if actions.isLoading {
+                        ProgressView()
+                            .tint(TimelineTheme.now)
+                            .accessibilityLabel("图片识别中")
+                    }
                 }
 
                 HStack(spacing: 10) {
@@ -362,6 +385,8 @@ struct TodayScreen: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .disabled(actions.buttonsDisabled)
+                    .opacity(actions.buttonsDisabled ? 0.58 : 1)
 
                     Button {
                         isCameraPresented = true
@@ -374,12 +399,20 @@ struct TodayScreen: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                    .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.48)
+                    .disabled(
+                        actions.buttonsDisabled
+                            || !UIImagePickerController.isSourceTypeAvailable(.camera)
+                    )
+                    .opacity(
+                        actions.buttonsDisabled
+                            || !UIImagePickerController.isSourceTypeAvailable(.camera)
+                            ? 0.48
+                            : 1
+                    )
                 }
 
-                if let imageRecognitionErrorText {
-                    Text(imageRecognitionErrorText)
+                if let errorText = actions.errorText {
+                    Text(errorText)
                         .font(.caption)
                         .foregroundStyle(TimelineTheme.now)
                         .fixedSize(horizontal: false, vertical: true)

@@ -59,6 +59,20 @@ struct TodayScreenContent: Equatable {
         let accessibilityLabel: String
     }
 
+    enum ImageRecognitionPhase: Equatable {
+        case idle
+        case loading(String)
+        case success(String)
+        case failure(String)
+    }
+
+    struct RecognitionActions: Equatable {
+        let statusText: String
+        let isLoading: Bool
+        let buttonsDisabled: Bool
+        let errorText: String?
+    }
+
     struct Stale: Equatable {
         let bannerText: String
         let retryText: String
@@ -84,6 +98,59 @@ struct TodayScreenContent: Equatable {
     let failure: Failure?
     let stale: Stale?
     let sourceNotice: SourceNotice?
+
+    static func recognitionActions(
+        settings: TimelineSettings,
+        phase: ImageRecognitionPhase
+    ) -> RecognitionActions? {
+        guard imageRecognitionIsEnabled(settings) else {
+            return nil
+        }
+
+        switch phase {
+        case .idle:
+            return RecognitionActions(
+                statusText: "等待图片",
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: nil
+            )
+        case let .loading(statusText):
+            return RecognitionActions(
+                statusText: statusText,
+                isLoading: true,
+                buttonsDisabled: true,
+                errorText: nil
+            )
+        case let .success(statusText):
+            return RecognitionActions(
+                statusText: statusText,
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: nil
+            )
+        case let .failure(errorText):
+            return RecognitionActions(
+                statusText: "识别失败",
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: errorText
+            )
+        }
+    }
+
+    private static func imageRecognitionIsEnabled(
+        _ settings: TimelineSettings
+    ) -> Bool {
+        switch settings.aiRecognitionMode {
+        case .off:
+            return false
+        case .openAI:
+            return settings.openAIAPIKeyConfigured
+        case .localModel:
+            return true
+        }
+    }
 
     static func make(
         from state: TimelineScreenState,

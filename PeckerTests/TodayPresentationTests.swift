@@ -264,6 +264,71 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertNil(TodayPresentation.pinBadgeText(for: nil))
     }
 
+    func testRecognitionActionsHiddenUntilRecognitionIsEnabled() {
+        XCTAssertNil(
+            TodayScreenContent.recognitionActions(
+                settings: TimelineSettings(aiRecognitionMode: .off),
+                phase: .idle
+            )
+        )
+        XCTAssertNil(
+            TodayScreenContent.recognitionActions(
+                settings: TimelineSettings(
+                    aiRecognitionMode: .openAI,
+                    openAIAPIKeyConfigured: false
+                ),
+                phase: .idle
+            )
+        )
+    }
+
+    func testRecognitionActionsSurfaceLoadingSuccessAndFailure() throws {
+        let settings = TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        )
+
+        let idle = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(settings: settings, phase: .idle)
+        )
+        XCTAssertEqual(idle.statusText, "等待图片")
+        XCTAssertFalse(idle.isLoading)
+        XCTAssertFalse(idle.buttonsDisabled)
+        XCTAssertNil(idle.errorText)
+
+        let loading = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .loading("识别中…")
+            )
+        )
+        XCTAssertEqual(loading.statusText, "识别中…")
+        XCTAssertTrue(loading.isLoading)
+        XCTAssertTrue(loading.buttonsDisabled)
+        XCTAssertNil(loading.errorText)
+
+        let success = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .success("图片识别完成")
+            )
+        )
+        XCTAssertEqual(success.statusText, "图片识别完成")
+        XCTAssertFalse(success.isLoading)
+        XCTAssertFalse(success.buttonsDisabled)
+
+        let failure = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .failure("API 请求失败，请检查 Host、Model 或网络。")
+            )
+        )
+        XCTAssertEqual(failure.statusText, "识别失败")
+        XCTAssertFalse(failure.isLoading)
+        XCTAssertFalse(failure.buttonsDisabled)
+        XCTAssertEqual(failure.errorText, "API 请求失败，请检查 Host、Model 或网络。")
+    }
+
     func testSummaryCountIgnoresTheVisibleNowItem() {
         let snapshot = TodaySnapshot(
             schemaVersion: TodaySnapshot.currentSchemaVersion,

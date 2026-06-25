@@ -70,6 +70,64 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshSynchronizesEnabledSystemSourcesAndAppliesRecognizedTemplates() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let eventRecord = event(
+            title: "G123 上海虹桥 → 北京南",
+            at: now.addingTimeInterval(600)
+        )
+        let reminderRecord = reminder(at: now.addingTimeInterval(1_200))
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            events: [eventRecord],
+            reminders: [reminderRecord]
+        )
+        let recognizer = RecordingSystemEventRecognizer(
+            templatesByItemID: [
+                "calendar:event": .trainTicket(
+                    .init(
+                        trainNumber: "G123",
+                        departureStation: "上海虹桥",
+                        arrivalStation: "北京南",
+                        departureTimeText: nil,
+                        arrivalTimeText: nil,
+                        carriageNumber: nil,
+                        seatNumber: nil,
+                        checkInGate: nil,
+                        passengerName: nil,
+                        ticketNumber: nil
+                    )
+                )
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            settings: .init(
+                aiRecognitionMode: .openAI,
+                syncCalendarToStorage: true,
+                syncRemindersToStorage: true
+            ),
+            systemEventRecognizer: recognizer
+        )
+
+        await viewModel.refresh(now: now)
+
+        let calls = await recognizer.calls()
+        XCTAssertEqual(calls.count, 1)
+        XCTAssertEqual(calls.first?.events.map(\.identifier), ["event"])
+        XCTAssertEqual(calls.first?.reminders.map(\.identifier), ["reminder"])
+        XCTAssertEqual(calls.first?.settings.syncCalendarToStorage, true)
+        XCTAssertEqual(calls.first?.settings.syncRemindersToStorage, true)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected content, got \(viewModel.state)")
+        }
+        let item = try XCTUnwrap(snapshot.items.first)
+        XCTAssertEqual(item.id, "calendar:event")
+        XCTAssertEqual(item.template?.kind, .train)
+    }
+
+    @MainActor
     func testRefreshReconcilesLiveActivityAfterSnapshotIsSaved() async {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let gateway = FakeEventKitGateway(
@@ -672,7 +730,8 @@ final class TodayViewModelTests: XCTestCase {
         store: FakeSnapshotStore = FakeSnapshotStore(),
         settings: TimelineSettings = .init(),
         calendar: Calendar = Calendar(identifier: .gregorian),
-        activityClient: (any ActivityClient)? = nil
+        activityClient: (any ActivityClient)? = nil,
+        systemEventRecognizer: (any SystemEventRecognizing)? = nil
     ) -> TodayViewModel {
         TodayViewModel(
             dependencies: makeDependencies(
@@ -680,7 +739,8 @@ final class TodayViewModelTests: XCTestCase {
                 store: store,
                 settings: settings,
                 calendar: calendar,
-                activityClient: activityClient
+                activityClient: activityClient,
+                systemEventRecognizer: systemEventRecognizer
             )
         )
     }
@@ -691,7 +751,8 @@ final class TodayViewModelTests: XCTestCase {
         store: FakeSnapshotStore = FakeSnapshotStore(),
         settings: TimelineSettings = .init(),
         calendar: Calendar = Calendar(identifier: .gregorian),
-        activityClient: (any ActivityClient)? = nil
+        activityClient: (any ActivityClient)? = nil,
+        systemEventRecognizer: (any SystemEventRecognizing)? = nil
     ) -> AppDependencies {
         let defaults = UserDefaults(
             suiteName: "TodayViewModelTests.\(UUID().uuidString)"
@@ -705,8 +766,41 @@ final class TodayViewModelTests: XCTestCase {
             snapshotStore: store,
             settingsStore: settingsStore,
             calendar: calendar,
-            activityClient: activityClient ?? RecordingActivityClient()
+            activityClient: activityClient ?? RecordingActivityClient(),
+            systemEventRecognizer: systemEventRecognizer ?? NoopSystemEventRecognizer()
         )
+    }
+}
+
+private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
+    struct Call: Sendable {
+        let events: [EventRecord]
+        let reminders: [ReminderRecord]
+        let settings: TimelineSettings
+        let now: Date
+    }
+
+    private let templatesByItemID: [String: TimelineEventTemplate]
+    private var recordedCalls: [Call] = []
+
+    init(templatesByItemID: [String: TimelineEventTemplate] = [:]) {
+        self.templatesByItemID = templatesByItemID
+    }
+
+    func synchronize(
+        events: [EventRecord],
+        reminders: [ReminderRecord],
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [String: TimelineEventTemplate] {
+        recordedCalls.append(
+            .init(events: events, reminders: reminders, settings: settings, now: now)
+        )
+        return templatesByItemID
+    }
+
+    func calls() -> [Call] {
+        recordedCalls
     }
 }
 

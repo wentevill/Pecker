@@ -1,7 +1,7 @@
 import Foundation
 import Security
 
-protocol APIKeyStoring {
+protocol APIKeyStoring: Sendable {
     func saveOpenAIAPIKey(_ key: String) throws
     func loadOpenAIAPIKey() throws -> String?
     func clearOpenAIAPIKey() throws

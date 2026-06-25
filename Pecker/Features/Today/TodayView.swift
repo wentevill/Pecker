@@ -6,6 +6,7 @@ struct TodayView: View {
     @Environment(\.openURL) private var openURL
     @Bindable var model: TodayViewModel
     @Bindable var settingsStore: SettingsStore
+    let imageRecognizer: any ImageRecognizing
     let onSettingsChanged: @MainActor @Sendable () -> Void
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
@@ -45,6 +46,7 @@ struct TodayView: View {
                             calendar: .notDetermined,
                             reminders: .notDetermined
                         ),
+                        imageRecognizer: imageRecognizer,
                         liveActivityStatusText: {
                             model.liveActivityStatusText
                         },
@@ -120,6 +122,7 @@ struct TodayView: View {
     static func makeSettingsViewModel(
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
+        imageRecognizer: any ImageRecognizing = NoopImageRecognizer(),
         liveActivityStatusText: @escaping @MainActor () -> String,
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
@@ -127,6 +130,7 @@ struct TodayView: View {
         SettingsViewModel(
             settingsStore: settingsStore,
             authorization: authorization,
+            imageRecognizer: imageRecognizer,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,
             openURL: openURL

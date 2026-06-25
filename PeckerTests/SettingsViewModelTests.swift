@@ -163,6 +163,30 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testImageRecognitionUpdatesStatusAndCallsRecognizer() async throws {
+        let store = makeStore()
+        store.update { $0.aiRecognitionMode = .openAI }
+        let recognizer = RecordingImageRecognizer()
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            imageRecognizer: recognizer,
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+
+        try await viewModel.recognizeImportedImage(
+            Data([1, 2, 3]),
+            filename: "ticket.jpg"
+        )
+
+        XCTAssertEqual(viewModel.imageRecognitionStatusText, "图片识别完成")
+        let calls = await recognizer.calls()
+        XCTAssertEqual(calls.map(\.source), [.importedImage])
+        XCTAssertEqual(calls.first?.filename, "ticket.jpg")
+    }
+
+    @MainActor
     private func makeStore() -> SettingsStore {
         SettingsStore(
             defaults: UserDefaults(
@@ -172,7 +196,7 @@ final class SettingsViewModelTests: XCTestCase {
     }
 }
 
-private final class InMemoryAPIKeyStore: APIKeyStoring {
+private final class InMemoryAPIKeyStore: APIKeyStoring, @unchecked Sendable {
     private var key: String?
 
     func saveOpenAIAPIKey(_ key: String) throws {
@@ -185,5 +209,46 @@ private final class InMemoryAPIKeyStore: APIKeyStoring {
 
     func clearOpenAIAPIKey() throws {
         key = nil
+    }
+}
+
+private actor RecordingImageRecognizer: ImageRecognizing {
+    struct Call: Sendable {
+        let data: Data
+        let source: RecognitionSource
+        let filename: String?
+        let settings: TimelineSettings
+    }
+
+    private var recordedCalls: [Call] = []
+
+    func recognizeImage(
+        data: Data,
+        source: RecognitionSource,
+        filename: String?,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> StoredEventRecord {
+        recordedCalls.append(
+            .init(data: data, source: source, filename: filename, settings: settings)
+        )
+        return StoredEventRecord(
+            id: "image:test",
+            source: source,
+            sourceIdentifier: "test",
+            rawTitle: filename,
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: "Images/test.jpg",
+            startDate: nil,
+            endDate: nil,
+            template: nil,
+            recognitionStatus: .recognized,
+            updatedAt: now
+        )
+    }
+
+    func calls() -> [Call] {
+        recordedCalls
     }
 }

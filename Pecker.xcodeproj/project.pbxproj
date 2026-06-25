@@ -42,6 +42,7 @@
 		85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3970F963E48BEED739F23D9 /* FullTimelineView.swift */; };
 		88E4838DF7C0565E97B5F4DB /* TodayPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E916A64D9C5437B74083A0 /* TodayPresentation.swift */; };
 		895C321CAECBDE8B4A88450D /* TodayPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1A1C1B94B7E4BABF76F56B /* TodayPreviewFixtures.swift */; };
+		8E86012BDB4DB612CAB67524 /* SystemEventRecognitionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */; };
 		98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */; };
 		9DDEEFD02099D01BF5B9AB0F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */; };
 		A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */; };
@@ -59,6 +60,7 @@
 		C10CB4B816A6CDEE892BDD77 /* TimelineTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DD7E2595C59D7468FFFDBED /* TimelineTheme.swift */; };
 		C79D43CE924CA80FB6AB63FF /* PeckerLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91F6FCD16FB397FB32E84A44 /* PeckerLiveActivityWidget.swift */; };
 		CDE02B67D1F9EA0371949419 /* ActivityClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6FF99F545E305EE9C7D4B08 /* ActivityClient.swift */; };
+		CF6D607EDFA15302D167DA2C /* CameraCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7DF2C74AA6B351A6FC4768D /* CameraCaptureView.swift */; };
 		D1BD5DBE059A7F95A632E521 /* ActivityCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */; };
 		D41DB4A684B26856DE13AC09 /* SettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8134030577E59314232590A8 /* SettingsStore.swift */; };
 		D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */; };
@@ -69,6 +71,7 @@
 		E0F9967027C774250F64642D /* EventTemplateFactoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */; };
 		E263F10E2981F75BE5F8D626 /* RecognitionModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE7C05294B46B68D0C1C377 /* RecognitionModelTests.swift */; };
 		EE2835E7A4D6DAFFAEDED3CB /* TimelineSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36884117D84F207788BD9DF4 /* TimelineSettings.swift */; };
+		EE85E349417FE3DD3A2DFAA0 /* ImageRecognitionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */; };
 		F16DD9FF2C5E48A4A61B655A /* TodayScreenContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7164D146943F27FF67475F /* TodayScreenContent.swift */; };
 		F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */; };
 		F5952A3407A941C73BA114DE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888FCA95EF551A9228FC7260 /* SettingsView.swift */; };
@@ -127,6 +130,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventRecognitionCoordinator.swift; sourceTree = "<group>"; };
 		0326C97B74B79A291ADB48FA /* libPeckerCore.a */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = archive.ar; path = libPeckerCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		039834399FFB7E60E6C39C1D /* ItemDetailActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailActionTests.swift; sourceTree = "<group>"; };
 		0BC3B78E0B4324773D3D0158 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -166,11 +170,13 @@
 		994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineGroupingTests.swift; sourceTree = "<group>"; };
 		9FFF02FFA689038CCB31C51C /* APIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyStore.swift; sourceTree = "<group>"; };
 		A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
+		A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionStore.swift; sourceTree = "<group>"; };
 		B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineEngineTests.swift; sourceTree = "<group>"; };
 		B38BC7D2B84277A56EF33208 /* EventKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapper.swift; sourceTree = "<group>"; };
 		B3ED5714B825EF64F00F6545 /* RecognitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionModels.swift; sourceTree = "<group>"; };
 		B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTemplateFactoryTests.swift; sourceTree = "<group>"; };
 		B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitMapperTests.swift; sourceTree = "<group>"; };
+		B7DF2C74AA6B351A6FC4768D /* CameraCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureView.swift; sourceTree = "<group>"; };
 		C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C6FF99F545E305EE9C7D4B08 /* ActivityClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityClient.swift; sourceTree = "<group>"; };
 		CB7164D146943F27FF67475F /* TodayScreenContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayScreenContent.swift; sourceTree = "<group>"; };
@@ -271,6 +277,7 @@
 				71ACB8ECE6666BD90550A4D4 /* PeckerLiveActivity */,
 				C0D2E7BDECB1738AF191628D /* PeckerTests */,
 				F99B835FE16211888A6AA795 /* Persistence */,
+				8462995243F9DDCF94B32219 /* Recognition */,
 				6C93FB344A8E4723820C3E9A /* Resources */,
 				14E764D89F2CD7C4AD67EE4E /* Settings */,
 				68D1AD926E0EB76D6716C28B /* Shared */,
@@ -284,6 +291,7 @@
 		14E764D89F2CD7C4AD67EE4E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				B7DF2C74AA6B351A6FC4768D /* CameraCaptureView.swift */,
 				888FCA95EF551A9228FC7260 /* SettingsView.swift */,
 			);
 			name = Settings;
@@ -380,6 +388,16 @@
 			);
 			name = Shared;
 			path = Pecker/Features/Shared;
+			sourceTree = "<group>";
+		};
+		8462995243F9DDCF94B32219 /* Recognition */ = {
+			isa = PBXGroup;
+			children = (
+				A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */,
+				00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */,
+			);
+			name = Recognition;
+			path = Pecker/Recognition;
 			sourceTree = "<group>";
 		};
 		A38601B15EDBA4C078327AA6 /* PeckerCoreTests */ = {
@@ -689,10 +707,12 @@
 				231C5326939DA2266F164DEB /* AppDependencies.swift in Sources */,
 				ADA29F053B0A1C6190387FAA /* AppGroup.swift in Sources */,
 				B8A0301D482CF2E70727C9CB /* AppModel.swift in Sources */,
+				CF6D607EDFA15302D167DA2C /* CameraCaptureView.swift in Sources */,
 				58E410A459C2974A19C1C55C /* EventKitGateway.swift in Sources */,
 				B4C465A8034618E774EB554E /* EventKitGatewayProtocol.swift in Sources */,
 				BB3C7443B19E8A223DDA6ADD /* EventKitMapper.swift in Sources */,
 				85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */,
+				EE85E349417FE3DD3A2DFAA0 /* ImageRecognitionStore.swift in Sources */,
 				A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */,
 				5BEEB285930BADB1698B4A16 /* OnboardingModel.swift in Sources */,
 				265795E04003DA59AC3AF528 /* OnboardingView.swift in Sources */,
@@ -700,6 +720,7 @@
 				2FF408B7B706B7850512C675 /* PeckerApp.swift in Sources */,
 				D41DB4A684B26856DE13AC09 /* SettingsStore.swift in Sources */,
 				F5952A3407A941C73BA114DE /* SettingsView.swift in Sources */,
+				8E86012BDB4DB612CAB67524 /* SystemEventRecognitionCoordinator.swift in Sources */,
 				6C4C18FBF3581A8FFD9DF0BD /* TimelineCard.swift in Sources */,
 				46CD6777F1132878CA2097D1 /* TimelineGrouping.swift in Sources */,
 				D949375BFD6BFC679D8AD801 /* TimelineStates.swift in Sources */,

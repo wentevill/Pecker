@@ -21,6 +21,8 @@ struct AppDependencies {
     let settingsStore: SettingsStore
     let calendar: Calendar
     let activityCoordinator: ActivityCoordinator
+    let systemEventRecognizer: any SystemEventRecognizing
+    let imageRecognizer: any ImageRecognizing
 
     init(
         gateway: any EventKitGatewayProtocol,
@@ -29,7 +31,9 @@ struct AppDependencies {
         snapshotStore: any SnapshotStoring,
         settingsStore: SettingsStore,
         calendar: Calendar,
-        activityClient: any ActivityClient = LiveActivityClient()
+        activityClient: any ActivityClient = LiveActivityClient(),
+        systemEventRecognizer: (any SystemEventRecognizing)? = nil,
+        imageRecognizer: (any ImageRecognizing)? = nil
     ) {
         self.gateway = gateway
         self.mapper = mapper
@@ -41,6 +45,8 @@ struct AppDependencies {
             client: activityClient,
             calendar: calendar
         )
+        self.systemEventRecognizer = systemEventRecognizer ?? NoopSystemEventRecognizer()
+        self.imageRecognizer = imageRecognizer ?? NoopImageRecognizer()
     }
 
     static func production(
@@ -57,13 +63,30 @@ struct AppDependencies {
             throw AppDependenciesError.appGroupContainerUnavailable
         }
 
+        let settingsStore = try settingsStoreFactory()
+        let repository = EventRepository(
+            directoryURL: containerURL.appendingPathComponent(
+                "EventStore",
+                isDirectory: true
+            )
+        )
+
+        let recognitionCoordinator = SystemEventRecognitionCoordinator(
+            repository: repository
+        )
+
         return AppDependencies(
             gateway: EventKitGateway(),
             mapper: EventKitMapper(),
             engine: TimelineEngine(),
             snapshotStore: SnapshotStore(directoryURL: containerURL),
-            settingsStore: try settingsStoreFactory(),
-            calendar: .autoupdatingCurrent
+            settingsStore: settingsStore,
+            calendar: .autoupdatingCurrent,
+            systemEventRecognizer: recognitionCoordinator,
+            imageRecognizer: ImageRecognitionCoordinator(
+                imageStore: ImageRecognitionStore(directoryURL: containerURL),
+                systemCoordinator: recognitionCoordinator
+            )
         )
     }
 }

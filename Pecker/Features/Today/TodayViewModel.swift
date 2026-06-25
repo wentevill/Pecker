@@ -93,11 +93,25 @@ final class TodayViewModel {
                 return
             }
 
-            let items = events.map(dependencies.mapper.mapEvent)
+            let recognizedTemplates = await dependencies.systemEventRecognizer
+                .synchronize(
+                    events: events,
+                    reminders: reminders,
+                    settings: settings,
+                    now: now
+                )
+
+            let items = events.map {
+                dependencies.mapper.mapEvent(
+                    $0,
+                    template: recognizedTemplates["calendar:\($0.identifier)"]
+                )
+            }
                 + reminders.compactMap {
                     dependencies.mapper.mapReminder(
                         $0,
-                        durationMinutes: settings.reminderDurationMinutes
+                        durationMinutes: settings.reminderDurationMinutes,
+                        template: recognizedTemplates["reminder:\($0.identifier)"]
                     )
                 }
             let snapshot = dependencies.engine.makeSnapshot(

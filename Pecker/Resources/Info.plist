@@ -24,6 +24,10 @@
 	<string>Pecker needs calendar access to show your upcoming events.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
 	<string>Pecker needs reminders access to show your upcoming tasks.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Pecker uses the camera to recognize tickets and schedule-related images.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pecker reads selected photos to recognize tickets and schedule-related images.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

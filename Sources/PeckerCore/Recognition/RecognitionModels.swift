@@ -134,5 +134,6 @@ public enum RecognitionError: Error, Sendable, Equatable {
     case invalidConfiguration
     case unsupportedInput
     case networkExecutionNotImplemented
+    case requestFailed
+    case invalidResponse
 }
-

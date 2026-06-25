@@ -1,5 +1,25 @@
 import Foundation
 
+public protocol RecognitionHTTPClient: Sendable {
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse)
+}
+
+public struct URLSessionRecognitionHTTPClient: RecognitionHTTPClient {
+    private let session: URLSession
+
+    public init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    public func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw RecognitionError.invalidResponse
+        }
+        return (data, httpResponse)
+    }
+}
+
 public struct OpenAIRecognitionProvider: RecognitionProvider {
     public struct Configuration: Sendable, Equatable {
         public let host: String
@@ -14,13 +34,25 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     }
 
     public let configuration: Configuration
+    private let httpClient: any RecognitionHTTPClient
 
-    public init(configuration: Configuration) {
+    public init(
+        configuration: Configuration,
+        httpClient: any RecognitionHTTPClient = URLSessionRecognitionHTTPClient()
+    ) {
         self.configuration = configuration
+        self.httpClient = httpClient
     }
 
     public func recognize(_ input: RecognitionInput) async throws -> RecognitionResult {
-        throw RecognitionError.networkExecutionNotImplemented
+        let request = try makeRequest(for: input)
+        let (data, response) = try await httpClient.data(for: request)
+        guard (200..<300).contains(response.statusCode) else {
+            throw RecognitionError.requestFailed
+        }
+
+        let payload = try decodePayload(from: data)
+        return RecognitionResult(payload: payload, confidence: nil)
     }
 
     public func makeRequest(for input: RecognitionInput) throws -> URLRequest {
@@ -153,5 +185,47 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 ]
             ]
         ]
+    }
+
+    private func decodePayload(from data: Data) throws -> ExternalEventTemplatePayload {
+        let envelope = try JSONDecoder().decode(ResponsesEnvelope.self, from: data)
+        guard let text = envelope.firstText else {
+            throw RecognitionError.invalidResponse
+        }
+        guard let jsonData = text.data(using: .utf8) else {
+            throw RecognitionError.invalidResponse
+        }
+        return try JSONDecoder().decode(ExternalEventTemplatePayload.self, from: jsonData)
+    }
+}
+
+private struct ResponsesEnvelope: Decodable {
+    struct Output: Decodable {
+        struct Content: Decodable {
+            let text: String?
+        }
+
+        let content: [Content]?
+    }
+
+    let outputText: String?
+    let output: [Output]?
+
+    private enum CodingKeys: String, CodingKey {
+        case outputText = "output_text"
+        case output
+    }
+
+    var firstText: String? {
+        if let outputText, !outputText.isEmpty {
+            return outputText
+        }
+
+        return output?
+            .lazy
+            .compactMap { $0.content }
+            .flatMap { $0 }
+            .compactMap(\.text)
+            .first { !$0.isEmpty }
     }
 }

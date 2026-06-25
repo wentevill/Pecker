@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PhotosUI
 import PeckerCore
 
 @MainActor
@@ -8,6 +9,7 @@ final class SettingsViewModel {
     let authorization: SourceAuthorization
 
     private let apiKeyStore: any APIKeyStoring
+    private let imageRecognizer: any ImageRecognizing
     private let liveActivityStatusProvider: @MainActor () -> String
     private let onSettingsChanged: @MainActor () -> Void
     private let openURL: (URL) -> Void
@@ -16,6 +18,7 @@ final class SettingsViewModel {
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
+        imageRecognizer: any ImageRecognizing = NoopImageRecognizer(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
             "等待内容"
         },
@@ -25,10 +28,13 @@ final class SettingsViewModel {
         self.settingsStore = settingsStore
         self.authorization = authorization
         self.apiKeyStore = apiKeyStore
+        self.imageRecognizer = imageRecognizer
         liveActivityStatusProvider = liveActivityStatusText
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
     }
+
+    private(set) var imageRecognitionStatusText = "等待图片"
 
     var openAIAPIKeyStatusText: String {
         settingsStore.value.openAIAPIKeyConfigured ? "已配置" : "未配置"
@@ -163,6 +169,24 @@ final class SettingsViewModel {
         notifySettingsChanged()
     }
 
+    func recognizeImportedImage(_ data: Data, filename: String?) async throws {
+        try await recognizeImage(
+            data,
+            source: .importedImage,
+            filename: filename,
+            successText: "图片识别完成"
+        )
+    }
+
+    func recognizeCameraImage(_ data: Data) async throws {
+        try await recognizeImage(
+            data,
+            source: .cameraImage,
+            filename: "camera.jpg",
+            successText: "相机识别完成"
+        )
+    }
+
     func openSourceSettings(for source: TimelineSource) {
         let status: SourceAuthorizationStatus
         switch source {
@@ -182,6 +206,29 @@ final class SettingsViewModel {
     private func notifySettingsChanged() {
         onSettingsChanged()
     }
+
+    private func recognizeImage(
+        _ data: Data,
+        source: RecognitionSource,
+        filename: String?,
+        successText: String
+    ) async throws {
+        imageRecognitionStatusText = "识别中…"
+        do {
+            _ = try await imageRecognizer.recognizeImage(
+                data: data,
+                source: source,
+                filename: filename,
+                settings: settingsStore.value,
+                now: .now
+            )
+            imageRecognitionStatusText = successText
+            notifySettingsChanged()
+        } catch {
+            imageRecognitionStatusText = "识别失败"
+            throw error
+        }
+    }
 }
 
 struct SettingsView: View {
@@ -190,6 +237,9 @@ struct SettingsView: View {
     let viewModel: SettingsViewModel
     @State private var apiKeyDraft = ""
     @State private var apiKeyErrorText: String?
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var isCameraPresented = false
+    @State private var imageRecognitionErrorText: String?
 
     var body: some View {
         NavigationStack {
@@ -346,7 +396,68 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                imageRecognitionControls
             }
+        }
+    }
+
+    private var imageRecognitionControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Divider()
+                .overlay(TimelineTheme.cardStroke)
+
+            HStack {
+                Text("图片/相机识别")
+                    .font(.subheadline.weight(.semibold))
+                Spacer(minLength: 8)
+                Text(viewModel.imageRecognitionStatusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(TimelineTheme.textSecondary)
+            }
+
+            HStack {
+                PhotosPicker(
+                    selection: $selectedPhoto,
+                    matching: .images
+                ) {
+                    Label("选择图片", systemImage: "photo")
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    isCameraPresented = true
+                } label: {
+                    Label("拍照识别", systemImage: "camera")
+                }
+                .buttonStyle(.bordered)
+                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+            }
+
+            if let imageRecognitionErrorText {
+                Text(imageRecognitionErrorText)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .onChange(of: selectedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                await recognizePhoto(item)
+                selectedPhoto = nil
+            }
+        }
+        .sheet(isPresented: $isCameraPresented) {
+            CameraCaptureView(
+                onImage: { image in
+                    isCameraPresented = false
+                    Task { await recognizeCameraImage(image) }
+                },
+                onCancel: {
+                    isCameraPresented = false
+                }
+            )
+            .ignoresSafeArea()
         }
     }
 
@@ -531,6 +642,35 @@ struct SettingsView: View {
             apiKeyErrorText = nil
         } catch {
             apiKeyErrorText = "清除失败，请稍后重试。"
+        }
+    }
+
+    private func recognizePhoto(_ item: PhotosPickerItem) async {
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                imageRecognitionErrorText = "无法读取图片。"
+                return
+            }
+            try await viewModel.recognizeImportedImage(
+                data,
+                filename: item.itemIdentifier
+            )
+            imageRecognitionErrorText = nil
+        } catch {
+            imageRecognitionErrorText = "图片识别失败，请稍后重试。"
+        }
+    }
+
+    private func recognizeCameraImage(_ image: UIImage) async {
+        do {
+            guard let data = image.jpegData(compressionQuality: 0.9) else {
+                imageRecognitionErrorText = "无法读取相机图片。"
+                return
+            }
+            try await viewModel.recognizeCameraImage(data)
+            imageRecognitionErrorText = nil
+        } catch {
+            imageRecognitionErrorText = "相机识别失败，请稍后重试。"
         }
     }
 }

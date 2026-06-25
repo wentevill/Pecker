@@ -15,6 +15,9 @@ import Testing
         for: .calendar(
             sourceIdentifier: "calendar-1",
             title: "G123 上海虹桥 → 北京南",
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 2_000),
+            isAllDay: false,
             location: "检票口 B7",
             notes: "08车 03A"
         )
@@ -32,6 +35,9 @@ import Testing
     #expect(json["model"] as? String == "gpt-test")
     #expect(json["store"] as? Bool == false)
     #expect(String(data: body, encoding: .utf8)?.contains("G123 上海虹桥") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:16:40.000Z") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:33:20.000Z") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("isAllDay: false") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("json_schema") == true)
 }
 
@@ -82,6 +88,9 @@ import Testing
         .calendar(
             sourceIdentifier: "calendar-1",
             title: "G123 上海虹桥 → 北京南",
+            startDate: nil,
+            endDate: nil,
+            isAllDay: false,
             location: nil,
             notes: nil
         )
@@ -126,6 +135,8 @@ import Testing
         .reminder(
             sourceIdentifier: "reminder-1",
             title: "火车票",
+            dueDate: nil,
+            endDate: nil,
             notes: "03A"
         )
     )

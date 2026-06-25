@@ -20,6 +20,9 @@ public struct RecognitionInput: Sendable, Equatable {
     public let title: String?
     public let location: String?
     public let notes: String?
+    public let startDate: Date?
+    public let endDate: Date?
+    public let isAllDay: Bool
     public let imageData: Data?
     public let filename: String?
 
@@ -30,6 +33,9 @@ public struct RecognitionInput: Sendable, Equatable {
         title: String?,
         location: String?,
         notes: String?,
+        startDate: Date?,
+        endDate: Date?,
+        isAllDay: Bool,
         imageData: Data?,
         filename: String?
     ) {
@@ -39,6 +45,9 @@ public struct RecognitionInput: Sendable, Equatable {
         self.title = title
         self.location = location
         self.notes = notes
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
         self.imageData = imageData
         self.filename = filename
     }
@@ -46,6 +55,9 @@ public struct RecognitionInput: Sendable, Equatable {
     public static func calendar(
         sourceIdentifier: String,
         title: String,
+        startDate: Date?,
+        endDate: Date?,
+        isAllDay: Bool,
         location: String?,
         notes: String?
     ) -> RecognitionInput {
@@ -56,6 +68,9 @@ public struct RecognitionInput: Sendable, Equatable {
             title: title,
             location: location,
             notes: notes,
+            startDate: startDate,
+            endDate: endDate,
+            isAllDay: isAllDay,
             imageData: nil,
             filename: nil
         )
@@ -64,6 +79,8 @@ public struct RecognitionInput: Sendable, Equatable {
     public static func reminder(
         sourceIdentifier: String,
         title: String,
+        dueDate: Date?,
+        endDate: Date?,
         notes: String?
     ) -> RecognitionInput {
         RecognitionInput(
@@ -73,6 +90,9 @@ public struct RecognitionInput: Sendable, Equatable {
             title: title,
             location: nil,
             notes: notes,
+            startDate: dueDate,
+            endDate: endDate,
+            isAllDay: false,
             imageData: nil,
             filename: nil
         )
@@ -90,6 +110,9 @@ public struct RecognitionInput: Sendable, Equatable {
             title: filename,
             location: nil,
             notes: nil,
+            startDate: nil,
+            endDate: nil,
+            isAllDay: false,
             imageData: imageData,
             filename: filename
         )
@@ -106,6 +129,9 @@ public struct RecognitionInput: Sendable, Equatable {
             title: nil,
             location: nil,
             notes: nil,
+            startDate: nil,
+            endDate: nil,
+            isAllDay: false,
             imageData: imageData,
             filename: nil
         )

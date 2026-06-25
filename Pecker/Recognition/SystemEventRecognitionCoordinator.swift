@@ -84,6 +84,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                         input: .calendar(
                             sourceIdentifier: event.identifier,
                             title: event.title,
+                            startDate: event.startDate,
+                            endDate: event.endDate,
+                            isAllDay: event.isAllDay,
                             location: event.location,
                             notes: event.notes
                         ),
@@ -97,11 +100,22 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
             if settings.syncRemindersToStorage {
                 for reminder in reminders {
+                    let endDate = endDate(
+                        forReminderDueDate: reminder.dueDate,
+                        durationMinutes: settings.reminderDurationMinutes
+                    )
                     if let template = await synchronize(
-                        record: storedRecord(from: reminder, status: .pending, updatedAt: now),
+                        record: storedRecord(
+                            from: reminder,
+                            endDate: endDate,
+                            status: .pending,
+                            updatedAt: now
+                        ),
                         input: .reminder(
                             sourceIdentifier: reminder.identifier,
                             title: reminder.title,
+                            dueDate: reminder.dueDate,
+                            endDate: endDate,
                             notes: reminder.notes
                         ),
                         settings: settings,
@@ -254,6 +268,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
     private func storedRecord(
         from reminder: ReminderRecord,
+        endDate: Date?,
         status: RecognitionStatus,
         updatedAt: Date
     ) -> StoredEventRecord {
@@ -266,11 +281,23 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             rawNotes: reminder.notes,
             imageReference: nil,
             startDate: reminder.dueDate,
-            endDate: nil,
+            endDate: endDate,
             template: nil,
             recognitionStatus: status,
             updatedAt: updatedAt
         )
+    }
+
+    private func endDate(
+        forReminderDueDate dueDate: Date?,
+        durationMinutes: Int
+    ) -> Date? {
+        guard let dueDate else {
+            return nil
+        }
+
+        let normalizedDuration = durationMinutes > 0 ? durationMinutes : 30
+        return dueDate.addingTimeInterval(TimeInterval(normalizedDuration * 60))
     }
 }
 

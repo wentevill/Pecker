@@ -138,6 +138,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             "id": input.id,
             "sourceIdentifier": input.sourceIdentifier ?? "",
             "title": input.title ?? "",
+            "startDate": input.startDate.map(Self.iso8601String(from:)) ?? "",
+            "endDate": input.endDate.map(Self.iso8601String(from:)) ?? "",
+            "isAllDay": input.isAllDay ? "true" : "false",
             "location": input.location ?? "",
             "notes": input.notes ?? "",
             "filename": input.filename ?? ""
@@ -146,6 +149,15 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             .map { "\($0.key): \($0.value)" }
             .sorted()
             .joined(separator: "\n")
+    }
+
+    private static func iso8601String(from date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [
+            .withInternetDateTime,
+            .withFractionalSeconds
+        ]
+        return formatter.string(from: date)
     }
 
     private func mimeType(for filename: String?) -> String {

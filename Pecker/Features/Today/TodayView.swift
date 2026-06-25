@@ -1,5 +1,7 @@
 import SwiftUI
 import PeckerCore
+import PhotosUI
+import UIKit
 
 struct TodayView: View {
     @Environment(\.calendar) private var calendar
@@ -10,12 +12,20 @@ struct TodayView: View {
     let onSettingsChanged: @MainActor @Sendable () -> Void
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var isCameraPresented = false
+    @State private var imageRecognitionStatusText = "等待图片"
+    @State private var imageRecognitionErrorText: String?
 
     var body: some View {
         NavigationStack(path: $path) {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 TodayScreen(
                     content: content(now: context.date),
+                    imageRecognitionStatusText: imageRecognitionStatusText,
+                    imageRecognitionErrorText: imageRecognitionErrorText,
+                    selectedPhoto: $selectedPhoto,
+                    isCameraPresented: $isCameraPresented,
                     refreshAction: { await model.refresh() },
                     onOpenSettings: {
                         isSettingsPresented = true
@@ -31,6 +41,12 @@ struct TodayView: View {
                     },
                     onRetry: {
                         Task { await model.refresh() }
+                    },
+                    onRecognizePhoto: { item in
+                        await recognizePhoto(item)
+                    },
+                    onRecognizeCameraImage: { image in
+                        await recognizeCameraImage(image)
                     }
                 )
             }
@@ -46,7 +62,6 @@ struct TodayView: View {
                             calendar: .notDetermined,
                             reminders: .notDetermined
                         ),
-                        imageRecognizer: imageRecognizer,
                         liveActivityStatusText: {
                             model.liveActivityStatusText
                         },
@@ -118,11 +133,63 @@ struct TodayView: View {
         onSettingsChanged()
     }
 
+    private func recognizePhoto(_ item: PhotosPickerItem) async {
+        imageRecognitionErrorText = nil
+        imageRecognitionStatusText = "读取图片…"
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self) else {
+                imageRecognitionStatusText = "等待图片"
+                imageRecognitionErrorText = "无法读取这张图片。"
+                return
+            }
+
+            imageRecognitionStatusText = "识别中…"
+            _ = try await imageRecognizer.recognizeImage(
+                data: data,
+                source: .importedImage,
+                filename: item.itemIdentifier,
+                settings: settingsStore.value,
+                now: .now
+            )
+            imageRecognitionStatusText = "图片识别完成"
+            onSettingsChanged()
+            await model.refresh()
+        } catch {
+            imageRecognitionStatusText = "识别失败"
+            imageRecognitionErrorText = "图片识别失败，请稍后重试。"
+        }
+    }
+
+    private func recognizeCameraImage(_ image: UIImage) async {
+        imageRecognitionErrorText = nil
+        imageRecognitionStatusText = "识别中…"
+        do {
+            guard let data = image.jpegData(compressionQuality: 0.88) else {
+                imageRecognitionStatusText = "等待图片"
+                imageRecognitionErrorText = "无法读取相机照片。"
+                return
+            }
+
+            _ = try await imageRecognizer.recognizeImage(
+                data: data,
+                source: .cameraImage,
+                filename: "camera.jpg",
+                settings: settingsStore.value,
+                now: .now
+            )
+            imageRecognitionStatusText = "相机识别完成"
+            onSettingsChanged()
+            await model.refresh()
+        } catch {
+            imageRecognitionStatusText = "识别失败"
+            imageRecognitionErrorText = "拍照识别失败，请稍后重试。"
+        }
+    }
+
     @MainActor
     static func makeSettingsViewModel(
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
-        imageRecognizer: any ImageRecognizing = NoopImageRecognizer(),
         liveActivityStatusText: @escaping @MainActor () -> String,
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
@@ -130,7 +197,6 @@ struct TodayView: View {
         SettingsViewModel(
             settingsStore: settingsStore,
             authorization: authorization,
-            imageRecognizer: imageRecognizer,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,
             openURL: openURL
@@ -145,12 +211,48 @@ private enum TodayRoute: Hashable {
 
 struct TodayScreen: View {
     let content: TodayScreenContent
+    let imageRecognitionStatusText: String
+    let imageRecognitionErrorText: String?
+    @Binding var selectedPhoto: PhotosPickerItem?
+    @Binding var isCameraPresented: Bool
     let refreshAction: () async -> Void
     let onOpenSettings: () -> Void
     let onOpenCard: (TodayScreenContent.Card) -> Void
     let onOpenConcurrentItems: () -> Void
     let onOpenSummary: () -> Void
     let onRetry: () -> Void
+    let onRecognizePhoto: (PhotosPickerItem) async -> Void
+    let onRecognizeCameraImage: (UIImage) async -> Void
+
+    init(
+        content: TodayScreenContent,
+        imageRecognitionStatusText: String = "等待图片",
+        imageRecognitionErrorText: String? = nil,
+        selectedPhoto: Binding<PhotosPickerItem?> = .constant(nil),
+        isCameraPresented: Binding<Bool> = .constant(false),
+        refreshAction: @escaping () async -> Void,
+        onOpenSettings: @escaping () -> Void,
+        onOpenCard: @escaping (TodayScreenContent.Card) -> Void,
+        onOpenConcurrentItems: @escaping () -> Void,
+        onOpenSummary: @escaping () -> Void,
+        onRetry: @escaping () -> Void,
+        onRecognizePhoto: @escaping (PhotosPickerItem) async -> Void = { _ in },
+        onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in }
+    ) {
+        self.content = content
+        self.imageRecognitionStatusText = imageRecognitionStatusText
+        self.imageRecognitionErrorText = imageRecognitionErrorText
+        _selectedPhoto = selectedPhoto
+        _isCameraPresented = isCameraPresented
+        self.refreshAction = refreshAction
+        self.onOpenSettings = onOpenSettings
+        self.onOpenCard = onOpenCard
+        self.onOpenConcurrentItems = onOpenConcurrentItems
+        self.onOpenSummary = onOpenSummary
+        self.onRetry = onRetry
+        self.onRecognizePhoto = onRecognizePhoto
+        self.onRecognizeCameraImage = onRecognizeCameraImage
+    }
 
     var body: some View {
         ZStack {
@@ -161,6 +263,7 @@ struct TodayScreen: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
                         header
+                        recognitionActions
                         bodyContent
                     }
                     .frame(maxWidth: 640, alignment: .leading)
@@ -173,6 +276,25 @@ struct TodayScreen: View {
         .foregroundStyle(TimelineTheme.textPrimary)
         .refreshable {
             await refreshAction()
+        }
+        .onChange(of: selectedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                await onRecognizePhoto(item)
+                selectedPhoto = nil
+            }
+        }
+        .sheet(isPresented: $isCameraPresented) {
+            CameraCaptureView(
+                onImage: { image in
+                    isCameraPresented = false
+                    Task { await onRecognizeCameraImage(image) }
+                },
+                onCancel: {
+                    isCameraPresented = false
+                }
+            )
+            .ignoresSafeArea()
         }
     }
 
@@ -210,6 +332,60 @@ struct TodayScreen: View {
             .accessibilityLabel(content.header.settingsButtonLabel)
         }
         .padding(.top, 4)
+    }
+
+    private var recognitionActions: some View {
+        TimelineCard(accent: .now) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("识别事件")
+                            .font(.headline.weight(.semibold))
+                        Text(imageRecognitionStatusText)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(TimelineTheme.textSecondary)
+                    }
+
+                    Spacer(minLength: 8)
+                }
+
+                HStack(spacing: 10) {
+                    PhotosPicker(
+                        selection: $selectedPhoto,
+                        matching: .images
+                    ) {
+                        RecognitionActionLabel(
+                            title: "选择图片",
+                            subtitle: "从相册识别",
+                            symbol: "photo.on.rectangle.angled",
+                            accent: TimelineTheme.now
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        isCameraPresented = true
+                    } label: {
+                        RecognitionActionLabel(
+                            title: "拍照识别",
+                            subtitle: "现场扫描",
+                            symbol: "camera.viewfinder",
+                            accent: TimelineTheme.pinned
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
+                    .opacity(UIImagePickerController.isSourceTypeAvailable(.camera) ? 1 : 0.48)
+                }
+
+                if let imageRecognitionErrorText {
+                    Text(imageRecognitionErrorText)
+                        .font(.caption)
+                        .foregroundStyle(TimelineTheme.now)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -737,6 +913,46 @@ private struct TimelineRailMarker: View {
         .frame(width: 20)
         .padding(.top, 8)
         .accessibilityHidden(true)
+    }
+}
+
+private struct RecognitionActionLabel: View {
+    let title: String
+    let subtitle: String
+    let symbol: String
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(accent.opacity(0.11)))
+                .overlay(Circle().stroke(accent.opacity(0.18), lineWidth: 1))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(TimelineTheme.textPrimary)
+                Text(subtitle)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(TimelineTheme.textTertiary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(TimelineTheme.controlFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(TimelineTheme.cardStroke, lineWidth: 1)
+        )
     }
 }
 

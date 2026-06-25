@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import PhotosUI
 import PeckerCore
 
 @MainActor
@@ -9,7 +8,6 @@ final class SettingsViewModel {
     let authorization: SourceAuthorization
 
     private let apiKeyStore: any APIKeyStoring
-    private let imageRecognizer: any ImageRecognizing
     private let liveActivityStatusProvider: @MainActor () -> String
     private let onSettingsChanged: @MainActor () -> Void
     private let openURL: (URL) -> Void
@@ -18,7 +16,6 @@ final class SettingsViewModel {
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
-        imageRecognizer: any ImageRecognizing = NoopImageRecognizer(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
             "等待内容"
         },
@@ -28,14 +25,10 @@ final class SettingsViewModel {
         self.settingsStore = settingsStore
         self.authorization = authorization
         self.apiKeyStore = apiKeyStore
-        self.imageRecognizer = imageRecognizer
         liveActivityStatusProvider = liveActivityStatusText
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
     }
-
-    private(set) var imageRecognitionStatusText = "等待图片"
-
     var openAIAPIKeyStatusText: String {
         settingsStore.value.openAIAPIKeyConfigured ? "已配置" : "未配置"
     }
@@ -164,24 +157,6 @@ final class SettingsViewModel {
         notifySettingsChanged()
     }
 
-    func recognizeImportedImage(_ data: Data, filename: String?) async throws {
-        try await recognizeImage(
-            data,
-            source: .importedImage,
-            filename: filename,
-            successText: "图片识别完成"
-        )
-    }
-
-    func recognizeCameraImage(_ data: Data) async throws {
-        try await recognizeImage(
-            data,
-            source: .cameraImage,
-            filename: "camera.jpg",
-            successText: "相机识别完成"
-        )
-    }
-
     func openSourceSettings(for source: TimelineSource) {
         let status: SourceAuthorizationStatus
         switch source {
@@ -201,29 +176,6 @@ final class SettingsViewModel {
     private func notifySettingsChanged() {
         onSettingsChanged()
     }
-
-    private func recognizeImage(
-        _ data: Data,
-        source: RecognitionSource,
-        filename: String?,
-        successText: String
-    ) async throws {
-        imageRecognitionStatusText = "识别中…"
-        do {
-            _ = try await imageRecognizer.recognizeImage(
-                data: data,
-                source: source,
-                filename: filename,
-                settings: settingsStore.value,
-                now: .now
-            )
-            imageRecognitionStatusText = successText
-            notifySettingsChanged()
-        } catch {
-            imageRecognitionStatusText = "识别失败"
-            throw error
-        }
-    }
 }
 
 struct SettingsView: View {
@@ -232,9 +184,6 @@ struct SettingsView: View {
     let viewModel: SettingsViewModel
     @State private var apiKeyDraft = ""
     @State private var apiKeyErrorText: String?
-    @State private var selectedPhoto: PhotosPickerItem?
-    @State private var isCameraPresented = false
-    @State private var imageRecognitionErrorText: String?
 
     var body: some View {
         NavigationStack {
@@ -372,119 +321,74 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                imageRecognitionControls
             }
-        }
-    }
-
-    private var imageRecognitionControls: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Divider()
-                .overlay(TimelineTheme.cardStroke)
-
-            HStack {
-                Text("图片/相机识别")
-                    .font(.subheadline.weight(.semibold))
-                Spacer(minLength: 8)
-                Text(viewModel.imageRecognitionStatusText)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.textSecondary)
-            }
-
-            HStack {
-                PhotosPicker(
-                    selection: $selectedPhoto,
-                    matching: .images
-                ) {
-                    Label("选择图片", systemImage: "photo")
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    isCameraPresented = true
-                } label: {
-                    Label("拍照识别", systemImage: "camera")
-                }
-                .buttonStyle(.bordered)
-                .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-            }
-
-            if let imageRecognitionErrorText {
-                Text(imageRecognitionErrorText)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        }
-        .onChange(of: selectedPhoto) { _, item in
-            guard let item else { return }
-            Task {
-                await recognizePhoto(item)
-                selectedPhoto = nil
-            }
-        }
-        .sheet(isPresented: $isCameraPresented) {
-            CameraCaptureView(
-                onImage: { image in
-                    isCameraPresented = false
-                    Task { await recognizeCameraImage(image) }
-                },
-                onCancel: {
-                    isCameraPresented = false
-                }
-            )
-            .ignoresSafeArea()
         }
     }
 
     private var openAIConfiguration: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            LabeledContent("Host") {
-                TextField(
-                    "https://api.openai.com",
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(spacing: 0) {
+                settingsTextFieldRow(
+                    title: "Host",
+                    placeholder: "https://api.openai.com",
                     text: Binding(
                         get: { settingsStore.value.openAIHost },
                         set: { viewModel.setOpenAIHost($0) }
-                    )
+                    ),
+                    keyboardType: .URL
                 )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
-                .multilineTextAlignment(.trailing)
-            }
 
-            LabeledContent("Model") {
-                TextField(
-                    "gpt-5.4-mini",
+                formDivider
+
+                settingsTextFieldRow(
+                    title: "Model",
+                    placeholder: "gpt-5.4-mini",
                     text: Binding(
                         get: { settingsStore.value.openAIModel },
                         set: { viewModel.setOpenAIModel($0) }
-                    )
+                    ),
+                    keyboardType: .default
                 )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .multilineTextAlignment(.trailing)
             }
+            .settingsFormBackground()
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
                     Text("API Key")
+                        .font(.subheadline.weight(.semibold))
+
                     Spacer(minLength: 8)
+
                     Text(viewModel.openAIAPIKeyStatusText)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(TimelineTheme.textSecondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(TimelineTheme.controlFill))
+                        .overlay(Capsule().stroke(TimelineTheme.cardStroke, lineWidth: 1))
                 }
 
                 SecureField("sk-...", text: $apiKeyDraft)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .textFieldStyle(.roundedBorder)
+                    .font(.body.monospaced())
+                    .foregroundStyle(TimelineTheme.textPrimary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(TimelineTheme.controlFill)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(TimelineTheme.cardStroke, lineWidth: 1)
+                    )
 
-                HStack {
-                    Button("保存 Key") {
+                HStack(spacing: 10) {
+                    Button("保存") {
                         saveOpenAIAPIKey()
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.now, filled: true))
                     .disabled(
                         apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty
@@ -493,7 +397,7 @@ struct SettingsView: View {
                     Button("清除") {
                         clearOpenAIAPIKey()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.textPrimary, filled: false))
 
                     Spacer(minLength: 8)
                 }
@@ -501,14 +405,44 @@ struct SettingsView: View {
                 if let apiKeyErrorText {
                     Text(apiKeyErrorText)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(TimelineTheme.now)
                 }
-            }
 
-            Text("API Key 会保存到系统 Keychain；设置文件只记录是否已配置。")
-                .font(.caption)
-                .foregroundStyle(TimelineTheme.textTertiary)
+                Text("API Key 会保存到系统 Keychain；设置文件只记录是否已配置。")
+                    .font(.caption)
+                    .foregroundStyle(TimelineTheme.textTertiary)
+            }
         }
+    }
+
+    private var formDivider: some View {
+        Rectangle()
+            .fill(TimelineTheme.cardStroke)
+            .frame(height: 1)
+            .padding(.leading, 92)
+    }
+
+    private func settingsTextFieldRow(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        keyboardType: UIKeyboardType
+    ) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 68, alignment: .leading)
+
+            TextField(placeholder, text: text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .keyboardType(keyboardType)
+                .font(.body)
+                .foregroundStyle(TimelineTheme.textPrimary)
+                .multilineTextAlignment(.trailing)
+                .padding(.vertical, 12)
+        }
+        .padding(.horizontal, 12)
     }
 
     private var liveActivityCard: some View {
@@ -621,33 +555,40 @@ struct SettingsView: View {
         }
     }
 
-    private func recognizePhoto(_ item: PhotosPickerItem) async {
-        do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                imageRecognitionErrorText = "无法读取图片。"
-                return
-            }
-            try await viewModel.recognizeImportedImage(
-                data,
-                filename: item.itemIdentifier
-            )
-            imageRecognitionErrorText = nil
-        } catch {
-            imageRecognitionErrorText = "图片识别失败，请稍后重试。"
-        }
-    }
+}
 
-    private func recognizeCameraImage(_ image: UIImage) async {
-        do {
-            guard let data = image.jpegData(compressionQuality: 0.9) else {
-                imageRecognitionErrorText = "无法读取相机图片。"
-                return
-            }
-            try await viewModel.recognizeCameraImage(data)
-            imageRecognitionErrorText = nil
-        } catch {
-            imageRecognitionErrorText = "相机识别失败，请稍后重试。"
-        }
+private struct SettingsPillButtonStyle: ButtonStyle {
+    let accent: Color
+    let filled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(filled ? Color.white : accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(filled ? accent : TimelineTheme.controlFill)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(filled ? Color.clear : TimelineTheme.cardStroke, lineWidth: 1)
+            )
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+private extension View {
+    func settingsFormBackground() -> some View {
+        background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(TimelineTheme.controlFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(TimelineTheme.cardStroke, lineWidth: 1)
+        )
     }
 }
 

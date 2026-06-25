@@ -115,6 +115,7 @@ private struct ReadyRootView: View {
                 TodayView(
                     model: model.todayViewModel,
                     settingsStore: model.dependencies.settingsStore,
+                    imageRecognizer: model.dependencies.imageRecognizer,
                     onSettingsChanged: { @MainActor in
                         model.settingsChanged()
                     }

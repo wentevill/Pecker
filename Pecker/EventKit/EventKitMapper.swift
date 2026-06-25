@@ -2,7 +2,10 @@ import Foundation
 import PeckerCore
 
 struct EventKitMapper: Sendable {
-    func mapEvent(_ record: EventRecord) -> TimelineItem {
+    func mapEvent(
+        _ record: EventRecord,
+        template: TimelineEventTemplate? = nil
+    ) -> TimelineItem {
         TimelineItem(
             id: "calendar:\(record.identifier)",
             sourceIdentifier: record.identifier,
@@ -13,13 +16,15 @@ struct EventKitMapper: Sendable {
             source: .calendar,
             kind: .unknown,
             location: record.location,
-            notes: record.notes
+            notes: record.notes,
+            template: template
         )
     }
 
     func mapReminder(
         _ record: ReminderRecord,
-        durationMinutes: Int
+        durationMinutes: Int,
+        template: TimelineEventTemplate? = nil
     ) -> TimelineItem? {
         guard let dueDate = record.dueDate else {
             return nil
@@ -39,7 +44,8 @@ struct EventKitMapper: Sendable {
             source: .reminder,
             kind: .unknown,
             location: nil,
-            notes: record.notes
+            notes: record.notes,
+            template: template
         )
     }
 }

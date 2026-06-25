@@ -6,6 +6,7 @@ struct TodayView: View {
     @Environment(\.openURL) private var openURL
     @Bindable var model: TodayViewModel
     @Bindable var settingsStore: SettingsStore
+    let imageRecognizer: any ImageRecognizing
     let onSettingsChanged: @MainActor @Sendable () -> Void
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
@@ -45,6 +46,7 @@ struct TodayView: View {
                             calendar: .notDetermined,
                             reminders: .notDetermined
                         ),
+                        imageRecognizer: imageRecognizer,
                         liveActivityStatusText: {
                             model.liveActivityStatusText
                         },
@@ -120,6 +122,7 @@ struct TodayView: View {
     static func makeSettingsViewModel(
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
+        imageRecognizer: any ImageRecognizing = NoopImageRecognizer(),
         liveActivityStatusText: @escaping @MainActor () -> String,
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
@@ -127,6 +130,7 @@ struct TodayView: View {
         SettingsViewModel(
             settingsStore: settingsStore,
             authorization: authorization,
+            imageRecognizer: imageRecognizer,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,
             openURL: openURL
@@ -195,11 +199,11 @@ struct TodayScreen: View {
                     .frame(width: 40, height: 40)
                     .background(
                         Circle()
-                            .fill(Color.white.opacity(0.09))
+                            .fill(TimelineTheme.controlFill)
                     )
                     .overlay(
                         Circle()
-                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                            .stroke(TimelineTheme.cardStroke, lineWidth: 1)
                     )
             }
             .buttonStyle(.plain)
@@ -548,10 +552,10 @@ struct TodayScreen: View {
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
                         .background(
-                            Capsule().fill(TimelineTheme.color(for: card.accent).opacity(0.18))
+                            Capsule().fill(TimelineTheme.color(for: card.accent).opacity(0.12))
                         )
                         .overlay(
-                            Capsule().stroke(TimelineTheme.color(for: card.accent).opacity(0.25), lineWidth: 1)
+                            Capsule().stroke(TimelineTheme.color(for: card.accent).opacity(0.18), lineWidth: 1)
                         )
                 }
             }
@@ -593,8 +597,8 @@ struct TodayScreen: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(TimelineTheme.textPrimary)
                         .frame(width: 24, height: 24)
-                        .background(Circle().fill(Color.white.opacity(0.1)))
-                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                        .background(Circle().fill(TimelineTheme.controlFill))
+                        .overlay(Circle().stroke(TimelineTheme.cardStroke, lineWidth: 1))
 
                     Text(summary.titleText)
                         .font(.footnote.weight(.medium))
@@ -638,10 +642,10 @@ struct TodayScreen: View {
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
                     .background(
-                        Capsule().fill(TimelineTheme.color(for: card.accent).opacity(0.18))
+                        Capsule().fill(TimelineTheme.color(for: card.accent).opacity(0.12))
                     )
                     .overlay(
-                        Capsule().stroke(TimelineTheme.color(for: card.accent).opacity(0.25), lineWidth: 1)
+                        Capsule().stroke(TimelineTheme.color(for: card.accent).opacity(0.18), lineWidth: 1)
                     )
             } else {
                 iconBubble(card)
@@ -715,8 +719,8 @@ private struct TimelineRailMarker: View {
             Circle()
                 .fill(TimelineTheme.lineColor(for: accent))
                 .frame(width: 13, height: 13)
-                .overlay(Circle().stroke(Color.white.opacity(0.16), lineWidth: 1))
-                .shadow(color: TimelineTheme.lineColor(for: accent).opacity(0.28), radius: 8, x: 0, y: 0)
+                .overlay(Circle().stroke(Color.white.opacity(0.7), lineWidth: 2))
+                .shadow(color: TimelineTheme.lineColor(for: accent).opacity(0.18), radius: 10, x: 0, y: 4)
 
             if bottomLine {
                 Rectangle()
@@ -758,7 +762,7 @@ private struct TimelineProgressBar: View {
         let threshold = Double(index + 1) / Double(segments)
         return threshold <= progress
             ? TimelineTheme.color(for: accent)
-            : Color.white.opacity(0.18)
+            : TimelineTheme.textPrimary.opacity(0.1)
     }
 }
 

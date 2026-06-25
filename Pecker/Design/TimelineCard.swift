@@ -19,7 +19,7 @@ struct TimelineCard<Content: View>: View {
         let usesReducedTransparency = reduceTransparency || reduceTransparencyOverride
 
         content
-            .padding(12)
+            .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 RoundedRectangle(
@@ -35,7 +35,8 @@ struct TimelineCard<Content: View>: View {
                     .fill(
                         LinearGradient(
                             colors: [
-                                TimelineTheme.color(for: accent).opacity(0.18),
+                                Color.white.opacity(0.34),
+                                TimelineTheme.color(for: accent).opacity(0.08),
                                 Color.clear
                             ],
                             startPoint: .topLeading,
@@ -43,7 +44,7 @@ struct TimelineCard<Content: View>: View {
                         )
                     )
                     .blendMode(.screen)
-                    .opacity(usesReducedTransparency ? 0.2 : 0.7)
+                    .opacity(usesReducedTransparency ? 0.24 : 0.82)
                 }
                 .overlay {
                     RoundedRectangle(
@@ -52,7 +53,7 @@ struct TimelineCard<Content: View>: View {
                     )
                     .stroke(TimelineTheme.cardStroke, lineWidth: 1)
                 }
-                .shadow(color: TimelineTheme.cardShadow, radius: 18, x: 0, y: 12)
+                .shadow(color: TimelineTheme.cardShadow, radius: 26, x: 0, y: 16)
             }
     }
 
@@ -60,7 +61,7 @@ struct TimelineCard<Content: View>: View {
         if usesReducedTransparency {
             return AnyShapeStyle(TimelineTheme.cardFallbackFill)
         } else {
-            return AnyShapeStyle(.ultraThinMaterial)
+            return AnyShapeStyle(TimelineTheme.cardWarmFill)
         }
     }
 }

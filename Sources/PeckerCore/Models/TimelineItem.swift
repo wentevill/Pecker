@@ -1,7 +1,7 @@
 import Foundation
 
 public enum TimelineSource: String, Codable, Sendable {
-    case calendar, reminder
+    case calendar, reminder, external
 }
 
 public enum TimelineKind: String, Codable, Sendable {

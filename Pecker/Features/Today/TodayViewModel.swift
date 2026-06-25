@@ -100,6 +100,11 @@ final class TodayViewModel {
                     settings: settings,
                     now: now
                 )
+            let recognizedImageItems = await dependencies.systemEventRecognizer
+                .recognizedImageItems(
+                    settings: settings,
+                    now: now
+                )
 
             let items = events.map {
                 dependencies.mapper.mapEvent(
@@ -113,6 +118,7 @@ final class TodayViewModel {
                         template: recognizedTemplates["reminder:\($0.identifier)"]
                     )
                 }
+                + recognizedImageItems
             let snapshot = dependencies.engine.makeSnapshot(
                 items: items,
                 now: now,

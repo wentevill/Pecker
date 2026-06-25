@@ -798,6 +798,13 @@ private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
         return templatesByItemID
     }
 
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        []
+    }
+
     func calls() -> [Call] {
         recordedCalls
     }

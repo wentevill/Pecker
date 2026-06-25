@@ -198,7 +198,7 @@ struct TodayView: View {
         case .localModelUnavailable:
             return "内置小模型暂不可用，请改用 OpenAI。"
         case .unsupportedInput:
-            return "暂不支持这类图片内容。"
+            return "未识别到可添加的事件，请换一张包含票据、日程或任务信息的图片。"
         }
     }
 

@@ -16,6 +16,11 @@ protocol SystemEventRecognizing: Sendable {
         settings: TimelineSettings,
         now: Date
     ) async -> [String: TimelineEventTemplate]
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem]
 }
 
 actor NoopSystemEventRecognizer: SystemEventRecognizing {
@@ -26,6 +31,13 @@ actor NoopSystemEventRecognizer: SystemEventRecognizing {
         now: Date
     ) async -> [String: TimelineEventTemplate] {
         [:]
+    }
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        []
     }
 }
 
@@ -79,7 +91,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
             if settings.syncCalendarToStorage {
                 for event in events {
-                    if let template = await synchronize(
+                    if let template = try? await synchronize(
                         record: storedRecord(from: event, status: .pending, updatedAt: now),
                         input: .calendar(
                             sourceIdentifier: event.identifier,
@@ -91,7 +103,8 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                             notes: event.notes
                         ),
                         settings: settings,
-                        now: now
+                        now: now,
+                        propagatesErrors: false
                     ) {
                         templates["calendar:\(event.identifier)"] = template
                     }
@@ -100,7 +113,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
             if settings.syncRemindersToStorage {
                 for reminder in reminders {
-                    if let template = await synchronize(
+                    if let template = try? await synchronize(
                         record: storedRecord(
                             from: reminder,
                             status: .pending,
@@ -114,7 +127,8 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                             notes: reminder.notes
                         ),
                         settings: settings,
-                        now: now
+                        now: now,
+                        propagatesErrors: false
                     ) {
                         templates["reminder:\(reminder.identifier)"] = template
                     }
@@ -145,7 +159,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             rawLocation: nil,
             rawNotes: nil,
             imageReference: imageReference,
-            startDate: nil,
+            startDate: now,
             endDate: nil,
             template: nil,
             recognitionStatus: .pending,
@@ -155,11 +169,12 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             ? .cameraImage(id: sourceIdentifier, imageData: data)
             : .importedImage(id: sourceIdentifier, imageData: data, filename: filename)
 
-        let template = await synchronize(
+        let template = try await synchronize(
             record: record,
             input: input,
             settings: settings,
-            now: now
+            now: now,
+            propagatesErrors: true
         )
         return StoredEventRecord(
             id: record.id,
@@ -169,33 +184,64 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             rawLocation: nil,
             rawNotes: nil,
             imageReference: imageReference,
-            startDate: nil,
+            startDate: now,
             endDate: nil,
             template: template,
-            recognitionStatus: template == nil ? .failed : .recognized,
+            recognitionStatus: .recognized,
             updatedAt: now
         )
+    }
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        guard let records = try? await repository.loadAll() else {
+            return []
+        }
+
+        return records
+            .filter { record in
+                record.recognitionStatus == .recognized
+                    && (record.source == .importedImage || record.source == .cameraImage)
+                    && record.template != nil
+            }
+            .compactMap { timelineItem(from: $0, now: now) }
     }
 
     private func synchronize(
         record: StoredEventRecord,
         input: RecognitionInput,
         settings: TimelineSettings,
-        now: Date
-    ) async -> TimelineEventTemplate? {
+        now: Date,
+        propagatesErrors: Bool
+    ) async throws -> TimelineEventTemplate? {
         guard settings.aiRecognitionMode != .off else {
             try? await repository.upsert(record.with(status: .disabled, updatedAt: now))
+            if propagatesErrors {
+                throw RecognitionError.invalidConfiguration
+            }
             return nil
         }
 
         guard let provider = provider(for: settings) else {
             try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+            if propagatesErrors {
+                throw RecognitionError.invalidConfiguration
+            }
             return nil
         }
 
         do {
             let result = try await provider.recognize(input)
             let template = templateFactory.makeTemplate(from: result.payload)
+            guard let template else {
+                try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+                if propagatesErrors {
+                    throw RecognitionError.unsupportedInput
+                }
+                return nil
+            }
             try await repository.upsert(
                 record.with(
                     template: template,
@@ -206,6 +252,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             return template
         } catch {
             try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+            if propagatesErrors {
+                throw error
+            }
             return nil
         }
     }
@@ -237,6 +286,29 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 }
                 return (record.id, template)
             }
+        )
+    }
+
+    private func timelineItem(
+        from record: StoredEventRecord,
+        now: Date
+    ) -> TimelineItem? {
+        guard let template = record.template else {
+            return nil
+        }
+        let presentation = template.presentation
+        return TimelineItem(
+            id: record.id,
+            sourceIdentifier: record.sourceIdentifier ?? record.id,
+            title: presentation.title,
+            startDate: record.startDate ?? now,
+            endDate: record.endDate,
+            isAllDay: false,
+            source: .external,
+            kind: template.kind,
+            location: record.rawLocation,
+            notes: record.rawNotes ?? presentation.subtitle,
+            template: template
         )
     }
 

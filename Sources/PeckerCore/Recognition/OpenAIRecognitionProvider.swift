@@ -175,7 +175,13 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
 
     private var systemPrompt: String {
         """
-        You are Pecker's event recognition engine. Convert calendar, reminder, imported image, or camera image content into one structured event template payload. Prefer concrete ticket/pass/meeting/deadline fields when visible. Return only JSON that matches the schema.
+        You are Pecker's event recognition skill. Inspect calendar, reminder, imported image, or camera image input and convert it into one structured event template payload for a timeline card.
+
+        If the input image or text does not clearly contain an actionable event, ticket, pass, travel plan, deadline, reminder, or task, return {"kind":"unknown","fields":{}}.
+
+        Prefer concrete visible fields over guesses. For train tickets, extract trainNumber, departureStation, arrivalStation, departureTime, arrivalTime, carriageNumber, seatNumber, checkInGate, passengerName, and ticketNumber when visible.
+
+        Return only JSON that matches the schema.
         """
     }
 

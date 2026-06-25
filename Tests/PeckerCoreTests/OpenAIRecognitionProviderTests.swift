@@ -39,6 +39,8 @@ import Testing
     #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:33:20.000Z") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("isAllDay: false") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("json_schema") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("event recognition skill") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("unknown") == true)
 }
 
 @Test func openAIProviderIncludesImageInputsAsDataURLs() throws {

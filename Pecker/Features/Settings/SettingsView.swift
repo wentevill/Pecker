@@ -68,6 +68,8 @@ final class SettingsViewModel {
             status = authorization.calendar
         case .reminder:
             status = authorization.reminders
+        case .external:
+            status = .fullAccess
         }
 
         switch status {
@@ -90,6 +92,8 @@ final class SettingsViewModel {
             return "过滤结果不会改变系统权限。"
         case .reminder:
             return "提醒事项权限仅影响提醒来源。"
+        case .external:
+            return "图片和相机识别保存在 Pecker 自建存储。"
         }
     }
 
@@ -164,6 +168,8 @@ final class SettingsViewModel {
             status = authorization.calendar
         case .reminder:
             status = authorization.reminders
+        case .external:
+            status = .fullAccess
         }
 
         guard status == .denied || status == .restricted else {
@@ -494,6 +500,8 @@ struct SettingsView: View {
                 get: { settingsStore.value.remindersEnabled },
                 set: { toggleAction($0) }
             )
+        case .external:
+            isEnabledBinding = .constant(true)
         }
 
         return VStack(alignment: .leading, spacing: 8) {

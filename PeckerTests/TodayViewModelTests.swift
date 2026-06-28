@@ -724,6 +724,66 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshExcludesHistoricalReminderAndFutureRecognizedImage() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let todayItem = TimelineItem(
+            id: "image:today",
+            sourceIdentifier: "today",
+            title: "Today",
+            startDate: now.addingTimeInterval(600),
+            endDate: now.addingTimeInterval(1_200),
+            isAllDay: false,
+            source: .external,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let futureItem = TimelineItem(
+            id: "image:future",
+            sourceIdentifier: "future",
+            title: "Future",
+            startDate: calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: calendar.startOfDay(for: now)
+            )!,
+            endDate: nil,
+            isAllDay: false,
+            source: .external,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let recognizer = RecordingSystemEventRecognizer(
+            recognizedItems: [todayItem, futureItem]
+        )
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            reminders: [
+                reminder(at: calendar.date(
+                    byAdding: .day,
+                    value: -1,
+                    to: now
+                )!)
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            calendar: calendar,
+            systemEventRecognizer: recognizer
+        )
+
+        await viewModel.refresh(now: now)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected Today content")
+        }
+        XCTAssertEqual(snapshot.items.map(\.id), ["image:today"])
+    }
+
+    @MainActor
     private func makeViewModel(
         gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
@@ -780,10 +840,15 @@ private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
     }
 
     private let templatesByItemID: [String: TimelineEventTemplate]
+    private let recognizedItems: [TimelineItem]
     private var recordedCalls: [Call] = []
 
-    init(templatesByItemID: [String: TimelineEventTemplate] = [:]) {
+    init(
+        templatesByItemID: [String: TimelineEventTemplate] = [:],
+        recognizedItems: [TimelineItem] = []
+    ) {
         self.templatesByItemID = templatesByItemID
+        self.recognizedItems = recognizedItems
     }
 
     func synchronize(
@@ -802,7 +867,7 @@ private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
         settings: TimelineSettings,
         now: Date
     ) async -> [TimelineItem] {
-        []
+        recognizedItems
     }
 
     func calls() -> [Call] {

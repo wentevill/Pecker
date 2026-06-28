@@ -402,10 +402,16 @@ struct TodayScreenContent: Equatable {
             pinnedCard: pinnedItem.map {
                 makePinnedCard($0, now: now, locale: locale, pinOrigin: snapshot.pinOrigin)
             },
-            summary: Summary(
-                titleText: "今天还有 \(TodayPresentation.summaryCount(for: snapshot)) 个日程",
-                accessibilityLabel: "今天还有 \(TodayPresentation.summaryCount(for: snapshot)) 个日程，打开完整时间线"
-            ),
+            summary: {
+                let count = TodayPresentation.summaryCount(
+                    for: snapshot,
+                    now: now
+                )
+                return Summary(
+                    titleText: "今天还有 \(count) 个日程",
+                    accessibilityLabel: "今天还有 \(count) 个日程，打开完整时间线"
+                )
+            }(),
             footer: Footer(
                 generatedAtText: generatedAtText(snapshot.generatedAt, now: now, locale: locale)
             ),

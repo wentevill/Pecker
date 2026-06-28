@@ -375,24 +375,46 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertEqual(failure.errorText, "API 请求失败，请检查 Host、Model 或网络。")
     }
 
-    func testSummaryCountIgnoresTheVisibleNowItem() {
+    func testSummaryCountIncludesActiveAndUpcomingButExcludesElapsedAndCompleted() {
+        let now = Date(timeIntervalSince1970: 1_000)
         let snapshot = TodaySnapshot(
             schemaVersion: TodaySnapshot.currentSchemaVersion,
-            generatedAt: Date(timeIntervalSince1970: 1_000),
+            generatedAt: now,
             staleAfter: Date(timeIntervalSince1970: 2_000),
             items: [
-                makeItem(id: "now"),
-                makeItem(id: "next"),
-                makeItem(id: "pinned")
+                makeItem(
+                    id: "active",
+                    startDate: now.addingTimeInterval(-100),
+                    endDate: now.addingTimeInterval(100)
+                ),
+                makeItem(
+                    id: "upcoming",
+                    startDate: now.addingTimeInterval(200),
+                    endDate: now.addingTimeInterval(300)
+                ),
+                makeItem(
+                    id: "elapsed",
+                    startDate: now.addingTimeInterval(-300),
+                    endDate: now.addingTimeInterval(-200)
+                ),
+                makeItem(
+                    id: "completed",
+                    startDate: now.addingTimeInterval(400),
+                    endDate: nil,
+                    isCompleted: true
+                )
             ],
-            nowItemID: "now",
-            concurrentNowCount: 1,
-            nextItemID: "next",
-            pinnedItemID: "pinned",
-            pinOrigin: .manual
+            nowItemID: "active",
+            concurrentNowCount: 0,
+            nextItemID: "upcoming",
+            pinnedItemID: nil,
+            pinOrigin: nil
         )
 
-        XCTAssertEqual(TodayPresentation.summaryCount(for: snapshot), 2)
+        XCTAssertEqual(
+            TodayPresentation.summaryCount(for: snapshot, now: now),
+            2
+        )
     }
 
     func testStateCopyIsStable() {
@@ -456,17 +478,31 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     private func makeItem(id: String) -> TimelineItem {
+        makeItem(
+            id: id,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 1_100)
+        )
+    }
+
+    private func makeItem(
+        id: String,
+        startDate: Date,
+        endDate: Date?,
+        isCompleted: Bool = false
+    ) -> TimelineItem {
         TimelineItem(
             id: id,
             sourceIdentifier: id,
             title: id.capitalized,
-            startDate: Date(timeIntervalSince1970: 1_000),
-            endDate: Date(timeIntervalSince1970: 1_100),
+            startDate: startDate,
+            endDate: endDate,
             isAllDay: false,
             source: .calendar,
             kind: .meeting,
             location: "Room 1",
-            notes: nil
+            notes: nil,
+            isCompleted: isCompleted
         )
     }
 

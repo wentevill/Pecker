@@ -39,9 +39,19 @@ enum TodayPresentation {
         }
     }
 
-    static func summaryCount(for snapshot: TodaySnapshot) -> Int {
-        let visibleNowCount = snapshot.resolvedNowItem == nil ? 0 : 1
-        return max(0, snapshot.items.count - visibleNowCount)
+    static func summaryCount(
+        for snapshot: TodaySnapshot,
+        now: Date
+    ) -> Int {
+        snapshot.items.filter { item in
+            guard !item.isCompleted else {
+                return false
+            }
+            if let endDate = item.endDate {
+                return endDate > now
+            }
+            return item.startDate >= now
+        }.count
     }
 }
 

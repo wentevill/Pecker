@@ -32,8 +32,11 @@ enum EventKitGatewaySupport {
         }
     }
 
-    static func includesReminder(dueDate: Date, nextDay: Date) -> Bool {
-        dueDate < nextDay
+    static func includesReminder(
+        dueDate: Date,
+        interval: DateInterval
+    ) -> Bool {
+        dueDate >= interval.start && dueDate < interval.end
     }
 
     static func cancellableFetch<Value: Sendable, Identifier: Sendable>(
@@ -241,7 +244,7 @@ actor EventKitGateway: EventKitGatewayProtocol {
         try Task.checkCancellation()
         let interval = try dayInterval(calendar: calendar, now: now)
         let predicate = store.predicateForIncompleteReminders(
-            withDueDateStarting: nil,
+            withDueDateStarting: interval.start,
             ending: interval.end,
             calendars: nil
         )
@@ -266,7 +269,7 @@ actor EventKitGateway: EventKitGatewayProtocol {
                                     ),
                                     EventKitGatewaySupport.includesReminder(
                                         dueDate: dueDate,
-                                        nextDay: interval.end
+                                        interval: interval
                                     )
                                 else {
                                     return nil

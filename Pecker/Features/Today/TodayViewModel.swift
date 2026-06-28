@@ -106,7 +106,7 @@ final class TodayViewModel {
                     now: now
                 )
 
-            let items = events.map {
+            let allItems = events.map {
                 dependencies.mapper.mapEvent(
                     $0,
                     template: recognizedTemplates["calendar:\($0.identifier)"]
@@ -119,6 +119,13 @@ final class TodayViewModel {
                     )
                 }
                 + recognizedImageItems
+            let items = allItems.filter {
+                TimelineDateScope.classify(
+                    $0,
+                    calendar: dependencies.calendar,
+                    now: now
+                ) == .today
+            }
             let snapshot = dependencies.engine.makeSnapshot(
                 items: items,
                 now: now,

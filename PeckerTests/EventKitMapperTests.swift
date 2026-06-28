@@ -133,25 +133,45 @@ final class EventKitMapperTests: XCTestCase {
         XCTAssertEqual(interval.duration, 23 * 60 * 60)
     }
 
-    func testReminderInclusionIncludesOverdueBeforeNextDay() {
-        let nextDay = Date(timeIntervalSince1970: 10_000)
-        let overdue = nextDay.addingTimeInterval(-48 * 60 * 60)
+    func testReminderInclusionExcludesHistoricalReminder() {
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
+        let historical = interval.start.addingTimeInterval(-1)
 
-        XCTAssertTrue(
+        XCTAssertFalse(
             EventKitGatewaySupport.includesReminder(
-                dueDate: overdue,
-                nextDay: nextDay
+                dueDate: historical,
+                interval: interval
             )
         )
     }
 
     func testReminderInclusionExcludesExactNextDay() {
-        let nextDay = Date(timeIntervalSince1970: 10_000)
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
 
         XCTAssertFalse(
             EventKitGatewaySupport.includesReminder(
-                dueDate: nextDay,
-                nextDay: nextDay
+                dueDate: interval.end,
+                interval: interval
+            )
+        )
+    }
+
+    func testReminderInclusionIncludesStartOfToday() {
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
+
+        XCTAssertTrue(
+            EventKitGatewaySupport.includesReminder(
+                dueDate: interval.start,
+                interval: interval
             )
         )
     }

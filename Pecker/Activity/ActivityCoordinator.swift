@@ -119,7 +119,11 @@ struct ActivityCoordinator: Sendable {
                 snapshot: snapshot,
                 primary: primary
             ),
-            generatedAt: snapshot.generatedAt
+            generatedAt: snapshot.generatedAt,
+            primaryStatusRawValue: primaryStatus(
+                snapshot: snapshot,
+                primary: primary
+            )
         )
     }
 
@@ -156,7 +160,40 @@ struct ActivityCoordinator: Sendable {
     }
 
     private func subtitle(for item: TimelineItem) -> String? {
-        firstNonEmpty(item.location, item.notes)
+        if case let .trainTicket(ticket) = item.template {
+            let route = [
+                ticket.departureStation,
+                ticket.arrivalStation
+            ]
+                .compactMap { $0 }
+                .joined(separator: " → ")
+            let seat = [
+                ticket.carriageNumber.map { "\($0)车" },
+                ticket.seatNumber,
+                ticket.checkInGate.map { "\($0)检票" }
+            ]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+            return firstNonEmpty(
+                [route, seat].filter { !$0.isEmpty }.joined(separator: " · "),
+                item.location,
+                item.notes
+            )
+        }
+        return firstNonEmpty(item.location, item.notes)
+    }
+
+    private func primaryStatus(
+        snapshot: TodaySnapshot,
+        primary: TimelineItem
+    ) -> String {
+        if primary.id == snapshot.nowItemID {
+            return "now"
+        }
+        if primary.id == snapshot.nextItemID {
+            return "next"
+        }
+        return "pinned"
     }
 
     private func firstNonEmpty(_ values: String?...) -> String? {

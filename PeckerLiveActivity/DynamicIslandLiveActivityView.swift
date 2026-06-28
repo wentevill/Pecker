@@ -338,30 +338,14 @@ private enum DynamicIslandStyle {
     }
 
     private static func status(for state: PeckerActivityAttributes.ContentState) -> PeckerLiveActivityStatus {
-        if isPinned(state) {
-            return .pinned
-        }
-
-        if isNext(state) {
+        switch state.primaryStatusRawValue {
+        case "next":
             return .next
+        case "pinned":
+            return .pinned
+        default:
+            return .now
         }
-
-        return .now
-    }
-
-    private static func isNext(_ state: PeckerActivityAttributes.ContentState) -> Bool {
-        state.primaryTitle == state.nextTitle
-            || (state.primaryEndDate == nil && state.primaryStartDate != nil)
-    }
-
-    private static func isPinned(_ state: PeckerActivityAttributes.ContentState) -> Bool {
-        guard let pinnedTitle = state.pinnedTitle else {
-            return false
-        }
-
-        return state.primaryTitle == pinnedTitle
-            || state.primarySourceIdentifier?.localizedCaseInsensitiveContains("pinned") == true
-            || state.primaryKindRawValue.localizedCaseInsensitiveContains("travel")
     }
 }
 

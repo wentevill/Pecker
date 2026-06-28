@@ -117,30 +117,19 @@ struct LockScreenLiveActivityView: View {
     }
 
     private var primaryStatus: PeckerLiveActivityStatus {
-        if isPinnedPrimary {
-            return .pinned
+        switch state.primaryStatusRawValue {
+        case "next": .next
+        case "pinned": .pinned
+        default: .now
         }
-
-        if isNextPrimary {
-            return .next
-        }
-
-        return .now
     }
 
     private var isNextPrimary: Bool {
-        state.primaryTitle == state.nextTitle
-            || (state.primaryEndDate == nil && state.primaryStartDate != nil)
+        primaryStatus == .next
     }
 
     private var isPinnedPrimary: Bool {
-        guard let pinnedTitle = state.pinnedTitle else {
-            return false
-        }
-
-        return state.primaryTitle == pinnedTitle
-            || state.primarySourceIdentifier?.localizedCaseInsensitiveContains("pinned") == true
-            || state.primaryKindRawValue.localizedCaseInsensitiveContains("travel")
+        primaryStatus == .pinned
     }
 
 }

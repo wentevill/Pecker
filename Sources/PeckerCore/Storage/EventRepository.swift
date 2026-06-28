@@ -68,6 +68,10 @@ public actor EventRepository {
         try loadAll().filter { $0.source == source }
     }
 
+    public func record(id: String) throws -> StoredEventRecord? {
+        try loadAll().first { $0.id == id }
+    }
+
     public func upsert(_ record: StoredEventRecord) throws {
         var records = try loadAll().filter { $0.id != record.id }
         records.append(record)
@@ -76,6 +80,10 @@ public actor EventRepository {
 
     public func delete(source: RecognitionSource) throws {
         try save(loadAll().filter { $0.source != source })
+    }
+
+    public func delete(id: String) throws {
+        try save(loadAll().filter { $0.id != id })
     }
 
     public func deleteAll() throws {
@@ -92,4 +100,3 @@ public actor EventRepository {
         try data.write(to: fileURL, options: .atomic)
     }
 }
-

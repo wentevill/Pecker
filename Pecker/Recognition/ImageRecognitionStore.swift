@@ -3,6 +3,11 @@ import PeckerCore
 
 protocol ImageFileStoring: Sendable {
     func saveImage(data: Data, filename: String?, source: RecognitionSource) throws -> String
+    func deleteImage(at relativePath: String) throws
+}
+
+enum ImageRecognitionStoreError: Error {
+    case invalidImageReference
 }
 
 struct ImageRecognitionStore: ImageFileStoring {
@@ -29,6 +34,19 @@ struct ImageRecognitionStore: ImageFileStoring {
         return relativePath
     }
 
+    func deleteImage(at relativePath: String) throws {
+        let rootURL = directoryURL.standardizedFileURL
+        let fileURL = directoryURL
+            .appendingPathComponent(relativePath)
+            .standardizedFileURL
+        guard fileURL.path.hasPrefix(rootURL.path + "/") else {
+            throw ImageRecognitionStoreError.invalidImageReference
+        }
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
     private static func fileExtension(from filename: String?) -> String {
         guard let filename else {
             return "jpg"
@@ -50,6 +68,10 @@ protocol ImageRecognizing: Sendable {
         filename: String?,
         settings: TimelineSettings,
         now: Date
+    ) async throws -> ImageRecognitionDraft
+
+    func saveRecognizedImage(
+        _ draft: ImageRecognitionDraft
     ) async throws -> StoredEventRecord
 }
 
@@ -60,6 +82,12 @@ actor NoopImageRecognizer: ImageRecognizing {
         filename: String?,
         settings: TimelineSettings,
         now: Date
+    ) async throws -> ImageRecognitionDraft {
+        throw RecognitionError.unsupportedInput
+    }
+
+    func saveRecognizedImage(
+        _ draft: ImageRecognitionDraft
     ) async throws -> StoredEventRecord {
         throw RecognitionError.unsupportedInput
     }
@@ -83,19 +111,32 @@ struct ImageRecognitionCoordinator: ImageRecognizing {
         filename: String?,
         settings: TimelineSettings,
         now: Date
-    ) async throws -> StoredEventRecord {
-        let imageReference = try imageStore.saveImage(
-            data: data,
-            filename: filename,
-            source: source
-        )
+    ) async throws -> ImageRecognitionDraft {
         return try await systemCoordinator.recognizeImage(
             data: data,
             source: source,
             filename: filename,
-            imageReference: imageReference,
             settings: settings,
             now: now
         )
+    }
+
+    func saveRecognizedImage(
+        _ draft: ImageRecognitionDraft
+    ) async throws -> StoredEventRecord {
+        let imageReference = try imageStore.saveImage(
+            data: draft.imageData,
+            filename: draft.filename,
+            source: draft.source
+        )
+        do {
+            return try await systemCoordinator.saveRecognizedImage(
+                draft,
+                imageReference: imageReference
+            )
+        } catch {
+            try? imageStore.deleteImage(at: imageReference)
+            throw error
+        }
     }
 }

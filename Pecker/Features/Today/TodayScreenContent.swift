@@ -61,9 +61,22 @@ struct TodayScreenContent: Equatable {
 
     enum ImageRecognitionPhase: Equatable {
         case idle
-        case loading(String)
+        case recognizing
+        case awaitingConfirmation(ImageRecognitionDraft)
+        case saving(ImageRecognitionDraft)
         case success(String)
         case failure(String)
+        case saveFailure(ImageRecognitionDraft, String)
+    }
+
+    struct RecognitionPreview: Equatable {
+        let titleText: String
+        let subtitleText: String?
+        let fields: [EventTemplatePresentation.Field]
+        let saveButtonText: String
+        let cancelButtonText: String
+        let buttonsDisabled: Bool
+        let errorText: String?
     }
 
     struct RecognitionActions: Equatable {
@@ -71,6 +84,8 @@ struct TodayScreenContent: Equatable {
         let isLoading: Bool
         let buttonsDisabled: Bool
         let errorText: String?
+        let showsTypingIndicator: Bool
+        let preview: RecognitionPreview?
     }
 
     struct Stale: Equatable {
@@ -113,30 +128,88 @@ struct TodayScreenContent: Equatable {
                 statusText: "等待图片",
                 isLoading: false,
                 buttonsDisabled: false,
-                errorText: nil
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: nil
             )
-        case let .loading(statusText):
+        case .recognizing:
             return RecognitionActions(
-                statusText: statusText,
+                statusText: "正在识别",
                 isLoading: true,
                 buttonsDisabled: true,
-                errorText: nil
+                errorText: nil,
+                showsTypingIndicator: true,
+                preview: nil
+            )
+        case let .awaitingConfirmation(draft):
+            return RecognitionActions(
+                statusText: "识别完成，确认后保存",
+                isLoading: false,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(from: draft)
+            )
+        case let .saving(draft):
+            return RecognitionActions(
+                statusText: "正在保存",
+                isLoading: true,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(
+                    from: draft,
+                    buttonsDisabled: true
+                )
             )
         case let .success(statusText):
             return RecognitionActions(
                 statusText: statusText,
                 isLoading: false,
                 buttonsDisabled: false,
-                errorText: nil
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: nil
             )
         case let .failure(errorText):
             return RecognitionActions(
                 statusText: "识别失败",
                 isLoading: false,
                 buttonsDisabled: false,
-                errorText: errorText
+                errorText: errorText,
+                showsTypingIndicator: false,
+                preview: nil
+            )
+        case let .saveFailure(draft, errorText):
+            return RecognitionActions(
+                statusText: "保存失败",
+                isLoading: false,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(
+                    from: draft,
+                    errorText: errorText
+                )
             )
         }
+    }
+
+    private static func recognitionPreview(
+        from draft: ImageRecognitionDraft,
+        buttonsDisabled: Bool = false,
+        errorText: String? = nil
+    ) -> RecognitionPreview {
+        let presentation = draft.template.presentation
+        return RecognitionPreview(
+            titleText: presentation.title,
+            subtitleText: presentation.subtitle,
+            fields: presentation.fields,
+            saveButtonText: "保存",
+            cancelButtonText: "取消",
+            buttonsDisabled: buttonsDisabled,
+            errorText: errorText
+        )
     }
 
     private static func imageRecognitionIsEnabled(

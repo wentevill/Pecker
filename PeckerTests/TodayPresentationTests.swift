@@ -282,10 +282,30 @@ final class TodayPresentationTests: XCTestCase {
         )
     }
 
-    func testRecognitionActionsSurfaceLoadingSuccessAndFailure() throws {
+    func testRecognitionActionsSurfaceTypingPreviewSavingAndFailure() throws {
         let settings = TimelineSettings(
             aiRecognitionMode: .openAI,
             openAIAPIKeyConfigured: true
+        )
+        let draft = ImageRecognitionDraft(
+            id: "image:draft-1",
+            sourceIdentifier: "draft-1",
+            source: .importedImage,
+            filename: "ticket.jpg",
+            imageData: Data([1, 2, 3]),
+            recognizedAt: Date(timeIntervalSince1970: 5_000),
+            template: .trainTicket(.init(
+                trainNumber: "G123",
+                departureStation: "上海虹桥",
+                arrivalStation: "北京南",
+                departureTimeText: "09:24",
+                arrivalTimeText: nil,
+                carriageNumber: "08",
+                seatNumber: "03A",
+                checkInGate: nil,
+                passengerName: nil,
+                ticketNumber: nil
+            ))
         )
 
         let idle = try XCTUnwrap(
@@ -295,27 +315,53 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertFalse(idle.isLoading)
         XCTAssertFalse(idle.buttonsDisabled)
         XCTAssertNil(idle.errorText)
+        XCTAssertFalse(idle.showsTypingIndicator)
+        XCTAssertNil(idle.preview)
 
-        let loading = try XCTUnwrap(
+        let recognizing = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .loading("识别中…")
+                phase: .recognizing
             )
         )
-        XCTAssertEqual(loading.statusText, "识别中…")
-        XCTAssertTrue(loading.isLoading)
-        XCTAssertTrue(loading.buttonsDisabled)
-        XCTAssertNil(loading.errorText)
+        XCTAssertEqual(recognizing.statusText, "正在识别")
+        XCTAssertTrue(recognizing.isLoading)
+        XCTAssertTrue(recognizing.buttonsDisabled)
+        XCTAssertTrue(recognizing.showsTypingIndicator)
+        XCTAssertNil(recognizing.preview)
 
-        let success = try XCTUnwrap(
+        let confirmation = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .success("图片识别完成")
+                phase: .awaitingConfirmation(draft)
             )
         )
-        XCTAssertEqual(success.statusText, "图片识别完成")
-        XCTAssertFalse(success.isLoading)
-        XCTAssertFalse(success.buttonsDisabled)
+        XCTAssertEqual(confirmation.statusText, "识别完成，确认后保存")
+        XCTAssertFalse(confirmation.isLoading)
+        XCTAssertTrue(confirmation.buttonsDisabled)
+        XCTAssertEqual(confirmation.preview?.titleText, "G123")
+        XCTAssertEqual(confirmation.preview?.subtitleText, "上海虹桥 → 北京南")
+        XCTAssertEqual(confirmation.preview?.fields.first?.label, "出发")
+        XCTAssertFalse(try XCTUnwrap(confirmation.preview).buttonsDisabled)
+
+        let saving = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .saving(draft)
+            )
+        )
+        XCTAssertEqual(saving.statusText, "正在保存")
+        XCTAssertTrue(saving.isLoading)
+        XCTAssertTrue(try XCTUnwrap(saving.preview).buttonsDisabled)
+
+        let saveFailure = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .saveFailure(draft, "保存失败，请重试。")
+            )
+        )
+        XCTAssertEqual(saveFailure.preview?.errorText, "保存失败，请重试。")
+        XCTAssertFalse(try XCTUnwrap(saveFailure.preview).buttonsDisabled)
 
         let failure = try XCTUnwrap(
             TodayScreenContent.recognitionActions(

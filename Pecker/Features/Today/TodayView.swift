@@ -48,6 +48,12 @@ struct TodayView: View {
                     },
                     onRecognizeCameraImage: { image in
                         await recognizeCameraImage(image)
+                    },
+                    onSaveRecognition: {
+                        Task { await saveRecognitionDraft() }
+                    },
+                    onCancelRecognition: {
+                        cancelRecognitionDraft()
                     }
                 )
             }
@@ -135,49 +141,77 @@ struct TodayView: View {
     }
 
     private func recognizePhoto(_ item: PhotosPickerItem) async {
-        imageRecognitionPhase = .loading("读取图片…")
+        imageRecognitionPhase = .recognizing
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 imageRecognitionPhase = .failure("无法读取这张图片。")
                 return
             }
 
-            imageRecognitionPhase = .loading("识别中…")
-            _ = try await imageRecognizer.recognizeImage(
+            let draft = try await imageRecognizer.recognizeImage(
                 data: data,
                 source: .importedImage,
                 filename: item.itemIdentifier,
                 settings: settingsStore.value,
                 now: .now
             )
-            imageRecognitionPhase = .success("图片识别完成")
-            onSettingsChanged()
-            await model.refresh()
+            imageRecognitionPhase = .awaitingConfirmation(draft)
         } catch {
             imageRecognitionPhase = .failure(errorMessage(for: error))
         }
     }
 
     private func recognizeCameraImage(_ image: UIImage) async {
-        imageRecognitionPhase = .loading("识别中…")
+        imageRecognitionPhase = .recognizing
         do {
             guard let data = image.jpegData(compressionQuality: 0.88) else {
                 imageRecognitionPhase = .failure("无法读取相机照片。")
                 return
             }
 
-            _ = try await imageRecognizer.recognizeImage(
+            let draft = try await imageRecognizer.recognizeImage(
                 data: data,
                 source: .cameraImage,
                 filename: "camera.jpg",
                 settings: settingsStore.value,
                 now: .now
             )
-            imageRecognitionPhase = .success("相机识别完成")
+            imageRecognitionPhase = .awaitingConfirmation(draft)
+        } catch {
+            imageRecognitionPhase = .failure(errorMessage(for: error))
+        }
+    }
+
+    private func saveRecognitionDraft() async {
+        let draft: ImageRecognitionDraft
+        switch imageRecognitionPhase {
+        case let .awaitingConfirmation(value),
+             let .saveFailure(value, _):
+            draft = value
+        case .idle, .recognizing, .saving, .success, .failure:
+            return
+        }
+
+        imageRecognitionPhase = .saving(draft)
+        do {
+            _ = try await imageRecognizer.saveRecognizedImage(draft)
+            imageRecognitionPhase = .success("已保存到时间线")
             onSettingsChanged()
             await model.refresh()
         } catch {
-            imageRecognitionPhase = .failure(errorMessage(for: error))
+            imageRecognitionPhase = .saveFailure(
+                draft,
+                "保存失败，请重试或取消。"
+            )
+        }
+    }
+
+    private func cancelRecognitionDraft() {
+        switch imageRecognitionPhase {
+        case .awaitingConfirmation, .saveFailure:
+            imageRecognitionPhase = .idle
+        case .idle, .recognizing, .saving, .success, .failure:
+            break
         }
     }
 
@@ -191,6 +225,8 @@ struct TodayView: View {
             return "API 配置无效，请检查 Host、Model 和 API Key。"
         case .requestFailed:
             return "API 请求失败，请检查 Host、Model 或网络。"
+        case .imageInputUnsupported:
+            return "当前模型不支持图片识别，请在设置中改用视觉模型。"
         case .invalidResponse:
             return "识别结果格式异常，请稍后重试。"
         case .networkExecutionNotImplemented:
@@ -238,6 +274,8 @@ struct TodayScreen: View {
     let onRetry: () -> Void
     let onRecognizePhoto: (PhotosPickerItem) async -> Void
     let onRecognizeCameraImage: (UIImage) async -> Void
+    let onSaveRecognition: () -> Void
+    let onCancelRecognition: () -> Void
 
     init(
         content: TodayScreenContent,
@@ -251,7 +289,9 @@ struct TodayScreen: View {
         onOpenSummary: @escaping () -> Void,
         onRetry: @escaping () -> Void,
         onRecognizePhoto: @escaping (PhotosPickerItem) async -> Void = { _ in },
-        onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in }
+        onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in },
+        onSaveRecognition: @escaping () -> Void = {},
+        onCancelRecognition: @escaping () -> Void = {}
     ) {
         self.content = content
         self.recognitionActions = recognitionActions
@@ -265,6 +305,8 @@ struct TodayScreen: View {
         self.onRetry = onRetry
         self.onRecognizePhoto = onRecognizePhoto
         self.onRecognizeCameraImage = onRecognizeCameraImage
+        self.onSaveRecognition = onSaveRecognition
+        self.onCancelRecognition = onCancelRecognition
     }
 
     var body: some View {
@@ -365,10 +407,12 @@ struct TodayScreen: View {
 
                     Spacer(minLength: 8)
 
-                    if actions.isLoading {
+                    if actions.showsTypingIndicator {
+                        RecognitionTypingIndicator()
+                    } else if actions.isLoading {
                         ProgressView()
                             .tint(TimelineTheme.now)
-                            .accessibilityLabel("图片识别中")
+                            .accessibilityLabel("正在保存识别结果")
                     }
                 }
 
@@ -417,7 +461,88 @@ struct TodayScreen: View {
                         .foregroundStyle(TimelineTheme.now)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+
+                if let preview = actions.preview {
+                    recognitionPreview(preview)
+                }
             }
+        }
+    }
+
+    private func recognitionPreview(
+        _ preview: TodayScreenContent.RecognitionPreview
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+                .overlay(TimelineTheme.cardStroke)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("识别结果")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(TimelineTheme.now)
+
+                Text(preview.titleText)
+                    .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let subtitleText = preview.subtitleText {
+                    Text(subtitleText)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(TimelineTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if !preview.fields.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(
+                        Array(preview.fields.enumerated()),
+                        id: \.offset
+                    ) { _, field in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(field.label)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(TimelineTheme.textTertiary)
+                                .frame(width: 64, alignment: .leading)
+
+                            Text(field.value)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(TimelineTheme.textPrimary)
+
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
+            }
+
+            if let errorText = preview.errorText {
+                Text(errorText)
+                    .font(.caption)
+                    .foregroundStyle(TimelineTheme.now)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 10) {
+                Button(preview.saveButtonText, action: onSaveRecognition)
+                    .buttonStyle(
+                        RecognitionConfirmationButtonStyle(
+                            accent: TimelineTheme.now,
+                            filled: true
+                        )
+                    )
+
+                Button(preview.cancelButtonText, action: onCancelRecognition)
+                    .buttonStyle(
+                        RecognitionConfirmationButtonStyle(
+                            accent: TimelineTheme.textPrimary,
+                            filled: false
+                        )
+                    )
+
+                Spacer(minLength: 0)
+            }
+            .disabled(preview.buttonsDisabled)
+            .opacity(preview.buttonsDisabled ? 0.58 : 1)
         }
     }
 
@@ -986,6 +1111,63 @@ private struct RecognitionActionLabel: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(TimelineTheme.cardStroke, lineWidth: 1)
         )
+    }
+}
+
+private struct RecognitionTypingIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if reduceMotion {
+                Text("…")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(TimelineTheme.now)
+            } else {
+                TimelineView(.animation(minimumInterval: 0.18)) { context in
+                    let activeIndex = Int(
+                        context.date.timeIntervalSinceReferenceDate * 3
+                    ) % 3
+                    HStack(spacing: 4) {
+                        ForEach(0..<3, id: \.self) { index in
+                            Circle()
+                                .fill(TimelineTheme.now)
+                                .frame(width: 6, height: 6)
+                                .opacity(index == activeIndex ? 1 : 0.28)
+                                .offset(y: index == activeIndex ? -2 : 0)
+                        }
+                    }
+                }
+            }
+        }
+        .frame(width: 34, height: 20)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("正在识别图片")
+    }
+}
+
+private struct RecognitionConfirmationButtonStyle: ButtonStyle {
+    let accent: Color
+    let filled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(filled ? Color.white : accent)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 9)
+            .background(
+                Capsule()
+                    .fill(filled ? accent : TimelineTheme.controlFill)
+            )
+            .overlay(
+                Capsule()
+                    .stroke(
+                        filled ? Color.clear : TimelineTheme.cardStroke,
+                        lineWidth: 1
+                    )
+            )
+            .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
 

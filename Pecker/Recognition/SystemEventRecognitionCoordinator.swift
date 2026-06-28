@@ -41,6 +41,16 @@ actor NoopSystemEventRecognizer: SystemEventRecognizing {
     }
 }
 
+struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
+    let id: String
+    let sourceIdentifier: String
+    let source: RecognitionSource
+    let filename: String?
+    let imageData: Data
+    let recognizedAt: Date
+    let template: TimelineEventTemplate
+}
+
 struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
     typealias ProviderFactory = @Sendable (
         TimelineSettings,
@@ -145,51 +155,57 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         data: Data,
         source: RecognitionSource,
         filename: String?,
-        imageReference: String,
         settings: TimelineSettings,
         now: Date
-    ) async throws -> StoredEventRecord {
+    ) async throws -> ImageRecognitionDraft {
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
-        let record = StoredEventRecord(
-            id: "\(idPrefix):\(sourceIdentifier)",
-            source: source,
-            sourceIdentifier: sourceIdentifier,
-            rawTitle: filename,
-            rawLocation: nil,
-            rawNotes: nil,
-            imageReference: imageReference,
-            startDate: now,
-            endDate: nil,
-            template: nil,
-            recognitionStatus: .pending,
-            updatedAt: now
-        )
         let input: RecognitionInput = source == .cameraImage
             ? .cameraImage(id: sourceIdentifier, imageData: data)
             : .importedImage(id: sourceIdentifier, imageData: data, filename: filename)
 
-        let template = try await synchronize(
-            record: record,
-            input: input,
-            settings: settings,
-            now: now,
-            propagatesErrors: true
-        )
-        return StoredEventRecord(
-            id: record.id,
-            source: source,
+        guard settings.aiRecognitionMode != .off,
+              let provider = provider(for: settings)
+        else {
+            throw RecognitionError.invalidConfiguration
+        }
+
+        let result = try await provider.recognize(input)
+        guard let template = templateFactory.makeTemplate(from: result.payload) else {
+            throw RecognitionError.unsupportedInput
+        }
+
+        return ImageRecognitionDraft(
+            id: "\(idPrefix):\(sourceIdentifier)",
             sourceIdentifier: sourceIdentifier,
-            rawTitle: filename,
+            source: source,
+            filename: filename,
+            imageData: data,
+            recognizedAt: now,
+            template: template
+        )
+    }
+
+    func saveRecognizedImage(
+        _ draft: ImageRecognitionDraft,
+        imageReference: String
+    ) async throws -> StoredEventRecord {
+        let record = StoredEventRecord(
+            id: draft.id,
+            source: draft.source,
+            sourceIdentifier: draft.sourceIdentifier,
+            rawTitle: draft.filename,
             rawLocation: nil,
             rawNotes: nil,
             imageReference: imageReference,
-            startDate: now,
+            startDate: draft.recognizedAt,
             endDate: nil,
-            template: template,
+            template: draft.template,
             recognitionStatus: .recognized,
-            updatedAt: now
+            updatedAt: draft.recognizedAt
         )
+        try await repository.upsert(record)
+        return record
     }
 
     func recognizedImageItems(

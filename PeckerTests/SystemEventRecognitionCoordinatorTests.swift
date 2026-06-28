@@ -28,16 +28,19 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             providerFactory: { _, _ in provider }
         )
 
-        let record = try await coordinator.recognizeImage(
+        let draft = try await coordinator.recognizeImage(
             data: Data([0xFF, 0xD8, 0xFF]),
             source: .importedImage,
             filename: "ticket.jpg",
-            imageReference: "Images/ticket.jpg",
             settings: TimelineSettings(
                 aiRecognitionMode: .openAI,
                 openAIAPIKeyConfigured: true
             ),
             now: Date(timeIntervalSince1970: 5_000)
+        )
+        let record = try await coordinator.saveRecognizedImage(
+            draft,
+            imageReference: "Images/ticket.jpg"
         )
 
         guard case let .trainTicket(ticket) = record.template else {
@@ -70,7 +73,6 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 data: Data([1, 2, 3]),
                 source: .cameraImage,
                 filename: nil,
-                imageReference: "Images/camera.jpg",
                 settings: TimelineSettings(
                     aiRecognitionMode: .openAI,
                     openAIAPIKeyConfigured: true
@@ -83,9 +85,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         }
 
         let records = await repository.records()
-        XCTAssertEqual(records.first?.source, .cameraImage)
-        XCTAssertEqual(records.first?.recognitionStatus, .failed)
-        XCTAssertNil(records.first?.template)
+        XCTAssertTrue(records.isEmpty)
     }
 
     func testRecognizedImageRecordsBecomeExternalTimelineItems() async throws {
@@ -246,16 +246,19 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     )
     let now = Date(timeIntervalSince1970: 5_000)
 
-    let record = try await coordinator.recognizeImage(
+    let draft = try await coordinator.recognizeImage(
         data: Data([0xFF, 0xD8, 0xFF]),
         source: .importedImage,
         filename: "ticket.jpg",
-        imageReference: "Images/ticket.jpg",
         settings: TimelineSettings(
             aiRecognitionMode: .openAI,
             openAIAPIKeyConfigured: true
         ),
         now: now
+    )
+    let record = try await coordinator.saveRecognizedImage(
+        draft,
+        imageReference: "Images/ticket.jpg"
     )
 
     guard case let .trainTicket(ticket) = record.template else {
@@ -298,7 +301,6 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             data: Data([1, 2, 3]),
             source: .cameraImage,
             filename: nil,
-            imageReference: "Images/camera.jpg",
             settings: TimelineSettings(
                 aiRecognitionMode: .openAI,
                 openAIAPIKeyConfigured: true
@@ -308,9 +310,165 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     }
 
     let records = await repository.records()
-    #expect(records.first?.source == .cameraImage)
-    #expect(records.first?.recognitionStatus == .failed)
-    #expect(records.first?.template == nil)
+    #expect(records.isEmpty)
+}
+
+@Test func imageRecognitionReturnsDraftWithoutPersisting() async throws {
+    let repository = RecordingEventRepository()
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: ExternalEventTemplatePayload(
+                kind: .train,
+                fields: [
+                    "trainNumber": "G123",
+                    "departureStation": "上海虹桥",
+                    "arrivalStation": "北京南"
+                ]
+            ),
+            confidence: 0.88
+        )
+    )
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        providerFactory: { _, _ in provider }
+    )
+    let imageData = Data([0xFF, 0xD8, 0xFF])
+    let now = Date(timeIntervalSince1970: 5_000)
+
+    let draft = try await coordinator.recognizeImage(
+        data: imageData,
+        source: .importedImage,
+        filename: "ticket.jpg",
+        settings: TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        ),
+        now: now
+    )
+
+    #expect(draft.imageData == imageData)
+    #expect(draft.source == .importedImage)
+    #expect(draft.filename == "ticket.jpg")
+    #expect(draft.recognizedAt == now)
+    #expect(draft.template.presentation.title == "G123")
+    #expect(await repository.records().isEmpty)
+}
+
+@Test func confirmedImageDraftPersistsRecognizedRecord() async throws {
+    let repository = RecordingEventRepository()
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test")
+    )
+    let draft = ImageRecognitionDraft(
+        id: "image:draft-1",
+        sourceIdentifier: "draft-1",
+        source: .importedImage,
+        filename: "ticket.jpg",
+        imageData: Data([0xFF, 0xD8, 0xFF]),
+        recognizedAt: Date(timeIntervalSince1970: 5_000),
+        template: .trainTicket(.init(
+            trainNumber: "G123",
+            departureStation: "上海虹桥",
+            arrivalStation: "北京南",
+            departureTimeText: nil,
+            arrivalTimeText: nil,
+            carriageNumber: "08",
+            seatNumber: "03A",
+            checkInGate: nil,
+            passengerName: nil,
+            ticketNumber: nil
+        ))
+    )
+
+    let saved = try await coordinator.saveRecognizedImage(
+        draft,
+        imageReference: "Images/ticket.jpg"
+    )
+
+    #expect(saved.id == draft.id)
+    #expect(saved.imageReference == "Images/ticket.jpg")
+    #expect(saved.recognitionStatus == .recognized)
+    #expect(await repository.records() == [saved])
+}
+
+@Test func imageCoordinatorRecognitionDoesNotWriteImage() async throws {
+    let repository = RecordingEventRepository()
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: ExternalEventTemplatePayload(
+                kind: .train,
+                fields: ["trainNumber": "G123"]
+            ),
+            confidence: nil
+        )
+    )
+    let systemCoordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        providerFactory: { _, _ in provider }
+    )
+    let imageStore = RecordingImageFileStore()
+    let coordinator = ImageRecognitionCoordinator(
+        imageStore: imageStore,
+        systemCoordinator: systemCoordinator
+    )
+
+    let draft = try await coordinator.recognizeImage(
+        data: Data([1, 2, 3]),
+        source: .importedImage,
+        filename: "ticket.jpg",
+        settings: TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        ),
+        now: Date(timeIntervalSince1970: 5_000)
+    )
+
+    #expect(draft.template.presentation.title == "G123")
+    #expect(imageStore.savedImages.isEmpty)
+    #expect(await repository.records().isEmpty)
+}
+
+@Test func imageCoordinatorRollsBackImageWhenRecordSaveFails() async throws {
+    let repository = FailingEventRepository()
+    let systemCoordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test")
+    )
+    let imageStore = RecordingImageFileStore()
+    let coordinator = ImageRecognitionCoordinator(
+        imageStore: imageStore,
+        systemCoordinator: systemCoordinator
+    )
+    let draft = ImageRecognitionDraft(
+        id: "image:draft-1",
+        sourceIdentifier: "draft-1",
+        source: .importedImage,
+        filename: "ticket.jpg",
+        imageData: Data([1, 2, 3]),
+        recognizedAt: Date(timeIntervalSince1970: 5_000),
+        template: .trainTicket(.init(
+            trainNumber: "G123",
+            departureStation: nil,
+            arrivalStation: nil,
+            departureTimeText: nil,
+            arrivalTimeText: nil,
+            carriageNumber: nil,
+            seatNumber: nil,
+            checkInGate: nil,
+            passengerName: nil,
+            ticketNumber: nil
+        ))
+    )
+
+    await #expect(throws: TestPersistenceError.failed) {
+        _ = try await coordinator.saveRecognizedImage(draft)
+    }
+
+    #expect(imageStore.savedImages.count == 1)
+    #expect(imageStore.deletedPaths == ["Images/test.jpg"])
 }
 
 private actor RecordingEventRepository: EventRepositoryStoring {
@@ -331,6 +489,53 @@ private actor RecordingEventRepository: EventRepositoryStoring {
 
     func records() -> [StoredEventRecord] {
         storedRecords
+    }
+}
+
+private enum TestPersistenceError: Error {
+    case failed
+}
+
+private actor FailingEventRepository: EventRepositoryStoring {
+    func loadAll() async throws -> [StoredEventRecord] {
+        []
+    }
+
+    func upsert(_ record: StoredEventRecord) async throws {
+        throw TestPersistenceError.failed
+    }
+
+    func delete(source: RecognitionSource) async throws {}
+}
+
+private final class RecordingImageFileStore: ImageFileStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedSavedImages: [Data] = []
+    private var storedDeletedPaths: [String] = []
+
+    var savedImages: [Data] {
+        lock.withLock { storedSavedImages }
+    }
+
+    var deletedPaths: [String] {
+        lock.withLock { storedDeletedPaths }
+    }
+
+    func saveImage(
+        data: Data,
+        filename: String?,
+        source: RecognitionSource
+    ) throws -> String {
+        lock.withLock {
+            storedSavedImages.append(data)
+        }
+        return "Images/test.jpg"
+    }
+
+    func deleteImage(at relativePath: String) throws {
+        lock.withLock {
+            storedDeletedPaths.append(relativePath)
+        }
     }
 }
 

@@ -161,5 +161,6 @@ public enum RecognitionError: Error, Sendable, Equatable {
     case unsupportedInput
     case networkExecutionNotImplemented
     case requestFailed
+    case imageInputUnsupported
     case invalidResponse
 }

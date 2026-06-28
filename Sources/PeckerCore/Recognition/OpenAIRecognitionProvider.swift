@@ -178,7 +178,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
 
         If the input image or text does not clearly contain an actionable event, ticket, pass, travel plan, deadline, reminder, or task, return {"kind":"unknown","fields":{}}.
 
-        Prefer concrete visible fields over guesses. For train tickets, extract trainNumber, departureStation, arrivalStation, departureTime, arrivalTime, carriageNumber, seatNumber, checkInGate, passengerName, and ticketNumber when visible.
+        Prefer concrete visible fields over guesses. Every actionable event must include startDateTime using ISO-8601 with an explicit UTC offset, and include endDateTime when an end is visible. If only a local date and times are visible, also return eventDate as YYYY-MM-DD plus departureTime and arrivalTime as HH:mm. For train tickets, extract trainNumber, departureStation, arrivalStation, departureTime, arrivalTime, carriageNumber, seatNumber, checkInGate, passengerName, ticketNumber, seatClass, and price when visible.
 
         Return only one JSON object in this exact shape: {"kind":"train","fields":{"trainNumber":"G123"}}. "kind" must be one of meeting, task, flight, train, travel, interview, deadline, or unknown. Every value in "fields" must be a string.
         """

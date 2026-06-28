@@ -294,6 +294,8 @@ final class TodayPresentationTests: XCTestCase {
             filename: "ticket.jpg",
             imageData: Data([1, 2, 3]),
             recognizedAt: Date(timeIntervalSince1970: 5_000),
+            startDate: Date(timeIntervalSince1970: 6_000),
+            endDate: Date(timeIntervalSince1970: 7_000),
             template: .trainTicket(.init(
                 trainNumber: "G123",
                 departureStation: "上海虹桥",
@@ -341,7 +343,7 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertTrue(confirmation.buttonsDisabled)
         XCTAssertEqual(confirmation.preview?.titleText, "G123")
         XCTAssertEqual(confirmation.preview?.subtitleText, "上海虹桥 → 北京南")
-        XCTAssertEqual(confirmation.preview?.fields.first?.label, "出发")
+        XCTAssertEqual(confirmation.preview?.fields.first?.label, "时间")
         XCTAssertFalse(try XCTUnwrap(confirmation.preview).buttonsDisabled)
 
         let saving = try XCTUnwrap(

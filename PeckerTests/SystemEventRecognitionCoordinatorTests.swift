@@ -12,6 +12,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 payload: ExternalEventTemplatePayload(
                     kind: .train,
                     fields: [
+                        "startDateTime": "2026-06-28T10:30:00+08:00",
+                        "endDateTime": "2026-06-28T11:48:00+08:00",
                         "trainNumber": "G123",
                         "departureStation": "上海虹桥",
                         "arrivalStation": "北京南",
@@ -52,6 +54,14 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         XCTAssertEqual(ticket.arrivalStation, "北京南")
         XCTAssertEqual(ticket.carriageNumber, "08")
         XCTAssertEqual(ticket.seatNumber, "03A")
+        XCTAssertEqual(
+            record.startDate,
+            ISO8601DateFormatter().date(from: "2026-06-28T02:30:00Z")
+        )
+        XCTAssertEqual(
+            record.endDate,
+            ISO8601DateFormatter().date(from: "2026-06-28T03:48:00Z")
+        )
     }
 
     func testImageRecognitionThrowsUnsupportedInputWhenProviderFindsNoEventCard() async throws {
@@ -229,6 +239,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             payload: ExternalEventTemplatePayload(
                 kind: .train,
                 fields: [
+                    "startDateTime": "2026-06-28T10:30:00+08:00",
+                    "endDateTime": "2026-06-28T11:48:00+08:00",
                     "trainNumber": "G123",
                     "departureStation": "上海虹桥",
                     "arrivalStation": "北京南",
@@ -320,6 +332,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             payload: ExternalEventTemplatePayload(
                 kind: .train,
                 fields: [
+                    "startDateTime": "2026-06-28T10:30:00+08:00",
+                    "endDateTime": "2026-06-28T11:48:00+08:00",
                     "trainNumber": "G123",
                     "departureStation": "上海虹桥",
                     "arrivalStation": "北京南"
@@ -368,6 +382,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         filename: "ticket.jpg",
         imageData: Data([0xFF, 0xD8, 0xFF]),
         recognizedAt: Date(timeIntervalSince1970: 5_000),
+        startDate: Date(timeIntervalSince1970: 6_000),
+        endDate: Date(timeIntervalSince1970: 7_000),
         template: .trainTicket(.init(
             trainNumber: "G123",
             departureStation: "上海虹桥",
@@ -399,7 +415,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         result: RecognitionResult(
             payload: ExternalEventTemplatePayload(
                 kind: .train,
-                fields: ["trainNumber": "G123"]
+                fields: [
+                    "startDateTime": "2026-06-28T10:30:00+08:00",
+                    "endDateTime": "2026-06-28T11:48:00+08:00",
+                    "trainNumber": "G123"
+                ]
             ),
             confidence: nil
         )
@@ -449,6 +469,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         filename: "ticket.jpg",
         imageData: Data([1, 2, 3]),
         recognizedAt: Date(timeIntervalSince1970: 5_000),
+        startDate: Date(timeIntervalSince1970: 6_000),
+        endDate: Date(timeIntervalSince1970: 7_000),
         template: .trainTicket(.init(
             trainNumber: "G123",
             departureStation: nil,

@@ -43,7 +43,9 @@ import Testing
                 "seatNumber": "12F",
                 "checkInGate": "A12",
                 "passengerName": "Wen",
-                "ticketNumber": "ETK-001"
+                "ticketNumber": "ETK-001",
+                "seatClass": "二等座",
+                "price": "¥96"
             ]
         )
     )
@@ -58,7 +60,9 @@ import Testing
         seatNumber: "12F",
         checkInGate: "A12",
         passengerName: "Wen",
-        ticketNumber: "ETK-001"
+        ticketNumber: "ETK-001",
+        seatClass: "二等座",
+        priceText: "¥96"
     )))
 }
 

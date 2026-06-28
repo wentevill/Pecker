@@ -201,10 +201,26 @@ struct TodayScreenContent: Equatable {
         errorText: String? = nil
     ) -> RecognitionPreview {
         let presentation = draft.template.presentation
+        let dateStyle = Date.FormatStyle(
+            date: .abbreviated,
+            time: .shortened
+        )
+        let timingText: String
+        if let endDate = draft.endDate {
+            timingText = "\(draft.startDate.formatted(dateStyle)) – \(endDate.formatted(dateStyle))"
+        } else {
+            timingText = draft.startDate.formatted(dateStyle)
+        }
+        let fields = [
+            EventTemplatePresentation.Field(
+                label: "时间",
+                value: timingText
+            )
+        ] + presentation.fields
         return RecognitionPreview(
             titleText: presentation.title,
             subtitleText: presentation.subtitle,
-            fields: presentation.fields,
+            fields: fields,
             saveButtonText: "保存",
             cancelButtonText: "取消",
             buttonsDisabled: buttonsDisabled,

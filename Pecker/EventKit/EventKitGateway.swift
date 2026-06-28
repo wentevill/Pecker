@@ -212,8 +212,15 @@ actor EventKitGateway: EventKitGatewayProtocol {
         calendar: Calendar,
         now: Date
     ) async throws -> [EventRecord] {
-        try Task.checkCancellation()
         let interval = try dayInterval(calendar: calendar, now: now)
+        return try await fetchEvents(in: interval, calendar: calendar)
+    }
+
+    func fetchEvents(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [EventRecord] {
+        try Task.checkCancellation()
         let predicate = store.predicateForEvents(
             withStart: interval.start,
             end: interval.end,
@@ -241,13 +248,17 @@ actor EventKitGateway: EventKitGatewayProtocol {
         calendar: Calendar,
         now: Date
     ) async throws -> [ReminderRecord] {
-        try Task.checkCancellation()
         let interval = try dayInterval(calendar: calendar, now: now)
-        let predicate = store.predicateForIncompleteReminders(
-            withDueDateStarting: interval.start,
-            ending: interval.end,
-            calendars: nil
-        )
+        return try await fetchReminders(in: interval, calendar: calendar)
+            .filter { !$0.isCompleted }
+    }
+
+    func fetchReminders(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [ReminderRecord] {
+        try Task.checkCancellation()
+        let predicate = store.predicateForReminders(in: nil)
         let canceller = EventKitStoreCanceller(store: store)
 
         return try await EventKitGatewaySupport
@@ -279,7 +290,8 @@ actor EventKitGateway: EventKitGatewayProtocol {
                                     identifier: identifier,
                                     title: reminder.title ?? "无标题",
                                     dueDate: dueDate,
-                                    notes: reminder.notes
+                                    notes: reminder.notes,
+                                    isCompleted: reminder.isCompleted
                                 )
                             }
                         completion(records)

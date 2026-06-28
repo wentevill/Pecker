@@ -147,15 +147,7 @@ private struct FullTimelinePreviewHost: View {
 
     var body: some View {
         NavigationStack {
-            FullTimelineView(
-                snapshot: snapshot,
-                now: previewNow,
-                settings: settings,
-                activeOnly: false,
-                onSelectItem: { _ in },
-                onTogglePin: { _ in },
-                onOpenSettings: {}
-            )
+            Text("请从今日页打开完整时间线")
         }
     }
 

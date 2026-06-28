@@ -40,7 +40,8 @@ struct EventKitMapper: Sendable {
             kind: .unknown,
             location: nil,
             notes: record.notes,
-            template: template
+            template: template,
+            isCompleted: record.isCompleted
         )
     }
 }

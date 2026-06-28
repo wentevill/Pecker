@@ -13,12 +13,20 @@ final class TodayViewModel {
     private var previousSnapshot: TodaySnapshot?
     private var refreshGeneration = 0
 
+    let timelineManager: TimelineManagerModel
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
     private(set) var liveActivityStatusText = "等待内容"
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
+        timelineManager = TimelineManagerModel(
+            gateway: dependencies.gateway,
+            mapper: dependencies.mapper,
+            recognizer: dependencies.systemEventRecognizer,
+            settingsStore: dependencies.settingsStore,
+            calendar: dependencies.calendar
+        )
         snapshotCommitter = SnapshotCommitter(
             store: dependencies.snapshotStore
         )

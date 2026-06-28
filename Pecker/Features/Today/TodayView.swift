@@ -99,7 +99,7 @@ struct TodayView: View {
             switch route {
             case let .timeline(activeOnly):
                 FullTimelineView(
-                    snapshot: snapshot,
+                    model: model.timelineManager,
                     now: .now,
                     settings: settingsStore.value,
                     activeOnly: activeOnly,

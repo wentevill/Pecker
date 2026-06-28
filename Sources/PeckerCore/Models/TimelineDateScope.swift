@@ -1,6 +1,6 @@
 import Foundation
 
-public enum TimelineDateScope: String, CaseIterable, Sendable {
+public enum TimelineDateScope: String, CaseIterable, Sendable, Hashable {
     case today
     case future
     case history

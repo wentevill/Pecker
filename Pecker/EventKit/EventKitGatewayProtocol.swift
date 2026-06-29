@@ -16,6 +16,21 @@ struct ReminderRecord: Sendable {
     let title: String
     let dueDate: Date?
     let notes: String?
+    let isCompleted: Bool
+
+    init(
+        identifier: String,
+        title: String,
+        dueDate: Date?,
+        notes: String?,
+        isCompleted: Bool = false
+    ) {
+        self.identifier = identifier
+        self.title = title
+        self.dueDate = dueDate
+        self.notes = notes
+        self.isCompleted = isCompleted
+    }
 }
 
 enum SourceAuthorizationStatus: Sendable, Equatable {
@@ -41,4 +56,28 @@ protocol EventKitGatewayProtocol: Sendable {
     func requestReminderAccess() async throws -> Bool
     func fetchToday(calendar: Calendar, now: Date) async throws -> [EventRecord]
     func fetchReminders(calendar: Calendar, now: Date) async throws -> [ReminderRecord]
+    func fetchEvents(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [EventRecord]
+    func fetchReminders(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [ReminderRecord]
+}
+
+extension EventKitGatewayProtocol {
+    func fetchEvents(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [EventRecord] {
+        []
+    }
+
+    func fetchReminders(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [ReminderRecord] {
+        []
+    }
 }

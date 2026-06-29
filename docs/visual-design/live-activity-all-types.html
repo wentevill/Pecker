@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pecker · 全类型 Live Activity 设计</title>
+<style>
+:root{color-scheme:dark;--page:#111216;--panel:#1b1d23;--line:#ffffff18;--text:#f5f7fb;--muted:#9ca6b6;--now:#5ee078;--blue:#58aefe;--orange:#ff982f}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#27344b 0,#111216 38%);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC",sans-serif}
+header{max-width:1440px;margin:auto;padding:44px 28px 22px}h1{font-size:32px;margin:0 0 8px}header p{color:var(--muted);margin:0;max-width:920px}
+.rules{max-width:1384px;margin:0 auto 24px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:#ffffff08;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.rule b{display:block;color:#dbe8fb;margin-bottom:3px}.rule span{font-size:13px;color:var(--muted)}
+.grid{max-width:1440px;margin:auto;padding:0 28px 40px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.sample{border:1px solid var(--line);border-radius:18px;background:#ffffff06;overflow:hidden}.stage{min-height:370px;padding:24px 14px;background:#d7d8dc;display:flex;align-items:center}
+.activity{width:100%;min-height:270px;padding:17px;border:1px solid #ffffff20;border-radius:23px;color:#edf4ff;background:radial-gradient(circle at 92% 0%,#315c8d88,transparent 42%),linear-gradient(145deg,#071526,#101c30 60%,#070f1d);box-shadow:0 18px 34px #0005}
+.sample-info{padding:15px 16px 17px}.sample-info h2{font-size:17px;margin:0 0 4px}.sample-info p{font-size:13px;color:var(--muted);margin:0}
+.top,.identity,.meta,.compact{display:flex;align-items:center}.top{justify-content:space-between;gap:9px}.status{color:var(--now);font-size:11px;font-weight:850;letter-spacing:.08em}.count{color:var(--now);font-size:15px;font-weight:850;font-variant-numeric:tabular-nums}
+.identity{gap:10px;margin:13px 0 12px}.icon{width:40px;height:40px;border-radius:20px;display:grid;place-items:center;font-size:21px;background:#58aefe25;color:#78c0ff;flex:0 0 auto}.icon.orange{background:#ff982f24;color:#ffad58}.icon.green{background:#5ee07822;color:#72e88a}.icon.purple{background:#a88aff22;color:#b9a4ff}.icon.red{background:#ff657522;color:#ff8190}.icon.gray{background:#aab2c022;color:#c5ccd6}
+.title{font-size:19px;font-weight:850;line-height:1.18}.subtitle{font-size:12px;color:#aebacc;margin-top:4px}.times{display:grid;grid-template-columns:1fr auto 1fr;gap:7px;align-items:end;margin:16px 0}.times>div:last-child{text-align:right}.clock{font-size:22px;font-weight:850;font-variant-numeric:tabular-nums}.place{font-size:12px;color:#aebacc;margin-top:2px}.arrow{color:var(--blue);padding-bottom:15px}
+.time-line{font-size:14px;color:#c5cfdd;margin:8px 0}.meta{gap:6px;flex-wrap:wrap;margin-top:12px}.chip{font-size:11px;color:#d6ecff;border:1px solid #67b9ff44;background:#58aefe14;border-radius:8px;padding:5px 7px}.detail{font-size:12px;color:#b6c1d0;margin-top:10px;line-height:1.45}.progress{height:5px;border-radius:8px;background:#ffffff1c;overflow:hidden;margin-top:16px}.progress:before{content:"";display:block;width:62%;height:100%;background:var(--now)}
+.common .activity{display:flex;flex-direction:column}.common .detail{flex:1}.common .progress{margin-top:auto}.due{margin-top:14px;padding:11px 12px;border-radius:12px;background:#ffffff0b;border:1px solid #ffffff12}.due small{display:block;color:#8895a8}.due strong{display:block;margin-top:2px;font-size:17px}
+.island-section{max-width:1384px;margin:0 auto 44px;border:1px solid var(--line);border-radius:18px;background:#ffffff07;padding:22px}.island-section h2{margin:0 0 5px}.island-section>p{color:var(--muted);margin:0 0 18px}.islands{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.island-pair{background:#d7d8dc;border-radius:14px;padding:25px 13px}.compact{height:45px;border-radius:23px;background:#030405;color:white;padding:0 14px;justify-content:space-between;gap:10px;font-weight:750}.compact .left{display:flex;align-items:center;gap:7px;min-width:0}.compact .left span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dot{width:9px;height:9px;border-radius:50%;background:var(--now);box-shadow:0 0 8px #5ee078aa;flex:0 0 auto}.mini{margin:18px auto 0;width:48px;height:48px;border-radius:24px;background:#030405;display:grid;place-items:center;color:var(--blue);font-size:21px}
+.foot{max-width:1384px;margin:0 auto 48px;color:var(--muted);font-size:13px;padding:0 4px}
+@media(max-width:1180px){.grid{grid-template-columns:repeat(2,1fr)}.islands,.rules{grid-template-columns:repeat(2,1fr)}}@media(max-width:680px){.grid,.islands,.rules{grid-template-columns:1fr}header,.grid{padding-left:16px;padding-right:16px}.rules,.island-section,.foot{margin-left:16px;margin-right:16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Pecker · 全类型 Live Activity</h1>
+  <p>设计方向 C：火车票与航班票使用专用模板；其余类型使用统一通用模板。进行中只聚焦当前事项，不再混入 Next / Pinned。</p>
+</header>
+<section class="rules">
+  <div class="rule"><b>状态统一</b><span>绿色只表示进行中；蓝色用于时间与路线，橙色保留给重要行程身份。</span></div>
+  <div class="rule"><b>信息顺序</b><span>类型标志 → 标题/编号 → 时间 → 核心地点或字段 → 倒计时/进度。</span></div>
+  <div class="rule"><b>票据强化</b><span>火车和航班显示双端点、双时间及乘行凭证字段。</span></div>
+  <div class="rule"><b>通用降级</b><span>字段不足时稳定降级，不显示空标签，也不拿备注冒充时间。</span></div>
+</section>
+
+<main class="grid">
+  <article class="sample">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 火车票</span><span class="count">剩余 48 分钟</span></div>
+      <div class="identity"><div class="icon">🚄</div><div><div class="title">C5770</div><div class="subtitle">成都东 → 重庆西</div></div></div>
+      <div class="times"><div><div class="clock">10:30</div><div class="place">成都东</div></div><div class="arrow">━━━━▶</div><div><div class="clock">11:48</div><div class="place">重庆西</div></div></div>
+      <div class="meta"><span class="chip">02 车</span><span class="chip">06D 座</span><span class="chip">B3 检票口</span><span class="chip">二等座</span></div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>火车票 · 专用模板</h2><p>车次、路线和双时间是视觉主体；车厢、座位、检票口与席别形成凭证区。</p></div>
+  </article>
+
+  <article class="sample">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 航班</span><span class="count">剩余 1 小时 26 分</span></div>
+      <div class="identity"><div class="icon orange">✈</div><div><div class="title">SQ 833</div><div class="subtitle">新加坡航空</div></div></div>
+      <div class="times"><div><div class="clock">14:35</div><div class="place">PVG · 上海</div></div><div class="arrow">━━━━▶</div><div><div class="clock">20:25</div><div class="place">SIN · 新加坡</div></div></div>
+      <div class="meta"><span class="chip">T3</span><span class="chip">Gate B7</span><span class="chip">12A 座</span><span class="chip">登机中</span></div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>航班票 · 专用模板</h2><p>航班号、承运方、机场端点与登机字段独立建模，不再塞进 location/notes。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 会议</span><span class="count">剩余 12 分钟</span></div>
+      <div class="identity"><div class="icon green">👥</div><div><div class="title">Daily Standup</div><div class="subtitle">09:30–10:00</div></div></div>
+      <div class="time-line">📍 会议室 A · 3F</div><div class="detail">同步昨日进展与今日阻塞项</div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>会议 · 通用模板</h2><p>保留 demo 的会议图标、时间范围、地点、摘要和进度。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 任务</span><span class="count">剩余 38 分钟</span></div>
+      <div class="identity"><div class="icon green">✓</div><div><div class="title">提交发布说明</div><div class="subtitle">10:00–11:00</div></div></div>
+      <div class="time-line">☷ 产品发布清单</div><div class="detail">补齐升级说明、已知问题和回滚步骤</div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>任务 · 通用模板</h2><p>强调动作与所属清单；有时间区间才显示进度，无结束时间则只显示目标时间。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 行程</span><span class="count">剩余 2 小时</span></div>
+      <div class="identity"><div class="icon purple">▣</div><div><div class="title">酒店入住</div><div class="subtitle">15:00–17:00</div></div></div>
+      <div class="time-line">📍 上海静安瑞吉酒店</div><div class="detail">预订已确认 · 前台出示证件</div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>行程 · 通用模板</h2><p>地点优先，备注作为辅助说明；没有票据字段时不伪造编号或凭证区。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 面试</span><span class="count">剩余 34 分钟</span></div>
+      <div class="identity"><div class="icon purple">▤</div><div><div class="title">产品设计师终面</div><div class="subtitle">16:00–17:00</div></div></div>
+      <div class="time-line">📍 Zoom · Meeting Room 6</div><div class="detail">面试官：Design Lead · 准备作品集讲解</div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>面试 · 通用模板</h2><p>类型标志与会议区分；优先呈现地点/链接和首条上下文。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">即将到期 · 截止</span><span class="count">还有 26 分钟</span></div>
+      <div class="identity"><div class="icon red">!</div><div><div class="title">提交报销材料</div><div class="subtitle">今天 18:00 截止</div></div></div>
+      <div class="due"><small>截止时间</small><strong>6 月 29 日 18:00</strong></div><div class="detail">财务系统 · 附发票与行程单</div>
+    </div></div>
+    <div class="sample-info"><h2>截止 · 通用模板</h2><p>截止事项不伪装成持续事件：显示绝对截止时间和剩余时间，不显示虚假进度。</p></div>
+  </article>
+
+  <article class="sample common">
+    <div class="stage"><div class="activity">
+      <div class="top"><span class="status">● 进行中 · 事项</span><span class="count">剩余 20 分钟</span></div>
+      <div class="identity"><div class="icon gray">◷</div><div><div class="title">与 Alex 碰面</div><div class="subtitle">18:20–19:00</div></div></div>
+      <div class="time-line">📍 一楼咖啡厅</div><div class="detail">未分类事项</div><div class="progress"></div>
+    </div></div>
+    <div class="sample-info"><h2>未分类 · 通用模板</h2><p>稳定使用时间标志和中性文案；仍保证标题、时间、地点、倒计时完整。</p></div>
+  </article>
+</main>
+
+<section class="island-section">
+  <h2>Dynamic Island · Compact / Minimal</h2>
+  <p>紧凑态只保留“类型身份 + 最短可辨识名称 + 剩余时间”；Minimal 使用类型图标，避免无法辨认的缩写。</p>
+  <div class="islands">
+    <div class="island-pair"><div class="compact"><div class="left"><span class="dot"></span><span>🚄 C5770</span></div><span>48m</span></div><div class="mini">🚄</div></div>
+    <div class="island-pair"><div class="compact"><div class="left"><span class="dot"></span><span>✈ SQ 833</span></div><span>1h</span></div><div class="mini" style="color:#ffad58">✈</div></div>
+    <div class="island-pair"><div class="compact"><div class="left"><span class="dot"></span><span>👥 Standup</span></div><span>12m</span></div><div class="mini" style="color:#72e88a">👥</div></div>
+    <div class="island-pair"><div class="compact"><div class="left"><span class="dot"></span><span>! 报销材料</span></div><span>26m</span></div><div class="mini" style="color:#ff8190">!</div></div>
+  </div>
+</section>
+<p class="foot">展示字段以 4 KB ContentState 上限为约束：专用模板只传 Live Activity 必需字段；通用模板保留识别字段，但展示适配器最多选取地点和一条辅助信息。</p>
+</body>
+</html>

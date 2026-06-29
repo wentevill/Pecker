@@ -23,29 +23,25 @@ struct EventKitMapper: Sendable {
 
     func mapReminder(
         _ record: ReminderRecord,
-        durationMinutes: Int,
         template: TimelineEventTemplate? = nil
     ) -> TimelineItem? {
         guard let dueDate = record.dueDate else {
             return nil
         }
 
-        let normalizedDuration = durationMinutes > 0 ? durationMinutes : 30
-
         return TimelineItem(
             id: "reminder:\(record.identifier)",
             sourceIdentifier: record.identifier,
             title: record.title,
             startDate: dueDate,
-            endDate: dueDate.addingTimeInterval(
-                TimeInterval(normalizedDuration * 60)
-            ),
+            endDate: nil,
             isAllDay: false,
             source: .reminder,
             kind: .unknown,
             location: nil,
             notes: record.notes,
-            template: template
+            template: template,
+            isCompleted: record.isCompleted
         )
     }
 }

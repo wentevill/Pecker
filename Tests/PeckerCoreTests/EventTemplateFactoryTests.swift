@@ -43,7 +43,9 @@ import Testing
                 "seatNumber": "12F",
                 "checkInGate": "A12",
                 "passengerName": "Wen",
-                "ticketNumber": "ETK-001"
+                "ticketNumber": "ETK-001",
+                "seatClass": "二等座",
+                "price": "¥96"
             ]
         )
     )
@@ -58,8 +60,31 @@ import Testing
         seatNumber: "12F",
         checkInGate: "A12",
         passengerName: "Wen",
-        ticketNumber: "ETK-001"
+        ticketNumber: "ETK-001",
+        seatClass: "二等座",
+        priceText: "¥96"
     )))
+}
+
+@Test func factoryCreatesGenericTaskFromExternalPayload() {
+    let template = EventTemplateFactory().makeTemplate(
+        from: ExternalEventTemplatePayload(
+            kind: .task,
+            fields: [
+                "title": "巡逻",
+                "location": "",
+                "notes": "巡查楼梯口、仓库、围栏"
+            ]
+        )
+    )
+
+    #expect(template == .generic(.init(
+        kind: .task,
+        title: "巡逻",
+        location: nil,
+        notes: "巡查楼梯口、仓库、围栏"
+    )))
+    #expect(template?.presentation.fields.first?.label == "类型")
 }
 
 @Test func classifierUsesFactoryButKeepsReminderFallback() {

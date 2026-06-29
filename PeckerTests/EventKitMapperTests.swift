@@ -21,7 +21,7 @@ final class EventKitMapperTests: XCTestCase {
         }
     }
 
-    func testReminderMapsConfiguredDurationAndIdentifiers() throws {
+    func testReminderMapsDueDateWithoutSyntheticDuration() throws {
         let dueDate = Date(timeIntervalSince1970: 1_000)
 
         let item = try XCTUnwrap(
@@ -31,8 +31,7 @@ final class EventKitMapperTests: XCTestCase {
                     title: "Pay bill",
                     dueDate: dueDate,
                     notes: "Use checking"
-                ),
-                durationMinutes: 45
+                )
             )
         )
 
@@ -40,7 +39,7 @@ final class EventKitMapperTests: XCTestCase {
         XCTAssertEqual(item.sourceIdentifier, "r1")
         XCTAssertEqual(item.title, "Pay bill")
         XCTAssertEqual(item.startDate, dueDate)
-        XCTAssertEqual(item.endDate, dueDate.addingTimeInterval(45 * 60))
+        XCTAssertNil(item.endDate)
         XCTAssertFalse(item.isAllDay)
         XCTAssertEqual(item.source, .reminder)
         XCTAssertEqual(item.kind, .unknown)
@@ -55,8 +54,7 @@ final class EventKitMapperTests: XCTestCase {
                 title: "Someday",
                 dueDate: nil,
                 notes: nil
-            ),
-            durationMinutes: 30
+            )
         )
 
         XCTAssertNil(item)
@@ -90,7 +88,7 @@ final class EventKitMapperTests: XCTestCase {
         XCTAssertEqual(item.notes, "Meet at arrivals")
     }
 
-    func testInvalidReminderDurationIsNormalizedToThirtyMinutes() throws {
+    func testReminderDurationSettingDoesNotCreateEndDate() throws {
         let dueDate = Date(timeIntervalSince1970: 3_000)
 
         let item = try XCTUnwrap(
@@ -100,12 +98,11 @@ final class EventKitMapperTests: XCTestCase {
                     title: "Follow up",
                     dueDate: dueDate,
                     notes: nil
-                ),
-                durationMinutes: 0
+                )
             )
         )
 
-        XCTAssertEqual(item.endDate, dueDate.addingTimeInterval(30 * 60))
+        XCTAssertNil(item.endDate)
     }
 
     func testDayIntervalUsesLocalCalendarAcrossDSTBoundary() throws {
@@ -136,25 +133,45 @@ final class EventKitMapperTests: XCTestCase {
         XCTAssertEqual(interval.duration, 23 * 60 * 60)
     }
 
-    func testReminderInclusionIncludesOverdueBeforeNextDay() {
-        let nextDay = Date(timeIntervalSince1970: 10_000)
-        let overdue = nextDay.addingTimeInterval(-48 * 60 * 60)
+    func testReminderInclusionExcludesHistoricalReminder() {
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
+        let historical = interval.start.addingTimeInterval(-1)
 
-        XCTAssertTrue(
+        XCTAssertFalse(
             EventKitGatewaySupport.includesReminder(
-                dueDate: overdue,
-                nextDay: nextDay
+                dueDate: historical,
+                interval: interval
             )
         )
     }
 
     func testReminderInclusionExcludesExactNextDay() {
-        let nextDay = Date(timeIntervalSince1970: 10_000)
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
 
         XCTAssertFalse(
             EventKitGatewaySupport.includesReminder(
-                dueDate: nextDay,
-                nextDay: nextDay
+                dueDate: interval.end,
+                interval: interval
+            )
+        )
+    }
+
+    func testReminderInclusionIncludesStartOfToday() {
+        let interval = DateInterval(
+            start: Date(timeIntervalSince1970: 10_000),
+            duration: 24 * 60 * 60
+        )
+
+        XCTAssertTrue(
+            EventKitGatewaySupport.includesReminder(
+                dueDate: interval.start,
+                interval: interval
             )
         )
     }

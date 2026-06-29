@@ -498,7 +498,7 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
-    func testReminderDurationAndSourceSettingsAreApplied() async throws {
+    func testReminderDueDateDoesNotCreateSyntheticEndDate() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let dueDate = now.addingTimeInterval(300)
         let gateway = FakeEventKitGateway(
@@ -510,8 +510,7 @@ final class TodayViewModelTests: XCTestCase {
             gateway: gateway,
             settings: .init(
                 calendarEnabled: false,
-                remindersEnabled: true,
-                reminderDurationMinutes: 45
+                remindersEnabled: true
             )
         )
 
@@ -522,7 +521,7 @@ final class TodayViewModelTests: XCTestCase {
         }
         let item = try XCTUnwrap(snapshot.items.first)
         XCTAssertEqual(item.id, "reminder:reminder")
-        XCTAssertEqual(item.endDate, dueDate.addingTimeInterval(45 * 60))
+        XCTAssertNil(item.endDate)
         let fetchCounts = await gateway.fetchCounts()
         XCTAssertEqual(fetchCounts, .init(calendar: 0, reminders: 1))
     }
@@ -725,6 +724,66 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshExcludesHistoricalReminderAndFutureRecognizedImage() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let todayItem = TimelineItem(
+            id: "image:today",
+            sourceIdentifier: "today",
+            title: "Today",
+            startDate: now.addingTimeInterval(600),
+            endDate: now.addingTimeInterval(1_200),
+            isAllDay: false,
+            source: .external,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let futureItem = TimelineItem(
+            id: "image:future",
+            sourceIdentifier: "future",
+            title: "Future",
+            startDate: calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: calendar.startOfDay(for: now)
+            )!,
+            endDate: nil,
+            isAllDay: false,
+            source: .external,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let recognizer = RecordingSystemEventRecognizer(
+            recognizedItems: [todayItem, futureItem]
+        )
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .denied, reminders: .fullAccess),
+            reminders: [
+                reminder(at: calendar.date(
+                    byAdding: .day,
+                    value: -1,
+                    to: now
+                )!)
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            calendar: calendar,
+            systemEventRecognizer: recognizer
+        )
+
+        await viewModel.refresh(now: now)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected Today content")
+        }
+        XCTAssertEqual(snapshot.items.map(\.id), ["image:today"])
+    }
+
+    @MainActor
     private func makeViewModel(
         gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
@@ -781,10 +840,15 @@ private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
     }
 
     private let templatesByItemID: [String: TimelineEventTemplate]
+    private let recognizedItems: [TimelineItem]
     private var recordedCalls: [Call] = []
 
-    init(templatesByItemID: [String: TimelineEventTemplate] = [:]) {
+    init(
+        templatesByItemID: [String: TimelineEventTemplate] = [:],
+        recognizedItems: [TimelineItem] = []
+    ) {
         self.templatesByItemID = templatesByItemID
+        self.recognizedItems = recognizedItems
     }
 
     func synchronize(
@@ -797,6 +861,13 @@ private actor RecordingSystemEventRecognizer: SystemEventRecognizing {
             .init(events: events, reminders: reminders, settings: settings, now: now)
         )
         return templatesByItemID
+    }
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        recognizedItems
     }
 
     func calls() -> [Call] {

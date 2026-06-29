@@ -13,15 +13,27 @@ final class TodayViewModel {
     private var previousSnapshot: TodaySnapshot?
     private var refreshGeneration = 0
 
+    let timelineManager: TimelineManagerModel
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
     private(set) var liveActivityStatusText = "等待内容"
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
+        timelineManager = TimelineManagerModel(
+            gateway: dependencies.gateway,
+            mapper: dependencies.mapper,
+            recognizer: dependencies.systemEventRecognizer,
+            localCards: dependencies.localTimelineCards,
+            settingsStore: dependencies.settingsStore,
+            calendar: dependencies.calendar
+        )
         snapshotCommitter = SnapshotCommitter(
             store: dependencies.snapshotStore
         )
+        timelineManager.onMutation = { [weak self] in
+            await self?.refresh()
+        }
     }
 
     func refresh(now: Date = .now) async {
@@ -100,8 +112,13 @@ final class TodayViewModel {
                     settings: settings,
                     now: now
                 )
+            let recognizedImageItems = await dependencies.systemEventRecognizer
+                .recognizedImageItems(
+                    settings: settings,
+                    now: now
+                )
 
-            let items = events.map {
+            let allItems = events.map {
                 dependencies.mapper.mapEvent(
                     $0,
                     template: recognizedTemplates["calendar:\($0.identifier)"]
@@ -110,10 +127,17 @@ final class TodayViewModel {
                 + reminders.compactMap {
                     dependencies.mapper.mapReminder(
                         $0,
-                        durationMinutes: settings.reminderDurationMinutes,
                         template: recognizedTemplates["reminder:\($0.identifier)"]
                     )
                 }
+                + recognizedImageItems
+            let items = allItems.filter {
+                TimelineDateScope.classify(
+                    $0,
+                    calendar: dependencies.calendar,
+                    now: now
+                ) == .today
+            }
             let snapshot = dependencies.engine.makeSnapshot(
                 items: items,
                 now: now,

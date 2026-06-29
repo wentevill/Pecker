@@ -5,9 +5,16 @@ protocol EventRepositoryStoring: Sendable {
     func loadAll() async throws -> [StoredEventRecord]
     func upsert(_ record: StoredEventRecord) async throws
     func delete(source: RecognitionSource) async throws
+    func delete(id: String) async throws
 }
 
 extension EventRepository: EventRepositoryStoring {}
+
+extension EventRepositoryStoring {
+    func delete(id: String) async throws {
+        throw RecognitionError.unsupportedInput
+    }
+}
 
 protocol SystemEventRecognizing: Sendable {
     func synchronize(
@@ -16,6 +23,11 @@ protocol SystemEventRecognizing: Sendable {
         settings: TimelineSettings,
         now: Date
     ) async -> [String: TimelineEventTemplate]
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem]
 }
 
 actor NoopSystemEventRecognizer: SystemEventRecognizing {
@@ -27,6 +39,25 @@ actor NoopSystemEventRecognizer: SystemEventRecognizing {
     ) async -> [String: TimelineEventTemplate] {
         [:]
     }
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        []
+    }
+}
+
+struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
+    let id: String
+    let sourceIdentifier: String
+    let source: RecognitionSource
+    let filename: String?
+    let imageData: Data
+    let recognizedAt: Date
+    let startDate: Date
+    let endDate: Date?
+    let template: TimelineEventTemplate
 }
 
 struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
@@ -38,12 +69,14 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
     private let repository: any EventRepositoryStoring
     private let apiKeyStore: any APIKeyStoring
     private let templateFactory: EventTemplateFactory
+    private let calendar: Calendar
     private let providerFactory: ProviderFactory
 
     init(
         repository: any EventRepositoryStoring,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
         templateFactory: EventTemplateFactory = EventTemplateFactory(),
+        calendar: Calendar = .current,
         providerFactory: @escaping ProviderFactory = { settings, apiKey in
             switch settings.aiRecognitionMode {
             case .openAI:
@@ -64,6 +97,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         self.repository = repository
         self.apiKeyStore = apiKeyStore
         self.templateFactory = templateFactory
+        self.calendar = calendar
         self.providerFactory = providerFactory
     }
 
@@ -79,16 +113,20 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
             if settings.syncCalendarToStorage {
                 for event in events {
-                    if let template = await synchronize(
+                    if let template = try? await synchronize(
                         record: storedRecord(from: event, status: .pending, updatedAt: now),
                         input: .calendar(
                             sourceIdentifier: event.identifier,
                             title: event.title,
+                            startDate: event.startDate,
+                            endDate: event.endDate,
+                            isAllDay: event.isAllDay,
                             location: event.location,
                             notes: event.notes
                         ),
                         settings: settings,
-                        now: now
+                        now: now,
+                        propagatesErrors: false
                     ) {
                         templates["calendar:\(event.identifier)"] = template
                     }
@@ -97,15 +135,22 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
 
             if settings.syncRemindersToStorage {
                 for reminder in reminders {
-                    if let template = await synchronize(
-                        record: storedRecord(from: reminder, status: .pending, updatedAt: now),
+                    if let template = try? await synchronize(
+                        record: storedRecord(
+                            from: reminder,
+                            status: .pending,
+                            updatedAt: now
+                        ),
                         input: .reminder(
                             sourceIdentifier: reminder.identifier,
                             title: reminder.title,
+                            dueDate: reminder.dueDate,
+                            endDate: nil,
                             notes: reminder.notes
                         ),
                         settings: settings,
-                        now: now
+                        now: now,
+                        propagatesErrors: false
                     ) {
                         templates["reminder:\(reminder.identifier)"] = template
                     }
@@ -122,71 +167,126 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         data: Data,
         source: RecognitionSource,
         filename: String?,
-        imageReference: String,
         settings: TimelineSettings,
         now: Date
-    ) async throws -> StoredEventRecord {
+    ) async throws -> ImageRecognitionDraft {
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
-        let record = StoredEventRecord(
-            id: "\(idPrefix):\(sourceIdentifier)",
-            source: source,
-            sourceIdentifier: sourceIdentifier,
-            rawTitle: filename,
-            rawLocation: nil,
-            rawNotes: nil,
-            imageReference: imageReference,
-            startDate: nil,
-            endDate: nil,
-            template: nil,
-            recognitionStatus: .pending,
-            updatedAt: now
-        )
         let input: RecognitionInput = source == .cameraImage
-            ? .cameraImage(id: sourceIdentifier, imageData: data)
-            : .importedImage(id: sourceIdentifier, imageData: data, filename: filename)
+            ? .cameraImage(
+                id: sourceIdentifier,
+                imageData: data,
+                referenceDate: now,
+                timeZoneIdentifier: calendar.timeZone.identifier
+            )
+            : .importedImage(
+                id: sourceIdentifier,
+                imageData: data,
+                filename: filename,
+                referenceDate: now,
+                timeZoneIdentifier: calendar.timeZone.identifier
+            )
 
-        let template = await synchronize(
-            record: record,
-            input: input,
-            settings: settings,
-            now: now
+        guard settings.aiRecognitionMode != .off,
+              let provider = provider(for: settings)
+        else {
+            throw RecognitionError.invalidConfiguration
+        }
+
+        let result = try await provider.recognize(input)
+        guard let template = templateFactory.makeTemplate(from: result.payload) else {
+            throw RecognitionError.unsupportedInput
+        }
+        let timing = try RecognizedEventTiming.parse(
+            fields: result.payload.fields,
+            calendar: calendar
         )
-        return StoredEventRecord(
-            id: record.id,
-            source: source,
+
+        return ImageRecognitionDraft(
+            id: "\(idPrefix):\(sourceIdentifier)",
             sourceIdentifier: sourceIdentifier,
-            rawTitle: filename,
+            source: source,
+            filename: filename,
+            imageData: data,
+            recognizedAt: now,
+            startDate: timing.startDate,
+            endDate: timing.endDate,
+            template: template
+        )
+    }
+
+    func saveRecognizedImage(
+        _ draft: ImageRecognitionDraft,
+        imageReference: String
+    ) async throws -> StoredEventRecord {
+        let record = StoredEventRecord(
+            id: draft.id,
+            source: draft.source,
+            sourceIdentifier: draft.sourceIdentifier,
+            rawTitle: draft.filename,
             rawLocation: nil,
             rawNotes: nil,
             imageReference: imageReference,
-            startDate: nil,
-            endDate: nil,
-            template: template,
-            recognitionStatus: template == nil ? .failed : .recognized,
-            updatedAt: now
+            startDate: draft.startDate,
+            endDate: draft.endDate,
+            template: draft.template,
+            recognitionStatus: .recognized,
+            updatedAt: draft.recognizedAt
         )
+        try await repository.upsert(record)
+        return record
+    }
+
+    func recognizedImageItems(
+        settings: TimelineSettings,
+        now: Date
+    ) async -> [TimelineItem] {
+        guard let records = try? await repository.loadAll() else {
+            return []
+        }
+
+        return records
+            .filter { record in
+                record.recognitionStatus == .recognized
+                    && (record.source == .importedImage || record.source == .cameraImage)
+                    && record.template != nil
+            }
+            .compactMap { timelineItem(from: $0, now: now) }
     }
 
     private func synchronize(
         record: StoredEventRecord,
         input: RecognitionInput,
         settings: TimelineSettings,
-        now: Date
-    ) async -> TimelineEventTemplate? {
+        now: Date,
+        propagatesErrors: Bool
+    ) async throws -> TimelineEventTemplate? {
         guard settings.aiRecognitionMode != .off else {
             try? await repository.upsert(record.with(status: .disabled, updatedAt: now))
+            if propagatesErrors {
+                throw RecognitionError.invalidConfiguration
+            }
             return nil
         }
 
         guard let provider = provider(for: settings) else {
             try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+            if propagatesErrors {
+                throw RecognitionError.invalidConfiguration
+            }
             return nil
         }
 
         do {
             let result = try await provider.recognize(input)
             let template = templateFactory.makeTemplate(from: result.payload)
+            guard let template else {
+                try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+                if propagatesErrors {
+                    throw RecognitionError.unsupportedInput
+                }
+                return nil
+            }
             try await repository.upsert(
                 record.with(
                     template: template,
@@ -197,6 +297,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             return template
         } catch {
             try? await repository.upsert(record.with(status: .failed, updatedAt: now))
+            if propagatesErrors {
+                throw error
+            }
             return nil
         }
     }
@@ -228,6 +331,29 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 }
                 return (record.id, template)
             }
+        )
+    }
+
+    private func timelineItem(
+        from record: StoredEventRecord,
+        now: Date
+    ) -> TimelineItem? {
+        guard let template = record.template else {
+            return nil
+        }
+        let presentation = template.presentation
+        return TimelineItem(
+            id: record.id,
+            sourceIdentifier: record.sourceIdentifier ?? record.id,
+            title: presentation.title,
+            startDate: record.startDate ?? now,
+            endDate: record.endDate,
+            isAllDay: false,
+            source: .external,
+            kind: template.kind,
+            location: record.rawLocation,
+            notes: record.rawNotes ?? presentation.subtitle,
+            template: template
         )
     }
 
@@ -271,6 +397,103 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             recognitionStatus: status,
             updatedAt: updatedAt
         )
+    }
+}
+
+private struct RecognizedEventTiming {
+    let startDate: Date
+    let endDate: Date?
+
+    static func parse(
+        fields: [String: String],
+        calendar: Calendar
+    ) throws -> RecognizedEventTiming {
+        let explicitStart = value(
+            in: fields,
+            keys: ["startDateTime", "start_datetime", "departureDateTime"]
+        ).flatMap(parseISO8601)
+        let eventDate = value(in: fields, keys: ["eventDate", "event_date", "date"])
+        let startTime = value(
+            in: fields,
+            keys: ["departureTime", "departure_time", "startTime", "start_time"]
+        )
+        let startDate = explicitStart ?? combine(
+            date: eventDate,
+            time: startTime,
+            calendar: calendar
+        )
+
+        guard let startDate else {
+            throw RecognitionError.invalidResponse
+        }
+
+        let explicitEndText = value(
+            in: fields,
+            keys: ["endDateTime", "end_datetime", "arrivalDateTime"]
+        )
+        let explicitEnd = explicitEndText.flatMap(parseISO8601)
+        let arrivalDate = value(
+            in: fields,
+            keys: ["arrivalDate", "arrival_date"]
+        )
+        let endTime = value(
+            in: fields,
+            keys: ["arrivalTime", "arrival_time", "endTime", "end_time"]
+        )
+        var endDate = explicitEnd ?? combine(
+            date: arrivalDate ?? eventDate,
+            time: endTime,
+            calendar: calendar
+        )
+
+        if explicitEndText == nil,
+           arrivalDate == nil,
+           let parsedEnd = endDate,
+           parsedEnd < startDate
+        {
+            endDate = calendar.date(byAdding: .day, value: 1, to: parsedEnd)
+        }
+
+        if let endDate, endDate <= startDate {
+            throw RecognitionError.invalidResponse
+        }
+
+        return RecognizedEventTiming(startDate: startDate, endDate: endDate)
+    }
+
+    private static func value(
+        in fields: [String: String],
+        keys: [String]
+    ) -> String? {
+        keys.lazy
+            .compactMap { fields[$0]?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty }
+    }
+
+    private static func parseISO8601(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+
+    private static func combine(
+        date: String?,
+        time: String?,
+        calendar: Calendar
+    ) -> Date? {
+        guard let date, let time else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.date(from: "\(date) \(time)")
     }
 }
 

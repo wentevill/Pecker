@@ -100,7 +100,7 @@ struct ItemDetailView: View {
     private var summaryText: String {
         let settings = settingsStore.value
         return [
-            item.source == .calendar ? "日历" : "提醒事项",
+            sourceText,
             kindText,
             item.isAllDay ? "全天" : "定时",
             ItemDetailAction.primaryButtonTitle(for: item, settings: settings)
@@ -109,7 +109,11 @@ struct ItemDetailView: View {
     }
 
     private var sourceText: String {
-        item.source == .calendar ? "日历" : "提醒事项"
+        switch item.source {
+        case .calendar: "日历"
+        case .reminder: "提醒事项"
+        case .external: "Pecker"
+        }
     }
 
     private var kindText: String {

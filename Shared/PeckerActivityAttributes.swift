@@ -15,6 +15,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
         public let pinnedSubtitle: String?
         public let additionalActiveCount: Int
         public let generatedAt: Date
+        public let primaryStatusRawValue: String
 
         public init(
             primaryTitle: String,
@@ -28,7 +29,8 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             pinnedTitle: String?,
             pinnedSubtitle: String?,
             additionalActiveCount: Int,
-            generatedAt: Date
+            generatedAt: Date,
+            primaryStatusRawValue: String = "now"
         ) {
             self.primaryTitle = primaryTitle
             self.primarySubtitle = primarySubtitle
@@ -42,6 +44,35 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             self.pinnedSubtitle = pinnedSubtitle
             self.additionalActiveCount = additionalActiveCount
             self.generatedAt = generatedAt
+            self.primaryStatusRawValue = primaryStatusRawValue
+        }
+
+        public func countdownTargetDate(at date: Date) -> Date? {
+            if let startDate = primaryStartDate,
+               let endDate = primaryEndDate,
+               startDate <= date,
+               endDate > date
+            {
+                return endDate
+            }
+
+            if let startDate = primaryStartDate,
+               startDate > date
+            {
+                return startDate
+            }
+
+            return nil
+        }
+
+        public func isPrimaryRunning(at date: Date) -> Bool {
+            guard let startDate = primaryStartDate,
+                  let endDate = primaryEndDate
+            else {
+                return false
+            }
+
+            return startDate <= date && endDate > date
         }
     }
 

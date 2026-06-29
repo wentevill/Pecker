@@ -71,6 +71,21 @@ import Testing
     ].sorted())
 }
 
+@Test func eventRepositoryLoadsAndDeletesOneRecordByID() async throws {
+    let repository = EventRepository(directoryURL: temporaryDirectory())
+    let ticket = record(id: "image:ticket-1", source: .importedImage)
+    let other = record(id: "image:ticket-2", source: .importedImage)
+    try await repository.upsert(ticket)
+    try await repository.upsert(other)
+
+    #expect(try await repository.record(id: ticket.id) == ticket)
+
+    try await repository.delete(id: ticket.id)
+
+    #expect(try await repository.record(id: ticket.id) == nil)
+    #expect(try await repository.loadAll() == [other])
+}
+
 private func record(
     id: String,
     source: RecognitionSource

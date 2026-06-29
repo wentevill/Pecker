@@ -25,6 +25,8 @@ public struct TimelineEngine: Sendable {
                     settings.calendarEnabled
                 case .reminder:
                     settings.remindersEnabled
+                case .external:
+                    true
                 }
             }
             .map { item in

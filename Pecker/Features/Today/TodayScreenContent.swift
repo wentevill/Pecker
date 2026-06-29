@@ -59,6 +59,35 @@ struct TodayScreenContent: Equatable {
         let accessibilityLabel: String
     }
 
+    enum ImageRecognitionPhase: Equatable {
+        case idle
+        case recognizing
+        case awaitingConfirmation(ImageRecognitionDraft)
+        case saving(ImageRecognitionDraft)
+        case success(String)
+        case failure(String)
+        case saveFailure(ImageRecognitionDraft, String)
+    }
+
+    struct RecognitionPreview: Equatable {
+        let titleText: String
+        let subtitleText: String?
+        let fields: [EventTemplatePresentation.Field]
+        let saveButtonText: String
+        let cancelButtonText: String
+        let buttonsDisabled: Bool
+        let errorText: String?
+    }
+
+    struct RecognitionActions: Equatable {
+        let statusText: String
+        let isLoading: Bool
+        let buttonsDisabled: Bool
+        let errorText: String?
+        let showsTypingIndicator: Bool
+        let preview: RecognitionPreview?
+    }
+
     struct Stale: Equatable {
         let bannerText: String
         let retryText: String
@@ -84,6 +113,133 @@ struct TodayScreenContent: Equatable {
     let failure: Failure?
     let stale: Stale?
     let sourceNotice: SourceNotice?
+
+    static func recognitionActions(
+        settings: TimelineSettings,
+        phase: ImageRecognitionPhase
+    ) -> RecognitionActions? {
+        guard imageRecognitionIsEnabled(settings) else {
+            return nil
+        }
+
+        switch phase {
+        case .idle:
+            return RecognitionActions(
+                statusText: "等待图片",
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: nil
+            )
+        case .recognizing:
+            return RecognitionActions(
+                statusText: "正在识别",
+                isLoading: true,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: true,
+                preview: nil
+            )
+        case let .awaitingConfirmation(draft):
+            return RecognitionActions(
+                statusText: "识别完成，确认后保存",
+                isLoading: false,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(from: draft)
+            )
+        case let .saving(draft):
+            return RecognitionActions(
+                statusText: "正在保存",
+                isLoading: true,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(
+                    from: draft,
+                    buttonsDisabled: true
+                )
+            )
+        case let .success(statusText):
+            return RecognitionActions(
+                statusText: statusText,
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: nil
+            )
+        case let .failure(errorText):
+            return RecognitionActions(
+                statusText: "识别失败",
+                isLoading: false,
+                buttonsDisabled: false,
+                errorText: errorText,
+                showsTypingIndicator: false,
+                preview: nil
+            )
+        case let .saveFailure(draft, errorText):
+            return RecognitionActions(
+                statusText: "保存失败",
+                isLoading: false,
+                buttonsDisabled: true,
+                errorText: nil,
+                showsTypingIndicator: false,
+                preview: recognitionPreview(
+                    from: draft,
+                    errorText: errorText
+                )
+            )
+        }
+    }
+
+    private static func recognitionPreview(
+        from draft: ImageRecognitionDraft,
+        buttonsDisabled: Bool = false,
+        errorText: String? = nil
+    ) -> RecognitionPreview {
+        let presentation = draft.template.presentation
+        let dateStyle = Date.FormatStyle(
+            date: .abbreviated,
+            time: .shortened
+        )
+        let timingText: String
+        if let endDate = draft.endDate {
+            timingText = "\(draft.startDate.formatted(dateStyle)) – \(endDate.formatted(dateStyle))"
+        } else {
+            timingText = draft.startDate.formatted(dateStyle)
+        }
+        let fields = [
+            EventTemplatePresentation.Field(
+                label: "时间",
+                value: timingText
+            )
+        ] + presentation.fields
+        return RecognitionPreview(
+            titleText: presentation.title,
+            subtitleText: presentation.subtitle,
+            fields: fields,
+            saveButtonText: "保存",
+            cancelButtonText: "取消",
+            buttonsDisabled: buttonsDisabled,
+            errorText: errorText
+        )
+    }
+
+    private static func imageRecognitionIsEnabled(
+        _ settings: TimelineSettings
+    ) -> Bool {
+        switch settings.aiRecognitionMode {
+        case .off:
+            return false
+        case .openAI:
+            return settings.openAIAPIKeyConfigured
+        case .localModel:
+            return true
+        }
+    }
 
     static func make(
         from state: TimelineScreenState,
@@ -262,10 +418,16 @@ struct TodayScreenContent: Equatable {
             pinnedCard: pinnedItem.map {
                 makePinnedCard($0, now: now, locale: locale, pinOrigin: snapshot.pinOrigin)
             },
-            summary: Summary(
-                titleText: "今天还有 \(TodayPresentation.summaryCount(for: snapshot)) 个日程",
-                accessibilityLabel: "今天还有 \(TodayPresentation.summaryCount(for: snapshot)) 个日程，打开完整时间线"
-            ),
+            summary: {
+                let count = TodayPresentation.summaryCount(
+                    for: snapshot,
+                    now: now
+                )
+                return Summary(
+                    titleText: "今天还有 \(count) 个日程",
+                    accessibilityLabel: "今天还有 \(count) 个日程，打开完整时间线"
+                )
+            }(),
             footer: Footer(
                 generatedAtText: generatedAtText(snapshot.generatedAt, now: now, locale: locale)
             ),
@@ -307,7 +469,7 @@ struct TodayScreenContent: Equatable {
             now: now
         )
         let remainingText = relativeDurationText(
-            until: item.endDate ?? now,
+            until: countdownTargetDate(for: item, now: now) ?? now,
             relativeTo: now
         )
         let concurrentText = TodayPresentation.concurrentText(
@@ -398,7 +560,7 @@ struct TodayScreenContent: Equatable {
         let badgeText = TodayPresentation.pinBadgeText(for: pinOrigin)
         let timeText = pinnedTimeText(for: item, locale: locale, includeLocation: true)
         let countdown = relativeCountdownText(
-            start: item.startDate,
+            target: countdownTargetDate(for: item, now: now),
             now: now
         )
         let accessibilityLabel = accessibilityLabel(
@@ -509,8 +671,37 @@ struct TodayScreenContent: Equatable {
         start: Date,
         now: Date
     ) -> String {
-        let interval = max(0, start.timeIntervalSince(now))
+        relativeCountdownText(target: start, now: now)
+    }
+
+    private static func relativeCountdownText(
+        target: Date?,
+        now: Date
+    ) -> String {
+        guard let target else {
+            return ""
+        }
+
+        let interval = max(0, target.timeIntervalSince(now))
         return "还有 \(durationText(for: interval))"
+    }
+
+    private static func countdownTargetDate(
+        for item: TimelineItem,
+        now: Date
+    ) -> Date? {
+        if let endDate = item.endDate,
+           item.startDate <= now,
+           endDate > now
+        {
+            return endDate
+        }
+
+        if item.startDate > now {
+            return item.startDate
+        }
+
+        return nil
     }
 
     private static func relativeDurationText(

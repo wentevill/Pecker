@@ -179,6 +179,33 @@ final class TimelineGroupingTests: XCTestCase {
         )
     }
 
+    func testReminderWithoutEndDateIsOverdueAfterDueDate() {
+        let now = date(1_000)
+        let overdueReminder = TimelineItem(
+            id: "overdue-reminder",
+            sourceIdentifier: "overdue-reminder",
+            title: "Pay bill",
+            startDate: date(900),
+            endDate: nil,
+            isAllDay: false,
+            source: .reminder,
+            kind: .task,
+            location: nil,
+            notes: nil
+        )
+
+        let sections = TimelineGrouping.sections(
+            items: [overdueReminder],
+            now: now
+        )
+
+        XCTAssertEqual(
+            sections.first(where: { $0.kind == .overdue })?.items.map(\.id),
+            [overdueReminder.id]
+        )
+        XCTAssertNil(sections.first(where: { $0.kind == .active }))
+    }
+
     func testAllItemsAppearInExactlyOneSectionAndAllDayRemindersStayOnlyInAllDay() {
         let now = date(1_000)
         let allDayReminder = item(

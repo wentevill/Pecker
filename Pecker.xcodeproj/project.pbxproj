@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0EDEDC4987F75CEFDE5FA019 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BFA4D9DA38EC1902F69DCF8 /* SettingsViewModelTests.swift */; };
+		1307FD6CBC0E86085BAF07D8 /* LiveActivityPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAEECB031A5C0E7E350974B9 /* LiveActivityPresentationTests.swift */; };
 		156E3AD343D33BAB647E3A5B /* PeckerActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7CB769B36F0251786BE6C84 /* PeckerActivityAttributes.swift */; };
 		1695ED7C7274AA000E671E03 /* EventRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A0BCB751762DCF620BA102 /* EventRepositoryTests.swift */; };
 		1AA7058DEFA5CFB45BD011AA /* OnboardingStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E125643CB612C366015BCD60 /* OnboardingStateTests.swift */; };
@@ -21,6 +22,7 @@
 		3B092E1AE947776BA59FD76C /* TimelineEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */; };
 		3B2000525786F63F19F839AD /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F9CCAD95A8B3BC31FAC73D /* TodayView.swift */; };
 		3C12A890080E7229DD8C5DD4 /* TimelineEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCF00CEA0A559FD7217FD93 /* TimelineEngine.swift */; };
+		3F0AFEA4DD2B3336E26BB654 /* SystemEventRecognitionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E939AA89EC67F964F184E9F /* SystemEventRecognitionCoordinatorTests.swift */; };
 		43306A7001C18FB42ADFB3F8 /* RecognitionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A611540DA5E60CB389AB26 /* RecognitionProvider.swift */; };
 		46CD6777F1132878CA2097D1 /* TimelineGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654B01ACEFF0AD692C0B2961 /* TimelineGrouping.swift */; };
 		473C1E628C60D03F7236547C /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57445D879DB7069DBC6ACDC5 /* ActivityCoordinator.swift */; };
@@ -40,17 +42,24 @@
 		6C4C18FBF3581A8FFD9DF0BD /* TimelineCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 893D8847FA14CF3D382D72DA /* TimelineCard.swift */; };
 		76B41D5AD7894B8696E6650D /* libPeckerCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0326C97B74B79A291ADB48FA /* libPeckerCore.a */; };
 		85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3970F963E48BEED739F23D9 /* FullTimelineView.swift */; };
+		A1D101122334455667788990 /* TimelineManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D101122334455667788991 /* TimelineManagerModel.swift */; };
+		A1D101122334455667788992 /* TimelineManagerModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D101122334455667788993 /* TimelineManagerModelTests.swift */; };
+		A1D201122334455667788990 /* TimelineRecordEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D201122334455667788991 /* TimelineRecordEditor.swift */; };
+		A1D201122334455667788992 /* TimelineRecordEditorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D201122334455667788993 /* TimelineRecordEditorTests.swift */; };
 		88E4838DF7C0565E97B5F4DB /* TodayPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E916A64D9C5437B74083A0 /* TodayPresentation.swift */; };
 		895C321CAECBDE8B4A88450D /* TodayPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1A1C1B94B7E4BABF76F56B /* TodayPreviewFixtures.swift */; };
 		8E86012BDB4DB612CAB67524 /* SystemEventRecognitionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */; };
 		98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */; };
 		9DDEEFD02099D01BF5B9AB0F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */; };
 		A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */; };
+		A1D001122334455667788990 /* TimelineDateScope.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D001122334455667788991 /* TimelineDateScope.swift */; };
+		A1D001122334455667788992 /* TimelineDateScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D001122334455667788993 /* TimelineDateScopeTests.swift */; };
 		A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE836F09322111FAF97F46BD /* ItemDetailView.swift */; };
 		ADA29F053B0A1C6190387FAA /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C45B689809643A0E569744 /* AppGroup.swift */; };
 		B4C465A8034618E774EB554E /* EventKitGatewayProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */; };
 		B7882A7EC5D854AF217F8A92 /* PeckerLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */; };
 		B8A0301D482CF2E70727C9CB /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AF32813BC226C5DA46D1C2 /* AppModel.swift */; };
+		BA282CCF41DEF9D1EBA362D1 /* PeckerLiveActivityPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */; };
 		BAB7DE2AD60161D1A6694126 /* TimelineItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F41A432CBEB3F03A8AFAC8BA /* TimelineItem.swift */; };
 		BB3C7443B19E8A223DDA6ADD /* EventKitMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B38BC7D2B84277A56EF33208 /* EventKitMapper.swift */; };
 		BC0D9CD918F62FD91633C988 /* SnapshotStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFFA24CB4A84FFD20D7317CC /* SnapshotStore.swift */; };
@@ -75,6 +84,7 @@
 		F16DD9FF2C5E48A4A61B655A /* TodayScreenContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7164D146943F27FF67475F /* TodayScreenContent.swift */; };
 		F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */; };
 		F5952A3407A941C73BA114DE /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888FCA95EF551A9228FC7260 /* SettingsView.swift */; };
+		FF789AB688DD8B813D1A737A /* PeckerLiveActivityPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -142,6 +152,7 @@
 		29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTemplateFactory.swift; sourceTree = "<group>"; };
 		36884117D84F207788BD9DF4 /* TimelineSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineSettings.swift; sourceTree = "<group>"; };
 		36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityBundle.swift; sourceTree = "<group>"; };
+		3E939AA89EC67F964F184E9F /* SystemEventRecognitionCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventRecognitionCoordinatorTests.swift; sourceTree = "<group>"; };
 		43BE19C94616A5319710B74C /* SmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmokeTests.swift; sourceTree = "<group>"; };
 		46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityCoordinatorTests.swift; sourceTree = "<group>"; };
 		4BFA4D9DA38EC1902F69DCF8 /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
@@ -167,6 +178,7 @@
 		905C71DE2A54999B6D4A54C8 /* PeckerLiveActivity.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PeckerLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		91F6FCD16FB397FB32E84A44 /* PeckerLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityWidget.swift; sourceTree = "<group>"; };
 		93485E4387F4131269A9CB17 /* EventKitGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGateway.swift; sourceTree = "<group>"; };
+		960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityPresentation.swift; sourceTree = "<group>"; };
 		994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineGroupingTests.swift; sourceTree = "<group>"; };
 		9FFF02FFA689038CCB31C51C /* APIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyStore.swift; sourceTree = "<group>"; };
 		A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
@@ -183,6 +195,7 @@
 		CE836F09322111FAF97F46BD /* ItemDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailView.swift; sourceTree = "<group>"; };
 		D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStoreTests.swift; sourceTree = "<group>"; };
 		D7F9CCAD95A8B3BC31FAC73D /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		DAEECB031A5C0E7E350974B9 /* LiveActivityPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityPresentationTests.swift; sourceTree = "<group>"; };
 		DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenLiveActivityView.swift; sourceTree = "<group>"; };
 		DFFA24CB4A84FFD20D7317CC /* SnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStore.swift; sourceTree = "<group>"; };
 		E125643CB612C366015BCD60 /* OnboardingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateTests.swift; sourceTree = "<group>"; };
@@ -195,10 +208,16 @@
 		EA1A1C1B94B7E4BABF76F56B /* TodayPreviewFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayPreviewFixtures.swift; sourceTree = "<group>"; };
 		F0D4990B02AF45DADBD0CA1B /* PeckerLiveActivity.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PeckerLiveActivity.entitlements; sourceTree = "<group>"; };
 		F3970F963E48BEED739F23D9 /* FullTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullTimelineView.swift; sourceTree = "<group>"; };
+		A1D101122334455667788991 /* TimelineManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineManagerModel.swift; sourceTree = "<group>"; };
+		A1D101122334455667788993 /* TimelineManagerModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineManagerModelTests.swift; sourceTree = "<group>"; };
+		A1D201122334455667788991 /* TimelineRecordEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineRecordEditor.swift; sourceTree = "<group>"; };
+		A1D201122334455667788993 /* TimelineRecordEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineRecordEditorTests.swift; sourceTree = "<group>"; };
 		F41A432CBEB3F03A8AFAC8BA /* TimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineItem.swift; sourceTree = "<group>"; };
 		F62D02D5A83E462D37DA14EE /* OpenAIRecognitionProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIRecognitionProviderTests.swift; sourceTree = "<group>"; };
 		F8C886AC39412B52044E57BA /* TimelineStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineStates.swift; sourceTree = "<group>"; };
 		FBE7C05294B46B68D0C1C377 /* RecognitionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionModelTests.swift; sourceTree = "<group>"; };
+		A1D001122334455667788991 /* TimelineDateScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineDateScope.swift; sourceTree = "<group>"; };
+		A1D001122334455667788993 /* TimelineDateScopeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineDateScopeTests.swift; sourceTree = "<group>"; };
 		FF43BE233A9F68C253E25D35 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -244,6 +263,8 @@
 			isa = PBXGroup;
 			children = (
 				F3970F963E48BEED739F23D9 /* FullTimelineView.swift */,
+				A1D101122334455667788991 /* TimelineManagerModel.swift */,
+				A1D201122334455667788991 /* TimelineRecordEditor.swift */,
 				654B01ACEFF0AD692C0B2961 /* TimelineGrouping.swift */,
 			);
 			name = Timeline;
@@ -333,6 +354,7 @@
 			isa = PBXGroup;
 			children = (
 				E7CB769B36F0251786BE6C84 /* PeckerActivityAttributes.swift */,
+				960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -410,6 +432,7 @@
 				FBE7C05294B46B68D0C1C377 /* RecognitionModelTests.swift */,
 				D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */,
 				5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */,
+				A1D001122334455667788993 /* TimelineDateScopeTests.swift */,
 				B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */,
 			);
 			name = PeckerCoreTests;
@@ -420,6 +443,7 @@
 			isa = PBXGroup;
 			children = (
 				F41A432CBEB3F03A8AFAC8BA /* TimelineItem.swift */,
+				A1D001122334455667788991 /* TimelineDateScope.swift */,
 				36884117D84F207788BD9DF4 /* TimelineSettings.swift */,
 				573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */,
 			);
@@ -432,11 +456,15 @@
 				46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */,
 				B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */,
 				039834399FFB7E60E6C39C1D /* ItemDetailActionTests.swift */,
+				DAEECB031A5C0E7E350974B9 /* LiveActivityPresentationTests.swift */,
 				E125643CB612C366015BCD60 /* OnboardingStateTests.swift */,
 				5C25D81314C360E33205A426 /* SettingsStoreTests.swift */,
 				4BFA4D9DA38EC1902F69DCF8 /* SettingsViewModelTests.swift */,
 				43BE19C94616A5319710B74C /* SmokeTests.swift */,
+				3E939AA89EC67F964F184E9F /* SystemEventRecognitionCoordinatorTests.swift */,
 				994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */,
+				A1D101122334455667788993 /* TimelineManagerModelTests.swift */,
+				A1D201122334455667788993 /* TimelineRecordEditorTests.swift */,
 				6AB55EAD31CF9114728836CE /* TodayPresentationTests.swift */,
 				5B4489693CAF3A57D41490D8 /* TodayViewModelTests.swift */,
 			);
@@ -693,6 +721,7 @@
 				D566E16684392869C37C03F1 /* LockScreenLiveActivityView.swift in Sources */,
 				65B7FC92FCE170EB87F05907 /* PeckerActivityAttributes.swift in Sources */,
 				B7882A7EC5D854AF217F8A92 /* PeckerLiveActivityBundle.swift in Sources */,
+				FF789AB688DD8B813D1A737A /* PeckerLiveActivityPresentation.swift in Sources */,
 				C79D43CE924CA80FB6AB63FF /* PeckerLiveActivityWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -712,12 +741,15 @@
 				B4C465A8034618E774EB554E /* EventKitGatewayProtocol.swift in Sources */,
 				BB3C7443B19E8A223DDA6ADD /* EventKitMapper.swift in Sources */,
 				85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */,
+				A1D101122334455667788990 /* TimelineManagerModel.swift in Sources */,
+				A1D201122334455667788990 /* TimelineRecordEditor.swift in Sources */,
 				EE85E349417FE3DD3A2DFAA0 /* ImageRecognitionStore.swift in Sources */,
 				A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */,
 				5BEEB285930BADB1698B4A16 /* OnboardingModel.swift in Sources */,
 				265795E04003DA59AC3AF528 /* OnboardingView.swift in Sources */,
 				156E3AD343D33BAB647E3A5B /* PeckerActivityAttributes.swift in Sources */,
 				2FF408B7B706B7850512C675 /* PeckerApp.swift in Sources */,
+				BA282CCF41DEF9D1EBA362D1 /* PeckerLiveActivityPresentation.swift in Sources */,
 				D41DB4A684B26856DE13AC09 /* SettingsStore.swift in Sources */,
 				F5952A3407A941C73BA114DE /* SettingsView.swift in Sources */,
 				8E86012BDB4DB612CAB67524 /* SystemEventRecognitionCoordinator.swift in Sources */,
@@ -744,6 +776,7 @@
 				E263F10E2981F75BE5F8D626 /* RecognitionModelTests.swift in Sources */,
 				50F951B68AF5FAB9F5AB9D84 /* SnapshotStoreTests.swift in Sources */,
 				F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */,
+				A1D001122334455667788992 /* TimelineDateScopeTests.swift in Sources */,
 				3B092E1AE947776BA59FD76C /* TimelineEngineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -755,11 +788,15 @@
 				D1BD5DBE059A7F95A632E521 /* ActivityCoordinatorTests.swift in Sources */,
 				D993DAB4ED7AB12BDECEDE9C /* EventKitMapperTests.swift in Sources */,
 				5836C37E4AB4EC1F68B6C8F1 /* ItemDetailActionTests.swift in Sources */,
+				1307FD6CBC0E86085BAF07D8 /* LiveActivityPresentationTests.swift in Sources */,
 				1AA7058DEFA5CFB45BD011AA /* OnboardingStateTests.swift in Sources */,
 				52BDAC3CE8EF089B8200CE10 /* SettingsStoreTests.swift in Sources */,
 				0EDEDC4987F75CEFDE5FA019 /* SettingsViewModelTests.swift in Sources */,
 				5EACAAF411C3677BFBCF8A90 /* SmokeTests.swift in Sources */,
+				3F0AFEA4DD2B3336E26BB654 /* SystemEventRecognitionCoordinatorTests.swift in Sources */,
 				98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */,
+				A1D101122334455667788992 /* TimelineManagerModelTests.swift in Sources */,
+				A1D201122334455667788992 /* TimelineRecordEditorTests.swift in Sources */,
 				5A4F0B9668F54C69D411F2DC /* TodayPresentationTests.swift in Sources */,
 				DC0CECCDD3F4064E0DADC0A0 /* TodayViewModelTests.swift in Sources */,
 			);
@@ -778,6 +815,7 @@
 				376EAD5035495CC3A7364B48 /* TimelineClassifier.swift in Sources */,
 				3C12A890080E7229DD8C5DD4 /* TimelineEngine.swift in Sources */,
 				BAB7DE2AD60161D1A6694126 /* TimelineItem.swift in Sources */,
+				A1D001122334455667788990 /* TimelineDateScope.swift in Sources */,
 				EE2835E7A4D6DAFFAEDED3CB /* TimelineSettings.swift in Sources */,
 				A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */,
 			);

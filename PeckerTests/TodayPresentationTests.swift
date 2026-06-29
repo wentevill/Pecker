@@ -178,30 +178,245 @@ final class TodayPresentationTests: XCTestCase {
         )
     }
 
+    func testNowCardCountdownUsesEndDateForRunningItem() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let item = TimelineItem(
+            id: "now",
+            sourceIdentifier: "now",
+            title: "Running",
+            startDate: now.addingTimeInterval(-10 * 60),
+            endDate: now.addingTimeInterval(5 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .meeting,
+            location: nil,
+            notes: nil
+        )
+        let snapshot = TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: now.addingTimeInterval(900),
+            items: [item],
+            nowItemID: item.id,
+            concurrentNowCount: 0,
+            nextItemID: nil,
+            pinnedItemID: nil,
+            pinOrigin: nil
+        )
+
+        let content = TodayScreenContent.make(
+            from: .content(snapshot),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+
+        XCTAssertEqual(content.nowCard?.secondaryText, "剩余 5 分钟")
+    }
+
+    func testPinnedCountdownUsesEndDateWhenRunningAndStartDateBeforeStart() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let runningPinned = TimelineItem(
+            id: "running",
+            sourceIdentifier: "running",
+            title: "Running Train",
+            startDate: now.addingTimeInterval(-10 * 60),
+            endDate: now.addingTimeInterval(7 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let upcomingPinned = TimelineItem(
+            id: "upcoming",
+            sourceIdentifier: "upcoming",
+            title: "Upcoming Train",
+            startDate: now.addingTimeInterval(12 * 60),
+            endDate: now.addingTimeInterval(60 * 60),
+            isAllDay: false,
+            source: .calendar,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+
+        let runningContent = TodayScreenContent.make(
+            from: .content(snapshot(pinned: runningPinned, now: now)),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+        let upcomingContent = TodayScreenContent.make(
+            from: .content(snapshot(pinned: upcomingPinned, now: now)),
+            now: now,
+            locale: Locale(identifier: "zh_Hans_CN"),
+            calendar: utcCalendar()
+        )
+
+        XCTAssertEqual(runningContent.pinnedCard?.tertiaryText, "还有 7 分钟")
+        XCTAssertEqual(upcomingContent.pinnedCard?.tertiaryText, "还有 12 分钟")
+    }
+
     func testPinBadgeCopyMatchesOrigin() {
         XCTAssertEqual(TodayPresentation.pinBadgeText(for: .automatic), "自动推荐")
         XCTAssertEqual(TodayPresentation.pinBadgeText(for: .manual), "手动固定")
         XCTAssertNil(TodayPresentation.pinBadgeText(for: nil))
     }
 
-    func testSummaryCountIgnoresTheVisibleNowItem() {
-        let snapshot = TodaySnapshot(
-            schemaVersion: TodaySnapshot.currentSchemaVersion,
-            generatedAt: Date(timeIntervalSince1970: 1_000),
-            staleAfter: Date(timeIntervalSince1970: 2_000),
-            items: [
-                makeItem(id: "now"),
-                makeItem(id: "next"),
-                makeItem(id: "pinned")
-            ],
-            nowItemID: "now",
-            concurrentNowCount: 1,
-            nextItemID: "next",
-            pinnedItemID: "pinned",
-            pinOrigin: .manual
+    func testRecognitionActionsHiddenUntilRecognitionIsEnabled() {
+        XCTAssertNil(
+            TodayScreenContent.recognitionActions(
+                settings: TimelineSettings(aiRecognitionMode: .off),
+                phase: .idle
+            )
+        )
+        XCTAssertNil(
+            TodayScreenContent.recognitionActions(
+                settings: TimelineSettings(
+                    aiRecognitionMode: .openAI,
+                    openAIAPIKeyConfigured: false
+                ),
+                phase: .idle
+            )
+        )
+    }
+
+    func testRecognitionActionsSurfaceTypingPreviewSavingAndFailure() throws {
+        let settings = TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        )
+        let draft = ImageRecognitionDraft(
+            id: "image:draft-1",
+            sourceIdentifier: "draft-1",
+            source: .importedImage,
+            filename: "ticket.jpg",
+            imageData: Data([1, 2, 3]),
+            recognizedAt: Date(timeIntervalSince1970: 5_000),
+            startDate: Date(timeIntervalSince1970: 6_000),
+            endDate: Date(timeIntervalSince1970: 7_000),
+            template: .trainTicket(.init(
+                trainNumber: "G123",
+                departureStation: "上海虹桥",
+                arrivalStation: "北京南",
+                departureTimeText: "09:24",
+                arrivalTimeText: nil,
+                carriageNumber: "08",
+                seatNumber: "03A",
+                checkInGate: nil,
+                passengerName: nil,
+                ticketNumber: nil
+            ))
         )
 
-        XCTAssertEqual(TodayPresentation.summaryCount(for: snapshot), 2)
+        let idle = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(settings: settings, phase: .idle)
+        )
+        XCTAssertEqual(idle.statusText, "等待图片")
+        XCTAssertFalse(idle.isLoading)
+        XCTAssertFalse(idle.buttonsDisabled)
+        XCTAssertNil(idle.errorText)
+        XCTAssertFalse(idle.showsTypingIndicator)
+        XCTAssertNil(idle.preview)
+
+        let recognizing = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .recognizing
+            )
+        )
+        XCTAssertEqual(recognizing.statusText, "正在识别")
+        XCTAssertTrue(recognizing.isLoading)
+        XCTAssertTrue(recognizing.buttonsDisabled)
+        XCTAssertTrue(recognizing.showsTypingIndicator)
+        XCTAssertNil(recognizing.preview)
+
+        let confirmation = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .awaitingConfirmation(draft)
+            )
+        )
+        XCTAssertEqual(confirmation.statusText, "识别完成，确认后保存")
+        XCTAssertFalse(confirmation.isLoading)
+        XCTAssertTrue(confirmation.buttonsDisabled)
+        XCTAssertEqual(confirmation.preview?.titleText, "G123")
+        XCTAssertEqual(confirmation.preview?.subtitleText, "上海虹桥 → 北京南")
+        XCTAssertEqual(confirmation.preview?.fields.first?.label, "时间")
+        XCTAssertFalse(try XCTUnwrap(confirmation.preview).buttonsDisabled)
+
+        let saving = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .saving(draft)
+            )
+        )
+        XCTAssertEqual(saving.statusText, "正在保存")
+        XCTAssertTrue(saving.isLoading)
+        XCTAssertTrue(try XCTUnwrap(saving.preview).buttonsDisabled)
+
+        let saveFailure = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .saveFailure(draft, "保存失败，请重试。")
+            )
+        )
+        XCTAssertEqual(saveFailure.preview?.errorText, "保存失败，请重试。")
+        XCTAssertFalse(try XCTUnwrap(saveFailure.preview).buttonsDisabled)
+
+        let failure = try XCTUnwrap(
+            TodayScreenContent.recognitionActions(
+                settings: settings,
+                phase: .failure("API 请求失败，请检查 Host、Model 或网络。")
+            )
+        )
+        XCTAssertEqual(failure.statusText, "识别失败")
+        XCTAssertFalse(failure.isLoading)
+        XCTAssertFalse(failure.buttonsDisabled)
+        XCTAssertEqual(failure.errorText, "API 请求失败，请检查 Host、Model 或网络。")
+    }
+
+    func testSummaryCountIncludesActiveAndUpcomingButExcludesElapsedAndCompleted() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let snapshot = TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: Date(timeIntervalSince1970: 2_000),
+            items: [
+                makeItem(
+                    id: "active",
+                    startDate: now.addingTimeInterval(-100),
+                    endDate: now.addingTimeInterval(100)
+                ),
+                makeItem(
+                    id: "upcoming",
+                    startDate: now.addingTimeInterval(200),
+                    endDate: now.addingTimeInterval(300)
+                ),
+                makeItem(
+                    id: "elapsed",
+                    startDate: now.addingTimeInterval(-300),
+                    endDate: now.addingTimeInterval(-200)
+                ),
+                makeItem(
+                    id: "completed",
+                    startDate: now.addingTimeInterval(400),
+                    endDate: nil,
+                    isCompleted: true
+                )
+            ],
+            nowItemID: "active",
+            concurrentNowCount: 0,
+            nextItemID: "upcoming",
+            pinnedItemID: nil,
+            pinOrigin: nil
+        )
+
+        XCTAssertEqual(
+            TodayPresentation.summaryCount(for: snapshot, now: now),
+            2
+        )
     }
 
     func testStateCopyIsStable() {
@@ -265,17 +480,48 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     private func makeItem(id: String) -> TimelineItem {
+        makeItem(
+            id: id,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 1_100)
+        )
+    }
+
+    private func makeItem(
+        id: String,
+        startDate: Date,
+        endDate: Date?,
+        isCompleted: Bool = false
+    ) -> TimelineItem {
         TimelineItem(
             id: id,
             sourceIdentifier: id,
             title: id.capitalized,
-            startDate: Date(timeIntervalSince1970: 1_000),
-            endDate: Date(timeIntervalSince1970: 1_100),
+            startDate: startDate,
+            endDate: endDate,
             isAllDay: false,
             source: .calendar,
             kind: .meeting,
             location: "Room 1",
-            notes: nil
+            notes: nil,
+            isCompleted: isCompleted
+        )
+    }
+
+    private func snapshot(
+        pinned item: TimelineItem,
+        now: Date
+    ) -> TodaySnapshot {
+        TodaySnapshot(
+            schemaVersion: TodaySnapshot.currentSchemaVersion,
+            generatedAt: now,
+            staleAfter: now.addingTimeInterval(900),
+            items: [item],
+            nowItemID: nil,
+            concurrentNowCount: 0,
+            nextItemID: nil,
+            pinnedItemID: item.id,
+            pinOrigin: .automatic
         )
     }
 }

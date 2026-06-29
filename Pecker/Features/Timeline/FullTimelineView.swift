@@ -2,18 +2,22 @@ import SwiftUI
 import PeckerCore
 
 struct FullTimelineView: View {
-    let snapshot: TodaySnapshot
+    @Bindable var model: TimelineManagerModel
     let now: Date
     let settings: TimelineSettings
     let activeOnly: Bool
     let onSelectItem: (TimelineItem) -> Void
     let onTogglePin: (TimelineItem) -> Void
     let onOpenSettings: () -> Void
+    @State private var editingRecord: TimelineRecordEditor?
+    @State private var isEditorPresented = false
+    @State private var pendingDelete: TimelineItem?
+    @State private var mutationError: String?
 
     var body: some View {
         TimelineView(.periodic(from: now, by: 60)) { context in
             let sections = TimelineGrouping.sections(
-                items: snapshot.items,
+                items: displayedItems(at: context.date),
                 now: context.date,
                 activeOnly: activeOnly
             )
@@ -25,8 +29,14 @@ struct FullTimelineView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
                         header
+                        scopeControl
+                        kindFilters
 
-                        if sections.isEmpty {
+                        if model.isLoading && model.items.isEmpty {
+                            ProgressView("加载时间线…")
+                                .frame(maxWidth: .infinity)
+                                .padding(30)
+                        } else if sections.isEmpty {
                             emptyState
                         } else {
                             ForEach(sections) { section in
@@ -39,6 +49,9 @@ struct FullTimelineView: View {
                     .padding(.vertical, 14)
                 }
             }
+            .task {
+                await model.load(now: context.date)
+            }
             .foregroundStyle(TimelineTheme.textPrimary)
             .navigationTitle(activeOnly ? "进行中" : "完整时间线")
             .navigationBarTitleDisplayMode(.inline)
@@ -50,11 +63,52 @@ struct FullTimelineView: View {
                 }
             }
         }
+        .sheet(isPresented: $isEditorPresented) {
+            if let editingRecord {
+                TimelineRecordEditorView(editor: editingRecord) { editor in
+                    try await model.save(editor)
+                }
+            }
+        }
+        .confirmationDialog(
+            "删除这个事件？",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("删除", role: .destructive) {
+                guard let item = pendingDelete else { return }
+                pendingDelete = nil
+                Task {
+                    do {
+                        try await model.delete(item)
+                    } catch {
+                        mutationError = "删除失败，请稍后重试。"
+                    }
+                }
+            }
+            Button("取消", role: .cancel) {
+                pendingDelete = nil
+            }
+        }
+        .alert(
+            "操作失败",
+            isPresented: Binding(
+                get: { mutationError != nil },
+                set: { if !$0 { mutationError = nil } }
+            )
+        ) {
+            Button("好") { mutationError = nil }
+        } message: {
+            Text(mutationError ?? "")
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(activeOnly ? "进行中项目" : "今天的完整时间线")
+            Text(activeOnly ? "进行中项目" : scopeTitle)
                 .font(.largeTitle.weight(.bold))
                 .foregroundStyle(TimelineTheme.textPrimary)
 
@@ -69,7 +123,75 @@ struct FullTimelineView: View {
             return "来自当前快照的所有进行中项目。"
         }
 
-        return "按时间分组显示已逾期、全天、进行中、即将开始和已结束的项目。"
+        return "按时间与类型管理日历、提醒事项和 Pecker 卡片。"
+    }
+
+    private var scopeTitle: String {
+        switch model.selectedScope {
+        case .today: "今日时间线"
+        case .future: "未来时间线"
+        case .history: "历史时间线"
+        }
+    }
+
+    private var scopeControl: some View {
+        Picker("时间范围", selection: $model.selectedScope) {
+            Text("今日").tag(TimelineDateScope.today)
+            Text("未来").tag(TimelineDateScope.future)
+            Text("历史").tag(TimelineDateScope.history)
+        }
+        .pickerStyle(.segmented)
+        .onChange(of: model.selectedScope) { _, scope in
+            Task { await model.setScope(scope) }
+        }
+    }
+
+    private var kindFilters: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                kindButton(title: "全部", kind: nil)
+                ForEach(TimelineKind.allCases, id: \.self) { kind in
+                    kindButton(title: kindTitle(kind), kind: kind)
+                }
+            }
+        }
+    }
+
+    private func kindButton(
+        title: String,
+        kind: TimelineKind?
+    ) -> some View {
+        Button {
+            model.selectedKind = kind
+        } label: {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(
+                    model.selectedKind == kind
+                        ? TimelineTheme.textPrimary
+                        : TimelineTheme.textSecondary
+                )
+                .padding(.horizontal, 13)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule().fill(
+                        model.selectedKind == kind
+                            ? TimelineTheme.controlFill
+                            : Color.white.opacity(0.28)
+                    )
+                )
+                .overlay(Capsule().stroke(TimelineTheme.cardStroke))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func displayedItems(at now: Date) -> [TimelineItem] {
+        guard activeOnly else {
+            return model.visibleItems
+        }
+        return model.visibleItems.filter {
+            $0.startDate <= now && ($0.endDate ?? $0.startDate) > now
+        }
     }
 
     private var emptyState: some View {
@@ -164,15 +286,80 @@ struct FullTimelineView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(pinAccessibilityLabel(for: item))
+
+            if model.isEditable(item) {
+                Menu {
+                    Button {
+                        openEditor(for: item)
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        pendingDelete = item
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(TimelineTheme.controlFill))
+                        .overlay(Circle().stroke(TimelineTheme.cardStroke))
+                }
+            }
+        }
+        .contextMenu {
+            if model.isEditable(item) {
+                Button {
+                    openEditor(for: item)
+                } label: {
+                    Label("编辑", systemImage: "pencil")
+                }
+
+                Button(role: .destructive) {
+                    pendingDelete = item
+                } label: {
+                    Label("删除", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    private func openEditor(for item: TimelineItem) {
+        do {
+            editingRecord = try model.editor(for: item)
+            isEditorPresented = true
+        } catch {
+            mutationError = "无法打开编辑器。"
         }
     }
 
     private func sourceTitle(for item: TimelineItem) -> String {
-        item.source == .calendar ? "日历" : "提醒事项"
+        switch item.source {
+        case .calendar: "日历"
+        case .reminder: "提醒事项"
+        case .external: "Pecker"
+        }
     }
 
     private func sourceSymbol(for item: TimelineItem) -> String {
-        item.source == .calendar ? "calendar" : "checklist"
+        switch item.source {
+        case .calendar: "calendar"
+        case .reminder: "checklist"
+        case .external: "sparkles.rectangle.stack"
+        }
+    }
+
+    private func kindTitle(_ kind: TimelineKind) -> String {
+        switch kind {
+        case .meeting: "会议"
+        case .task: "任务"
+        case .flight: "航班"
+        case .train: "火车"
+        case .travel: "行程"
+        case .interview: "面试"
+        case .deadline: "截止"
+        case .unknown: "未分类"
+        }
     }
 
     private func statusText(for section: TimelineGrouping.Section.Kind, item: TimelineItem) -> String {
@@ -276,7 +463,7 @@ struct FullTimelineView: View {
     }
 }
 
-#if DEBUG
+#if PREVIEW_FIXTURES
 private struct FullTimelinePreviewHost: View {
     private let snapshot = FullTimelinePreviewData.snapshot()
     private let settings = FullTimelinePreviewData.settings(pinnedIdentifier: "pinned")

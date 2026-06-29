@@ -32,7 +32,11 @@ struct TodayView: View {
                         isSettingsPresented = true
                     },
                     onOpenCard: { card in
-                        path.append(.detail(itemID: card.id))
+                        if let item = model.state.snapshot?.item(
+                            resolving: card.id
+                        ) {
+                            path.append(.detail(item: item))
+                        }
                     },
                     onOpenConcurrentItems: {
                         path.append(.timeline(activeOnly: true))
@@ -95,38 +99,30 @@ struct TodayView: View {
 
     @ViewBuilder
     private func destination(for route: TodayRoute) -> some View {
-        if let snapshot = model.state.snapshot {
-            switch route {
-            case let .timeline(activeOnly):
-                FullTimelineView(
-                    model: model.timelineManager,
-                    now: .now,
-                    settings: settingsStore.value,
-                    activeOnly: activeOnly,
-                    onSelectItem: { item in
-                        path.append(.detail(itemID: item.id))
-                    },
-                    onTogglePin: { item in
-                        togglePin(for: item)
-                    },
-                    onOpenSettings: {
-                        isSettingsPresented = true
-                    }
-                )
-            case let .detail(itemID):
-                if let item = snapshot.item(resolving: itemID) {
-                    ItemDetailView(
-                        item: item,
-                        now: .now,
-                        settingsStore: settingsStore,
-                        onSettingsChanged: onSettingsChanged
-                    )
-                } else {
-                    TodayRoutePlaceholder(route: route)
+        switch route {
+        case let .timeline(activeOnly):
+            FullTimelineView(
+                model: model.timelineManager,
+                now: .now,
+                settings: settingsStore.value,
+                activeOnly: activeOnly,
+                onSelectItem: { item in
+                    path.append(.detail(item: item))
+                },
+                onTogglePin: { item in
+                    togglePin(for: item)
+                },
+                onOpenSettings: {
+                    isSettingsPresented = true
                 }
-            }
-        } else {
-            TodayRoutePlaceholder(route: route)
+            )
+        case let .detail(item):
+            ItemDetailView(
+                item: item,
+                now: .now,
+                settingsStore: settingsStore,
+                onSettingsChanged: onSettingsChanged
+            )
         }
     }
 
@@ -258,7 +254,7 @@ struct TodayView: View {
 
 private enum TodayRoute: Hashable {
     case timeline(activeOnly: Bool)
-    case detail(itemID: String)
+    case detail(item: TimelineItem)
 }
 
 struct TodayScreen: View {

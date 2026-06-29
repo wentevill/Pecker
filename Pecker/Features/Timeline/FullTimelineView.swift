@@ -9,6 +9,10 @@ struct FullTimelineView: View {
     let onSelectItem: (TimelineItem) -> Void
     let onTogglePin: (TimelineItem) -> Void
     let onOpenSettings: () -> Void
+    @State private var editingRecord: TimelineRecordEditor?
+    @State private var isEditorPresented = false
+    @State private var pendingDelete: TimelineItem?
+    @State private var mutationError: String?
 
     var body: some View {
         TimelineView(.periodic(from: now, by: 60)) { context in
@@ -58,6 +62,47 @@ struct FullTimelineView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $isEditorPresented) {
+            if let editingRecord {
+                TimelineRecordEditorView(editor: editingRecord) { editor in
+                    try await model.save(editor)
+                }
+            }
+        }
+        .confirmationDialog(
+            "删除这个事件？",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("删除", role: .destructive) {
+                guard let item = pendingDelete else { return }
+                pendingDelete = nil
+                Task {
+                    do {
+                        try await model.delete(item)
+                    } catch {
+                        mutationError = "删除失败，请稍后重试。"
+                    }
+                }
+            }
+            Button("取消", role: .cancel) {
+                pendingDelete = nil
+            }
+        }
+        .alert(
+            "操作失败",
+            isPresented: Binding(
+                get: { mutationError != nil },
+                set: { if !$0 { mutationError = nil } }
+            )
+        ) {
+            Button("好") { mutationError = nil }
+        } message: {
+            Text(mutationError ?? "")
         }
     }
 
@@ -241,6 +286,50 @@ struct FullTimelineView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(pinAccessibilityLabel(for: item))
+
+            if model.isEditable(item) {
+                Menu {
+                    Button {
+                        openEditor(for: item)
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        pendingDelete = item
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 34, height: 34)
+                        .background(Circle().fill(TimelineTheme.controlFill))
+                        .overlay(Circle().stroke(TimelineTheme.cardStroke))
+                }
+            }
+        }
+        .contextMenu {
+            if model.isEditable(item) {
+                Button {
+                    openEditor(for: item)
+                } label: {
+                    Label("编辑", systemImage: "pencil")
+                }
+
+                Button(role: .destructive) {
+                    pendingDelete = item
+                } label: {
+                    Label("删除", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    private func openEditor(for item: TimelineItem) {
+        do {
+            editingRecord = try model.editor(for: item)
+            isEditorPresented = true
+        } catch {
+            mutationError = "无法打开编辑器。"
         }
     }
 

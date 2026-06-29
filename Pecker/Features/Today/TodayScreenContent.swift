@@ -1,6 +1,11 @@
 import Foundation
 import PeckerCore
 
+struct RecognitionIssuePresentation: Equatable {
+    let reason: String
+    let technicalDetails: String?
+}
+
 struct TodayScreenContent: Equatable {
     struct Header: Equatable {
         let dateText: String
@@ -65,7 +70,7 @@ struct TodayScreenContent: Equatable {
         case awaitingConfirmation(ImageRecognitionDraft)
         case saving(ImageRecognitionDraft)
         case success(String)
-        case failure(String)
+        case failure(RecognitionIssuePresentation)
         case saveFailure(ImageRecognitionDraft, String)
     }
 
@@ -84,6 +89,7 @@ struct TodayScreenContent: Equatable {
         let isLoading: Bool
         let buttonsDisabled: Bool
         let errorText: String?
+        let errorTechnicalDetails: String?
         let showsTypingIndicator: Bool
         let preview: RecognitionPreview?
     }
@@ -129,6 +135,7 @@ struct TodayScreenContent: Equatable {
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
                 preview: nil
             )
@@ -138,6 +145,7 @@ struct TodayScreenContent: Equatable {
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: true,
                 preview: nil
             )
@@ -147,6 +155,7 @@ struct TodayScreenContent: Equatable {
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
                 preview: recognitionPreview(from: draft)
             )
@@ -156,6 +165,7 @@ struct TodayScreenContent: Equatable {
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
                 preview: recognitionPreview(
                     from: draft,
@@ -168,15 +178,17 @@ struct TodayScreenContent: Equatable {
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
                 preview: nil
             )
-        case let .failure(errorText):
+        case let .failure(issue):
             return RecognitionActions(
                 statusText: "识别失败",
                 isLoading: false,
                 buttonsDisabled: false,
-                errorText: errorText,
+                errorText: issue.reason,
+                errorTechnicalDetails: issue.technicalDetails,
                 showsTypingIndicator: false,
                 preview: nil
             )
@@ -186,6 +198,7 @@ struct TodayScreenContent: Equatable {
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
+                errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
                 preview: recognitionPreview(
                     from: draft,

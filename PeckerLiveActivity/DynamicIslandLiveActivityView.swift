@@ -6,7 +6,7 @@ struct DynamicIslandLiveActivityView {
     private let state: PeckerActivityAttributes.ContentState
 
     init(context: ActivityViewContext<PeckerActivityAttributes>) {
-        self.state = context.state
+        state = context.state
     }
 
     init(state: PeckerActivityAttributes.ContentState) {
@@ -16,7 +16,7 @@ struct DynamicIslandLiveActivityView {
     var body: DynamicIsland {
         DynamicIsland {
             DynamicIslandExpandedRegion(.leading) {
-                ExpandedPrimaryItem(state: state)
+                ExpandedIdentity(state: state)
             }
 
             DynamicIslandExpandedRegion(.trailing) {
@@ -24,112 +24,169 @@ struct DynamicIslandLiveActivityView {
             }
 
             DynamicIslandExpandedRegion(.bottom) {
-                ExpandedBottom(state: state)
+                ExpandedDetails(state: state)
             }
         } compactLeading: {
-            CompactLeading(state: state)
+            CompactIdentity(state: state)
         } compactTrailing: {
-            CompactTrailing(state: state)
+            CompactCountdown(state: state)
         } minimal: {
-            MinimalIsland(state: state)
+            Image(systemName: state.symbolName)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(typeColor)
         }
-        .keylineTint(statusColor)
+        .keylineTint(accent)
     }
 
-    private var statusColor: Color {
-        DynamicIslandStyle.statusColor(for: state)
+    private var status: PeckerLiveActivityStatus {
+        PeckerLiveActivityStyle.status(for: state.statusRawValue)
+    }
+
+    private var accent: Color {
+        PeckerLiveActivityPalette.accentColor(for: status)
+    }
+
+    private var typeColor: Color {
+        switch state.kindRawValue {
+        case "flight":
+            PeckerLiveActivityColorSpec.peckerOrange.color
+        case "train":
+            PeckerLiveActivityColorSpec.peckerBlue.color
+        default:
+            accent
+        }
     }
 }
 
-private struct CompactLeading: View {
-    @Environment(\.locale) private var locale
+private struct CompactIdentity: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        if let title = DynamicIslandStyle.compactTitle(for: state.primaryTitle) {
-            Text(title)
+        HStack(spacing: 5) {
+            Circle()
+                .fill(accent)
+                .frame(width: 7, height: 7)
+            Image(systemName: state.symbolName)
+                .font(.caption2.weight(.bold))
+            Text(shortTitle)
                 .font(.caption2.weight(.heavy))
-                .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
                 .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        } else {
-            StatusDot(color: DynamicIslandStyle.statusColor(for: state))
-                .accessibilityLabel(DynamicIslandStyle.statusLabel(for: state, locale: locale))
         }
+        .foregroundStyle(typeColor)
+    }
+
+    private var shortTitle: String {
+        if state.title.count <= 10 {
+            return state.title
+        }
+        return String(state.title.prefix(8))
+    }
+
+    private var accent: Color {
+        PeckerLiveActivityPalette.accentColor(
+            for: PeckerLiveActivityStyle.status(for: state.statusRawValue)
+        )
+    }
+
+    private var typeColor: Color {
+        state.kindRawValue == "flight"
+            ? PeckerLiveActivityColorSpec.peckerOrange.color
+            : state.kindRawValue == "train"
+                ? PeckerLiveActivityColorSpec.peckerBlue.color
+                : accent
     }
 }
 
-private struct CompactTrailing: View {
+private struct CompactCountdown: View {
     @Environment(\.locale) private var locale
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
-            if let targetDate = state.countdownTargetDate(at: timeline.date) {
-                RemainingMinutesText(
-                    targetDate: targetDate,
-                    font: .caption2.weight(.bold).monospacedDigit()
-                )
-                    .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
+            if state.hasEnded(at: timeline.date) {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
+            } else if let target = state.countdownTargetDate(at: timeline.date) {
+                RemainingMinutesText(targetDate: target)
             } else {
-                Text(DynamicIslandStyle.statusLabel(for: state, locale: locale))
-                    .font(.caption2.weight(.heavy))
-                    .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                Text(
+                    PeckerLiveActivityCopy.statusLabel(
+                        for: PeckerLiveActivityStyle.status(
+                            for: state.statusRawValue
+                        ),
+                        locale: locale
+                    )
+                )
+                .font(.caption2.weight(.heavy))
             }
         }
+        .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
     }
 }
 
-private struct MinimalIsland: View {
-    let state: PeckerActivityAttributes.ContentState
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { timeline in
-            if let targetDate = state.countdownTargetDate(at: timeline.date) {
-                RemainingMinutesText(
-                    targetDate: targetDate,
-                    font: .caption2.weight(.heavy).monospacedDigit()
-                )
-                    .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
-                    .minimumScaleFactor(0.66)
-            } else {
-                StatusDot(color: DynamicIslandStyle.statusColor(for: state), size: 8)
-            }
-        }
-    }
-}
-
-private struct ExpandedPrimaryItem: View {
+private struct ExpandedIdentity: View {
     @Environment(\.locale) private var locale
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            StatusDot(color: DynamicIslandStyle.statusColor(for: state), size: 9)
-                .padding(.top, 4)
+        TimelineView(.periodic(from: .now, by: 30)) { timeline in
+            HStack(alignment: .top, spacing: 9) {
+                Image(systemName: state.symbolName)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(typeColor)
+                    .frame(width: 34, height: 34)
+                    .background(typeColor.opacity(0.16), in: Circle())
 
-            VStack(alignment: .leading, spacing: 3) {
-                Text(DynamicIslandStyle.statusLabel(for: state, locale: locale))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(
+                        state.hasEnded(at: timeline.date)
+                            ? PeckerLiveActivityCopy.endedLabel(locale: locale)
+                            : PeckerLiveActivityCopy.statusLabel(
+                                for: status,
+                                locale: locale
+                            )
+                    )
                     .font(.caption2.weight(.heavy))
-                    .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
+                    .foregroundStyle(
+                        state.hasEnded(at: timeline.date) ? .gray : accent
+                    )
 
-                Text(state.primaryTitle)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.78)
+                    Text(state.title)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(
+                            PeckerLiveActivityPalette.textPrimary.color
+                        )
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.78)
 
-                if let subtitle = state.primarySubtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
-                        .lineLimit(1)
+                    if let secondary = state.secondaryIdentity {
+                        Text(secondary)
+                            .font(.caption2)
+                            .foregroundStyle(
+                                PeckerLiveActivityPalette.textSecondary.color
+                            )
+                            .lineLimit(1)
+                    }
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var status: PeckerLiveActivityStatus {
+        PeckerLiveActivityStyle.status(for: state.statusRawValue)
+    }
+
+    private var accent: Color {
+        PeckerLiveActivityPalette.accentColor(for: status)
+    }
+
+    private var typeColor: Color {
+        state.kindRawValue == "flight"
+            ? PeckerLiveActivityColorSpec.peckerOrange.color
+            : state.kindRawValue == "train"
+                ? PeckerLiveActivityColorSpec.peckerBlue.color
+                : accent
     }
 }
 
@@ -140,12 +197,22 @@ private struct ExpandedCountdown: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             VStack(alignment: .trailing, spacing: 3) {
-                if let targetDate = state.countdownTargetDate(at: timeline.date) {
-                    Text(targetDate, style: state.isPrimaryRunning(at: timeline.date) ? .timer : .relative)
-                        .font(.title3.weight(.bold).monospacedDigit())
-                        .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                if state.hasEnded(at: timeline.date) {
+                    Text(PeckerLiveActivityCopy.endedLabel(locale: locale))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(
+                            PeckerLiveActivityPalette.textSecondary.color
+                        )
+                } else if let target = state.countdownTargetDate(at: timeline.date) {
+                    Text(
+                        target,
+                        style: state.isPrimaryRunning(at: timeline.date)
+                            ? .timer
+                            : .relative
+                    )
+                    .font(.title3.weight(.bold).monospacedDigit())
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
 
                     Text(
                         PeckerLiveActivityCopy.countdownHint(
@@ -153,287 +220,154 @@ private struct ExpandedCountdown: View {
                             locale: locale
                         )
                     )
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
-                } else {
-                    Text(DynamicIslandStyle.statusLabel(for: state, locale: locale))
-                        .font(.caption.weight(.heavy))
-                        .foregroundStyle(DynamicIslandStyle.statusColor(for: state))
-                        .lineLimit(1)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(
+                        PeckerLiveActivityPalette.textSecondary.color
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
+
+    private var accent: Color {
+        PeckerLiveActivityPalette.accentColor(
+            for: PeckerLiveActivityStyle.status(for: state.statusRawValue)
+        )
+    }
 }
 
-private struct ExpandedBottom: View {
-    @Environment(\.locale) private var locale
+private struct ExpandedDetails: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            if let nextTitle = state.nextTitle, !nextTitle.isEmpty, !isNextPrimary {
-                NextRow(title: nextTitle, startDate: state.nextStartDate)
-            }
-
-            TimelineView(.periodic(from: .now, by: 30)) { timeline in
-                if state.isPrimaryRunning(at: timeline.date) {
-                    DynamicIslandProgressBar(
-                        startDate: state.primaryStartDate,
-                        endDate: state.primaryEndDate,
-                        accent: DynamicIslandStyle.statusColor(for: state)
-                    )
-                }
-            }
-
-            if state.additionalActiveCount > 0 {
-                Text(
-                    PeckerLiveActivityCopy.additionalActiveText(
-                        count: state.additionalActiveCount,
-                        locale: locale
-                    )
-                )
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.top, 2)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var isNextPrimary: Bool {
-        state.primaryTitle == state.nextTitle
-            || (state.primaryEndDate == nil && state.primaryStartDate != nil)
-    }
-}
-
-private struct NextRow: View {
-    @Environment(\.locale) private var locale
-    let title: String
-    let startDate: Date?
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Text(PeckerLiveActivityCopy.statusLabel(for: .next, locale: locale))
-                .font(.caption2.weight(.heavy))
-                .foregroundStyle(DynamicIslandStyle.statusColor(for: .next))
-
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-
-            Spacer(minLength: 4)
-
-            if let startDate {
-                Text(startDate, style: .relative)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
-                    .lineLimit(1)
-            }
-        }
-    }
-}
-
-private struct DynamicIslandProgressBar: View {
-    @Environment(\.locale) private var locale
-    let startDate: Date?
-    let endDate: Date?
-    let accent: Color
-
-    var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(PeckerLiveActivityPalette.hairline.color)
+            VStack(alignment: .leading, spacing: 7) {
+                if let leading = state.leadingEndpoint,
+                   let trailing = state.trailingEndpoint
+                {
+                    HStack(spacing: 8) {
+                        Text(leading)
+                            .lineLimit(1)
+                        Image(systemName: "arrow.right")
+                            .foregroundStyle(
+                                PeckerLiveActivityColorSpec.peckerBlue.color
+                            )
+                        Text(trailing)
+                            .lineLimit(1)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(
+                        PeckerLiveActivityPalette.textPrimary.color
+                    )
+                } else if let location = state.location {
+                    Label(location, systemImage: "location.fill")
+                        .font(.caption)
+                        .foregroundStyle(
+                            PeckerLiveActivityPalette.textSecondary.color
+                        )
+                        .lineLimit(1)
+                } else if let detail = state.supportingDetail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(
+                            PeckerLiveActivityPalette.textSecondary.color
+                        )
+                        .lineLimit(1)
+                }
 
-                    Capsule()
-                        .fill(accent)
-                        .frame(width: proxy.size.width * progress(at: timeline.date))
+                if !state.metadata.isEmpty {
+                    Text(state.metadata.joined(separator: " · "))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(
+                            PeckerLiveActivityPalette.textSecondary.color
+                        )
+                        .lineLimit(1)
+                }
+
+                if state.isPrimaryRunning(at: timeline.date),
+                   let progress = PeckerLiveActivityStyle.progress(
+                       startDate: state.startDate,
+                       endDate: state.endDate,
+                       at: timeline.date
+                   )
+                {
+                    IslandProgressBar(progress: progress, accent: accent)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(height: 4)
-        .clipShape(Capsule())
-        .accessibilityLabel(PeckerLiveActivityCopy.progressAccessibilityLabel(locale: locale))
-        .accessibilityValue("\(Int(progress(at: .now) * 100))%")
     }
 
-    private func progress(at date: Date) -> CGFloat {
-        guard let startDate, let endDate, endDate > startDate else {
-            return 0
-        }
-
-        let elapsed = date.timeIntervalSince(startDate)
-        let total = endDate.timeIntervalSince(startDate)
-        return min(max(elapsed / total, 0), 1)
+    private var accent: Color {
+        PeckerLiveActivityPalette.accentColor(
+            for: PeckerLiveActivityStyle.status(for: state.statusRawValue)
+        )
     }
 }
 
 private struct RemainingMinutesText: View {
     let targetDate: Date
-    let font: Font
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             Text(label(at: timeline.date))
-                .font(font)
+                .font(.caption2.weight(.bold).monospacedDigit())
                 .lineLimit(1)
         }
     }
 
     private func label(at date: Date) -> String {
-        let remainingSeconds = max(targetDate.timeIntervalSince(date), 0)
-        let minutes = max(Int(ceil(remainingSeconds / 60)), 1)
-
+        let seconds = max(targetDate.timeIntervalSince(date), 0)
+        let minutes = Int(ceil(seconds / 60))
         if minutes >= 100 {
             return "\(minutes / 60)h"
         }
-
         return "\(minutes)m"
     }
 }
 
-private struct StatusDot: View {
-    let color: Color
-    var size: CGFloat = 7
+private struct IslandProgressBar: View {
+    let progress: Double
+    let accent: Color
 
     var body: some View {
-        Circle()
-            .fill(color)
-            .frame(width: size, height: size)
-            .shadow(color: color.opacity(0.45), radius: 3)
-            .accessibilityHidden(true)
-    }
-}
-
-private enum DynamicIslandStyle {
-    static func statusColor(for state: PeckerActivityAttributes.ContentState) -> Color {
-        statusColor(for: status(for: state))
-    }
-
-    static func statusColor(for status: PeckerLiveActivityStatus) -> Color {
-        PeckerLiveActivityPalette.accentColor(for: status)
-    }
-
-    static func statusLabel(
-        for state: PeckerActivityAttributes.ContentState,
-        locale: Locale = .autoupdatingCurrent
-    ) -> String {
-        PeckerLiveActivityCopy.statusLabel(for: status(for: state), locale: locale)
-    }
-
-    static func compactTitle(for title: String) -> String? {
-        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmed.isEmpty, trimmed.count <= 6, !trimmed.contains(" ") else {
-            return nil
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(PeckerLiveActivityPalette.hairline.color)
+                Capsule()
+                    .fill(accent)
+                    .frame(width: proxy.size.width * progress)
+            }
         }
-
-        return trimmed
-    }
-
-    private static func status(for state: PeckerActivityAttributes.ContentState) -> PeckerLiveActivityStatus {
-        switch state.primaryStatusRawValue {
-        case "next":
-            return .next
-        case "pinned":
-            return .pinned
-        default:
-            return .now
-        }
+        .frame(height: 4)
+        .clipShape(Capsule())
     }
 }
 
 private enum DynamicIslandPreviewSamples {
-    static var attributes: PeckerActivityAttributes {
-        PeckerActivityAttributes(localDayIdentifier: "2026-06-24")
-    }
-
     static let now = Date(timeIntervalSinceReferenceDate: 812_246_400)
-
-    static let longTitle = state(
-        primaryTitle: "Quarterly Strategy Review With Design Partners",
-        primarySubtitle: "11:00–12:00",
-        primaryStartDate: now.addingTimeInterval(-16 * 60),
-        primaryEndDate: now.addingTimeInterval(44 * 60),
-        primaryKindRawValue: "meeting",
-        primarySourceIdentifier: "calendar",
-        nextTitle: "Reply to launch notes",
-        nextStartDate: now.addingTimeInterval(50 * 60),
-        pinnedTitle: "SQ 833 · 14:35 · T3",
-        pinnedSubtitle: "浦东机场",
-        additionalActiveCount: 2
+    static let flight = PeckerActivityAttributes.ContentState(
+        itemIdentifier: "flight",
+        title: "SQ 833",
+        secondaryIdentity: "Singapore Airlines",
+        kindRawValue: "flight",
+        symbolName: "airplane",
+        statusRawValue: "now",
+        startDate: now.addingTimeInterval(-20 * 60),
+        endDate: now.addingTimeInterval(86 * 60),
+        leadingEndpoint: "PVG · 上海浦东",
+        trailingEndpoint: "SIN · 新加坡樟宜",
+        location: nil,
+        supportingDetail: nil,
+        metadata: ["T3", "Gate B7", "12A 座", "登机中"],
+        generatedAt: now
     )
-
-    static let nextOnly = state(
-        primaryTitle: "Lunch",
-        primarySubtitle: nil,
-        primaryStartDate: now.addingTimeInterval(23 * 60),
-        primaryEndDate: nil,
-        primaryKindRawValue: "upcoming",
-        primarySourceIdentifier: "calendar",
-        nextTitle: nil,
-        nextStartDate: nil,
-        pinnedTitle: nil,
-        pinnedSubtitle: nil,
-        additionalActiveCount: 0
-    )
-
-    private static func state(
-        primaryTitle: String,
-        primarySubtitle: String?,
-        primaryStartDate: Date?,
-        primaryEndDate: Date?,
-        primaryKindRawValue: String,
-        primarySourceIdentifier: String?,
-        nextTitle: String?,
-        nextStartDate: Date?,
-        pinnedTitle: String?,
-        pinnedSubtitle: String?,
-        additionalActiveCount: Int
-    ) -> PeckerActivityAttributes.ContentState {
-        PeckerActivityAttributes.ContentState(
-            primaryTitle: primaryTitle,
-            primarySubtitle: primarySubtitle,
-            primaryStartDate: primaryStartDate,
-            primaryEndDate: primaryEndDate,
-            primaryKindRawValue: primaryKindRawValue,
-            primarySourceIdentifier: primarySourceIdentifier,
-            nextTitle: nextTitle,
-            nextStartDate: nextStartDate,
-            pinnedTitle: pinnedTitle,
-            pinnedSubtitle: pinnedSubtitle,
-            additionalActiveCount: additionalActiveCount,
-            generatedAt: now
-        )
-    }
 }
 
-#Preview("Dynamic Island expanded · long title", as: .dynamicIsland(.expanded), using: DynamicIslandPreviewSamples.attributes) {
+#Preview("Dynamic Island · Flight", as: .dynamicIsland(.expanded), using: PeckerActivityAttributes(localDayIdentifier: "2026-06-29")) {
     PeckerLiveActivityWidget()
 } contentStates: {
-    DynamicIslandPreviewSamples.longTitle
-}
-
-#Preview("Dynamic Island compact · long title", as: .dynamicIsland(.compact), using: DynamicIslandPreviewSamples.attributes) {
-    PeckerLiveActivityWidget()
-} contentStates: {
-    DynamicIslandPreviewSamples.longTitle
-}
-
-#Preview("Dynamic Island minimal · long title", as: .dynamicIsland(.minimal), using: DynamicIslandPreviewSamples.attributes) {
-    PeckerLiveActivityWidget()
-} contentStates: {
-    DynamicIslandPreviewSamples.longTitle
-}
-
-#Preview("Dynamic Island expanded · Next only", as: .dynamicIsland(.expanded), using: DynamicIslandPreviewSamples.attributes) {
-    PeckerLiveActivityWidget()
-} contentStates: {
-    DynamicIslandPreviewSamples.nextOnly
+    DynamicIslandPreviewSamples.flight
 }

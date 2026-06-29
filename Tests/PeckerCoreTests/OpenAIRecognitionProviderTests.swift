@@ -399,6 +399,52 @@ import Testing
     #expect(await client.recordedRequests.count == 3)
 }
 
+@Test func openAIProviderAcceptsNumericPriceInReportedTrainPayload() async throws {
+    let trainPayload = #"""
+    {
+      "kind": "train",
+      "fields": {
+        "title": "C5788 成都东站 → 重庆西站",
+        "trainNumber": "C5788",
+        "departureStation": "成都东站",
+        "arrivalStation": "重庆西站",
+        "departureDateTime": "2026-06-28T23:00:00+08:00",
+        "arrivalDateTime": "2026-06-28T23:30:00+08:00",
+        "seatClass": "二等座",
+        "carriageNumber": "02",
+        "seatNumber": "06D",
+        "price": 96.0,
+        "ticketType": "成人票",
+        "orderNumber": "E123456789"
+      }
+    }
+    """#
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
+        .response(chatEnvelope(trainPayload), 200),
+        .response(chatEnvelope(trainPayload), 200)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    let result = try await provider.recognize(
+        .importedImage(
+            id: "ticket",
+            imageData: Data([1]),
+            filename: "ticket.jpg"
+        )
+    )
+
+    #expect(result.payload.fields["trainNumber"] == "C5788")
+    #expect(result.payload.fields["price"] == "96")
+}
+
 @Test func openAIProviderIncludesTextSourceInEveryPipelineStage() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
         .response(chatEnvelope(#"{"kind":"meeting"}"#), 200),

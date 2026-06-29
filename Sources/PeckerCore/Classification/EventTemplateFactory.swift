@@ -34,6 +34,67 @@ public struct ExternalEventTemplatePayload: Sendable, Equatable, Codable {
         self.kind = kind
         self.fields = fields
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case fields
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        kind = try container.decode(TimelineKind.self, forKey: .kind)
+        let scalarFields = try container.decode(
+            [String: RecognitionFieldScalar].self,
+            forKey: .fields
+        )
+        fields = scalarFields.compactMapValues(\.stringValue)
+    }
+}
+
+private enum RecognitionFieldScalar: Decodable {
+    case string(String)
+    case integer(Int64)
+    case decimal(Decimal)
+    case boolean(Bool)
+    case null
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let value = try? container.decode(String.self) {
+            self = .string(value)
+        } else if let value = try? container.decode(Bool.self) {
+            self = .boolean(value)
+        } else if let value = try? container.decode(Int64.self) {
+            self = .integer(value)
+        } else if let value = try? container.decode(Decimal.self) {
+            self = .decimal(value)
+        } else {
+            throw DecodingError.typeMismatch(
+                String.self,
+                .init(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Recognition fields must be JSON scalars."
+                )
+            )
+        }
+    }
+
+    var stringValue: String? {
+        switch self {
+        case let .string(value):
+            value
+        case let .integer(value):
+            String(value)
+        case let .decimal(value):
+            NSDecimalNumber(decimal: value).stringValue
+        case let .boolean(value):
+            value ? "true" : "false"
+        case .null:
+            nil
+        }
+    }
 }
 
 public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {

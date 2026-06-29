@@ -66,6 +66,26 @@ import Testing
     )))
 }
 
+@Test func factoryCreatesGenericTaskFromExternalPayload() {
+    let template = EventTemplateFactory().makeTemplate(
+        from: ExternalEventTemplatePayload(
+            kind: .task,
+            fields: [
+                "title": "巡逻",
+                "location": "",
+                "notes": "巡查楼梯口、仓库、围栏"
+            ]
+        )
+    )
+
+    #expect(template == .generic(.init(
+        kind: .task,
+        title: "巡逻",
+        location: nil,
+        notes: "巡查楼梯口、仓库、围栏"
+    )))
+}
+
 @Test func classifierUsesFactoryButKeepsReminderFallback() {
     let classifier = TimelineClassifier()
 

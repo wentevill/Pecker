@@ -38,11 +38,14 @@ public struct ExternalEventTemplatePayload: Sendable, Equatable, Codable {
 
 public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
     case trainTicket(TrainTicketTemplate)
+    case generic(GenericEventTemplate)
 
     public var kind: TimelineKind {
         switch self {
         case .trainTicket:
             .train
+        case let .generic(event):
+            event.kind
         }
     }
 
@@ -50,6 +53,8 @@ public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
         switch self {
         case let .trainTicket(ticket):
             ticket.presentation
+        case let .generic(event):
+            event.presentation
         }
     }
 }
@@ -57,6 +62,7 @@ public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
 public struct EventTemplatePresentation: Sendable, Equatable, Hashable, Codable {
     public enum Style: String, Sendable, Equatable, Hashable, Codable {
         case trainTicket
+        case generic
     }
 
     public struct Field: Sendable, Equatable, Hashable, Codable {
@@ -84,6 +90,41 @@ public struct EventTemplatePresentation: Sendable, Equatable, Hashable, Codable 
         self.title = title
         self.subtitle = subtitle
         self.fields = fields
+    }
+}
+
+public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
+    public let kind: TimelineKind
+    public let title: String
+    public let location: String?
+    public let notes: String?
+
+    public init(
+        kind: TimelineKind,
+        title: String,
+        location: String?,
+        notes: String?
+    ) {
+        self.kind = kind
+        self.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.location = location?.nilIfBlank
+        self.notes = notes?.nilIfBlank
+    }
+
+    public var presentation: EventTemplatePresentation {
+        var fields: [EventTemplatePresentation.Field] = []
+        if let location {
+            fields.append(.init(label: "地点", value: location))
+        }
+        if let notes {
+            fields.append(.init(label: "备注", value: notes))
+        }
+        return EventTemplatePresentation(
+            style: .generic,
+            title: title,
+            subtitle: location ?? notes,
+            fields: fields
+        )
     }
 }
 
@@ -196,8 +237,22 @@ public struct EventTemplateFactory: Sendable {
                 priceText: payload.value(for: "price", "priceText", "票价")
             ))
         case .meeting, .task, .flight, .travel, .interview, .deadline, .unknown:
-            nil
+            makeGenericTemplate(from: payload)
         }
+    }
+
+    private func makeGenericTemplate(
+        from payload: ExternalEventTemplatePayload
+    ) -> TimelineEventTemplate? {
+        guard let title = payload.value(for: "title", "eventTitle", "事件标题") else {
+            return nil
+        }
+        return .generic(.init(
+            kind: payload.kind,
+            title: title,
+            location: payload.value(for: "location", "地点"),
+            notes: payload.value(for: "notes", "description", "details", "备注")
+        ))
     }
 
     private func makeTrainTicket(from input: ClassificationInput) -> TrainTicketTemplate? {

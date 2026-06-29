@@ -123,7 +123,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         )
     }
 
-    func testImageRecognitionThrowsUnsupportedInputWhenProviderFindsNoEventCard() async throws {
+    func testImageRecognitionReportsMissingFieldsWhenProviderFindsNoEventCard() async throws {
         let repository = RecordingEventRepository()
         let provider = RecordingRecognitionProvider(
             result: RecognitionResult(
@@ -148,9 +148,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 ),
                 now: Date(timeIntervalSince1970: 5_000)
             )
-            XCTFail("Expected unsupportedInput when image does not produce an event card")
-        } catch let error as RecognitionError {
-            XCTAssertEqual(error, .unsupportedInput)
+            XCTFail("Expected structured validation failure")
+        } catch let failure as RecognitionPipelineFailure {
+            XCTAssertEqual(failure.stage, .validation)
+            XCTAssertEqual(failure.missingFields, ["事件内容", "日期或时间"])
+            XCTAssertEqual(failure.reason, "核对后仍缺少：事件内容、日期或时间")
         }
 
         let records = await repository.records()

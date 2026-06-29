@@ -69,4 +69,32 @@ final class LiveActivityPresentationTests: XCTestCase {
         XCTAssertTrue(state.hasEnded(at: end))
         XCTAssertNil(state.countdownTargetDate(at: end))
     }
+
+    func testContentStateDecodesLegacySinglePrimaryPayload() throws {
+        let data = Data(
+            """
+            {
+              "primaryTitle": "Old meeting",
+              "primarySubtitle": "Room 42",
+              "primaryStartDate": 1000,
+              "primaryEndDate": 1600,
+              "primaryKindRawValue": "meeting",
+              "primarySourceIdentifier": "calendar:old",
+              "additionalActiveCount": 0,
+              "generatedAt": 1000,
+              "primaryStatusRawValue": "now"
+            }
+            """.utf8
+        )
+
+        let state = try JSONDecoder().decode(
+            PeckerActivityAttributes.ContentState.self,
+            from: data
+        )
+
+        XCTAssertEqual(state.itemIdentifier, "calendar:old")
+        XCTAssertEqual(state.title, "Old meeting")
+        XCTAssertEqual(state.location, "Room 42")
+        XCTAssertEqual(state.symbolName, "person.2.fill")
+    }
 }

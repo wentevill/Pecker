@@ -148,11 +148,18 @@ struct TimelineRecordEditor: Equatable {
                 travelStatus: ticket.travelStatus
             ))
         } else {
+            let preservedFields: [String: String]
+            if case let .generic(event) = original.template {
+                preservedFields = event.fields
+            } else {
+                preservedFields = [:]
+            }
             template = .generic(.init(
                 kind: kind,
                 title: cleanTitle,
                 location: cleanLocation,
-                notes: cleanNotes
+                notes: cleanNotes,
+                fields: preservedFields
             ))
         }
 

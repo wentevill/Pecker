@@ -126,6 +126,26 @@ import Testing
     )))
 }
 
+@Test func flightWithoutTicketFieldsUsesGenericTemplate() {
+    let fields = [
+        "title": "Airport pickup",
+        "location": "T2 arrivals",
+        "notes": "Meet at exit 3"
+    ]
+
+    let template = EventTemplateFactory().makeTemplate(
+        from: ExternalEventTemplatePayload(kind: .flight, fields: fields)
+    )
+
+    #expect(template == .generic(.init(
+        kind: .flight,
+        title: "Airport pickup",
+        location: "T2 arrivals",
+        notes: "Meet at exit 3",
+        fields: fields
+    )))
+}
+
 @Test func genericTemplatePreservesRecognitionFieldsAcrossCodableRoundTrip() throws {
     let template = EventTemplateFactory().makeTemplate(
         from: ExternalEventTemplatePayload(

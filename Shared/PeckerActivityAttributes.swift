@@ -88,6 +88,166 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             )
         }
 
+        private enum CodingKeys: String, CodingKey {
+            case itemIdentifier
+            case title
+            case secondaryIdentity
+            case kindRawValue
+            case symbolName
+            case statusRawValue
+            case startDate
+            case endDate
+            case leadingEndpoint
+            case trailingEndpoint
+            case location
+            case supportingDetail
+            case metadata
+            case generatedAt
+            case primaryTitle
+            case primarySubtitle
+            case primaryStartDate
+            case primaryEndDate
+            case primaryKindRawValue
+            case primarySourceIdentifier
+            case primaryStatusRawValue
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            if container.contains(.itemIdentifier) {
+                self.init(
+                    itemIdentifier: try container.decode(
+                        String.self,
+                        forKey: .itemIdentifier
+                    ),
+                    title: try container.decode(String.self, forKey: .title),
+                    secondaryIdentity: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .secondaryIdentity
+                    ),
+                    kindRawValue: try container.decode(
+                        String.self,
+                        forKey: .kindRawValue
+                    ),
+                    symbolName: try container.decode(
+                        String.self,
+                        forKey: .symbolName
+                    ),
+                    statusRawValue: try container.decode(
+                        String.self,
+                        forKey: .statusRawValue
+                    ),
+                    startDate: try container.decodeIfPresent(
+                        Date.self,
+                        forKey: .startDate
+                    ),
+                    endDate: try container.decodeIfPresent(
+                        Date.self,
+                        forKey: .endDate
+                    ),
+                    leadingEndpoint: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .leadingEndpoint
+                    ),
+                    trailingEndpoint: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .trailingEndpoint
+                    ),
+                    location: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .location
+                    ),
+                    supportingDetail: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .supportingDetail
+                    ),
+                    metadata: try container.decodeIfPresent(
+                        [String].self,
+                        forKey: .metadata
+                    ) ?? [],
+                    generatedAt: try container.decode(
+                        Date.self,
+                        forKey: .generatedAt
+                    )
+                )
+                return
+            }
+
+            let title = try container.decode(
+                String.self,
+                forKey: .primaryTitle
+            )
+            let kind = try container.decodeIfPresent(
+                String.self,
+                forKey: .primaryKindRawValue
+            ) ?? "unknown"
+            let subtitle = try container.decodeIfPresent(
+                String.self,
+                forKey: .primarySubtitle
+            )
+            self.init(
+                itemIdentifier: try container.decodeIfPresent(
+                    String.self,
+                    forKey: .primarySourceIdentifier
+                ) ?? title,
+                title: title,
+                secondaryIdentity: nil,
+                kindRawValue: kind,
+                symbolName: Self.symbolName(for: kind),
+                statusRawValue: try container.decodeIfPresent(
+                    String.self,
+                    forKey: .primaryStatusRawValue
+                ) ?? "now",
+                startDate: try container.decodeIfPresent(
+                    Date.self,
+                    forKey: .primaryStartDate
+                ),
+                endDate: try container.decodeIfPresent(
+                    Date.self,
+                    forKey: .primaryEndDate
+                ),
+                leadingEndpoint: nil,
+                trailingEndpoint: nil,
+                location: subtitle,
+                supportingDetail: nil,
+                metadata: [],
+                generatedAt: try container.decode(
+                    Date.self,
+                    forKey: .generatedAt
+                )
+            )
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(itemIdentifier, forKey: .itemIdentifier)
+            try container.encode(title, forKey: .title)
+            try container.encodeIfPresent(
+                secondaryIdentity,
+                forKey: .secondaryIdentity
+            )
+            try container.encode(kindRawValue, forKey: .kindRawValue)
+            try container.encode(symbolName, forKey: .symbolName)
+            try container.encode(statusRawValue, forKey: .statusRawValue)
+            try container.encodeIfPresent(startDate, forKey: .startDate)
+            try container.encodeIfPresent(endDate, forKey: .endDate)
+            try container.encodeIfPresent(
+                leadingEndpoint,
+                forKey: .leadingEndpoint
+            )
+            try container.encodeIfPresent(
+                trailingEndpoint,
+                forKey: .trailingEndpoint
+            )
+            try container.encodeIfPresent(location, forKey: .location)
+            try container.encodeIfPresent(
+                supportingDetail,
+                forKey: .supportingDetail
+            )
+            try container.encode(metadata, forKey: .metadata)
+            try container.encode(generatedAt, forKey: .generatedAt)
+        }
+
         public func countdownTargetDate(at date: Date) -> Date? {
             if let startDate,
                let endDate,

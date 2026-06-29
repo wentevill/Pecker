@@ -247,6 +247,24 @@ public struct FlightTicketTemplate: Sendable, Equatable, Hashable, Codable {
         )
     }
 
+    var hasStructuredContent: Bool {
+        [
+            flightNumber,
+            carrier,
+            departureAirport,
+            departureAirportCode,
+            arrivalAirport,
+            arrivalAirportCode,
+            departureTimeText,
+            arrivalTimeText,
+            terminal,
+            gate,
+            seat,
+            travelStatus
+        ]
+        .contains { $0?.nilIfBlank != nil }
+    }
+
     private func endpoint(name: String?, code: String?) -> String? {
         switch (name?.nilIfBlank, code?.nilIfBlank) {
         case let (name?, code?):
@@ -381,7 +399,16 @@ public struct EventTemplateFactory: Sendable {
                 priceText: payload.value(for: "price", "priceText", "票价")
             ))
         case .flight:
-            .flightTicket(.init(
+            makeFlightTemplate(from: payload)
+        case .meeting, .task, .travel, .interview, .deadline, .unknown:
+            makeGenericTemplate(from: payload)
+        }
+    }
+
+    private func makeFlightTemplate(
+        from payload: ExternalEventTemplatePayload
+    ) -> TimelineEventTemplate? {
+        let ticket = FlightTicketTemplate(
                 flightNumber: payload.value(
                     for: "flightNumber",
                     "flight_number",
@@ -426,10 +453,11 @@ public struct EventTemplateFactory: Sendable {
                 gate: payload.value(for: "gate", "boardingGate", "登机口"),
                 seat: payload.value(for: "seat", "seatNumber", "座位"),
                 travelStatus: payload.value(for: "status", "travelStatus", "状态")
-            ))
-        case .meeting, .task, .travel, .interview, .deadline, .unknown:
-            makeGenericTemplate(from: payload)
+            )
+        if ticket.hasStructuredContent {
+            return .flightTicket(ticket)
         }
+        return makeGenericTemplate(from: payload)
     }
 
     private func makeGenericTemplate(

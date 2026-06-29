@@ -66,6 +66,40 @@ final class LiveActivityBoundarySchedulerTests: XCTestCase {
         XCTAssertEqual(background.cancelCount, 1)
     }
 
+    func testRemovingBoundaryCancelsPendingBackgroundRequest() {
+        let background = BoundaryBackgroundScheduler()
+        let scheduler = LiveActivityBoundaryScheduler(
+            sleeper: BoundarySleeper(),
+            backgroundScheduler: background,
+            now: { Date(timeIntervalSinceReferenceDate: 1_000) },
+            refresh: { nil }
+        )
+
+        scheduler.schedule(Date(timeIntervalSinceReferenceDate: 1_100))
+        scheduler.schedule(nil)
+
+        XCTAssertEqual(background.cancelCount, 1)
+        XCTAssertNil(scheduler.boundary)
+    }
+
+    func testRefreshResultSchedulesFollowingBoundary() async {
+        let sleeper = BoundarySleeper()
+        let following = Date(timeIntervalSinceReferenceDate: 1_100)
+        let scheduler = LiveActivityBoundaryScheduler(
+            sleeper: sleeper,
+            backgroundScheduler: BoundaryBackgroundScheduler(),
+            now: { Date(timeIntervalSinceReferenceDate: 1_000) },
+            refresh: { following }
+        )
+
+        scheduler.schedule(Date(timeIntervalSinceReferenceDate: 999))
+        await waitForRequestCount(1, sleeper: sleeper)
+
+        let requestedDates = await sleeper.requestedDates()
+        XCTAssertEqual(requestedDates, [following])
+        XCTAssertEqual(scheduler.boundary, following)
+    }
+
     private func waitForRequestCount(
         _ count: Int,
         sleeper: BoundarySleeper

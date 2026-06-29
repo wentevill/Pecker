@@ -1,3 +1,4 @@
+import BackgroundTasks
 import Foundation
 
 protocol LiveActivitySleeping: Sendable {
@@ -23,6 +24,33 @@ struct NoopLiveActivityBackgroundScheduler:
     func cancel() {}
 }
 
+enum LiveActivityBackgroundTask {
+    static let identifier =
+        "com.wenttang.pecker.live-activity-refresh"
+}
+
+struct SystemLiveActivityBackgroundScheduler:
+    LiveActivityBackgroundScheduling
+{
+    func submit(earliestBeginDate: Date?) throws {
+        cancel()
+        guard let earliestBeginDate else {
+            return
+        }
+        let request = BGAppRefreshTaskRequest(
+            identifier: LiveActivityBackgroundTask.identifier
+        )
+        request.earliestBeginDate = earliestBeginDate
+        try BGTaskScheduler.shared.submit(request)
+    }
+
+    func cancel() {
+        BGTaskScheduler.shared.cancel(
+            taskRequestWithIdentifier: LiveActivityBackgroundTask.identifier
+        )
+    }
+}
+
 @MainActor
 final class LiveActivityBoundaryScheduler {
     private let sleeper: any LiveActivitySleeping
@@ -36,7 +64,7 @@ final class LiveActivityBoundaryScheduler {
     init(
         sleeper: any LiveActivitySleeping = ContinuousLiveActivitySleeper(),
         backgroundScheduler: any LiveActivityBackgroundScheduling =
-            NoopLiveActivityBackgroundScheduler(),
+            SystemLiveActivityBackgroundScheduler(),
         now: @escaping @Sendable () -> Date = { .now },
         refresh: @escaping @MainActor @Sendable () async -> Date?
     ) {

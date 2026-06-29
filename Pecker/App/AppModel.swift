@@ -100,6 +100,20 @@ final class AppModel {
         )
     }
 
+    func handleLiveActivityBackgroundRefresh() async {
+        guard onboardingCompleted else {
+            return
+        }
+        await refreshOperation()
+        guard !Task.isCancelled else {
+            return
+        }
+        liveActivityBoundaryScheduler.schedule(
+            todayViewModel.nextLiveActivityBoundary
+        )
+        try? liveActivityBoundaryScheduler.becameInactive()
+    }
+
     private func scheduleRefresh() {
         let task = Task { [weak self] in
             guard let self else {

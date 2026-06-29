@@ -86,6 +86,53 @@ import Testing
     #expect(try await repository.loadAll() == [other])
 }
 
+@Test func storedEventRecordRoundTripsAllDayState() throws {
+    let allDay = StoredEventRecord(
+        id: "image:all-day",
+        source: .importedImage,
+        sourceIdentifier: "all-day",
+        rawTitle: "社区活动",
+        rawLocation: nil,
+        rawNotes: nil,
+        imageReference: "Images/poster.jpg",
+        startDate: Date(timeIntervalSince1970: 100),
+        endDate: nil,
+        isAllDay: true,
+        template: .generic(.init(
+            kind: .unknown,
+            title: "社区活动",
+            location: nil,
+            notes: nil
+        )),
+        recognitionStatus: .recognized,
+        updatedAt: Date(timeIntervalSince1970: 200)
+    )
+
+    let decoded = try JSONDecoder().decode(
+        StoredEventRecord.self,
+        from: JSONEncoder().encode(allDay)
+    )
+
+    #expect(decoded.isAllDay)
+}
+
+@Test func storedEventRecordDefaultsLegacyAllDayStateToFalse() throws {
+    let current = record(id: "image:legacy", source: .importedImage)
+    let data = try JSONEncoder().encode(current)
+    var object = try #require(
+        JSONSerialization.jsonObject(with: data) as? [String: Any]
+    )
+    object.removeValue(forKey: "isAllDay")
+    let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+    let decoded = try JSONDecoder().decode(
+        StoredEventRecord.self,
+        from: legacyData
+    )
+
+    #expect(!decoded.isAllDay)
+}
+
 private func record(
     id: String,
     source: RecognitionSource

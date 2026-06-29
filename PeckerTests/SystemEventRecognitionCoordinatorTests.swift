@@ -554,6 +554,53 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(imageStore.deletedPaths == ["Images/test.jpg"])
 }
 
+@Test func dateOnlyRecognitionPersistsAsAllDayTimelineItem() async throws {
+    let repository = RecordingEventRepository()
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: .init(kind: .task, fields: [
+                "title": "提交材料",
+                "eventDate": "2026-07-03"
+            ]),
+            confidence: nil
+        )
+    )
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        calendar: calendar,
+        providerFactory: { _, _ in provider }
+    )
+    let settings = TimelineSettings(
+        aiRecognitionMode: .openAI,
+        openAIAPIKeyConfigured: true
+    )
+    let now = Date(timeIntervalSince1970: 5_000)
+
+    let draft = try await coordinator.recognizeImage(
+        data: Data([1]),
+        source: .importedImage,
+        filename: "task.jpg",
+        settings: settings,
+        now: now
+    )
+    #expect(draft.isAllDay)
+
+    let saved = try await coordinator.saveRecognizedImage(
+        draft,
+        imageReference: "Images/task.jpg"
+    )
+    #expect(saved.isAllDay)
+
+    let items = await coordinator.recognizedImageItems(
+        settings: settings,
+        now: now
+    )
+    #expect(items.first?.isAllDay == true)
+}
+
 @Test func validatorAcceptsMinimumFieldsForEveryRecognitionKind() throws {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))

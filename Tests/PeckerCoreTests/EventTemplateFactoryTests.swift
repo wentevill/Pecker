@@ -92,6 +92,27 @@ import Testing
     #expect(template?.presentation.fields.first?.label == "类型")
 }
 
+@Test func unknownPayloadWithDestinationBuildsGenericTemplate() {
+    let fields = [
+        "destination": "苏州",
+        "eventDate": "2026-07-03",
+        "location": "苏州文化中心",
+        "notes": "携带报名二维码"
+    ]
+
+    let template = EventTemplateFactory().makeTemplate(
+        from: ExternalEventTemplatePayload(kind: .unknown, fields: fields)
+    )
+
+    #expect(template == .generic(.init(
+        kind: .unknown,
+        title: "苏州",
+        location: "苏州文化中心",
+        notes: "携带报名二维码",
+        fields: fields
+    )))
+}
+
 @Test func factoryCreatesStructuredFlightFromExternalPayload() {
     let template = EventTemplateFactory().makeTemplate(
         from: ExternalEventTemplatePayload(

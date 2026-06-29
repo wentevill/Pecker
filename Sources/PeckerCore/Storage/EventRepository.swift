@@ -10,6 +10,7 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
     public let imageReference: String?
     public let startDate: Date?
     public let endDate: Date?
+    public let isAllDay: Bool
     public let template: TimelineEventTemplate?
     public let recognitionStatus: RecognitionStatus
     public let updatedAt: Date
@@ -24,6 +25,7 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
         imageReference: String?,
         startDate: Date?,
         endDate: Date?,
+        isAllDay: Bool = false,
         template: TimelineEventTemplate?,
         recognitionStatus: RecognitionStatus,
         updatedAt: Date
@@ -37,9 +39,61 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
         self.imageReference = imageReference
         self.startDate = startDate
         self.endDate = endDate
+        self.isAllDay = isAllDay
         self.template = template
         self.recognitionStatus = recognitionStatus
         self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case source
+        case sourceIdentifier
+        case rawTitle
+        case rawLocation
+        case rawNotes
+        case imageReference
+        case startDate
+        case endDate
+        case isAllDay
+        case template
+        case recognitionStatus
+        case updatedAt
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        source = try container.decode(RecognitionSource.self, forKey: .source)
+        sourceIdentifier = try container.decodeIfPresent(
+            String.self,
+            forKey: .sourceIdentifier
+        )
+        rawTitle = try container.decodeIfPresent(String.self, forKey: .rawTitle)
+        rawLocation = try container.decodeIfPresent(
+            String.self,
+            forKey: .rawLocation
+        )
+        rawNotes = try container.decodeIfPresent(String.self, forKey: .rawNotes)
+        imageReference = try container.decodeIfPresent(
+            String.self,
+            forKey: .imageReference
+        )
+        startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
+        endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+        isAllDay = try container.decodeIfPresent(
+            Bool.self,
+            forKey: .isAllDay
+        ) ?? false
+        template = try container.decodeIfPresent(
+            TimelineEventTemplate.self,
+            forKey: .template
+        )
+        recognitionStatus = try container.decode(
+            RecognitionStatus.self,
+            forKey: .recognitionStatus
+        )
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }
 

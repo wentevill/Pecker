@@ -264,6 +264,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             imageReference: imageReference,
             startDate: draft.startDate,
             endDate: draft.endDate,
+            isAllDay: draft.isAllDay,
             template: draft.template,
             recognitionStatus: .recognized,
             updatedAt: draft.recognizedAt
@@ -383,7 +384,7 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             title: presentation.title,
             startDate: record.startDate ?? now,
             endDate: record.endDate,
-            isAllDay: false,
+            isAllDay: record.isAllDay,
             source: .external,
             kind: template.kind,
             location: record.rawLocation,
@@ -451,6 +452,7 @@ private extension StoredEventRecord {
             imageReference: imageReference,
             startDate: startDate,
             endDate: endDate,
+            isAllDay: isAllDay,
             template: template,
             recognitionStatus: status,
             updatedAt: updatedAt

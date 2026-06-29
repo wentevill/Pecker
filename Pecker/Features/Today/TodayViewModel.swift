@@ -24,12 +24,16 @@ final class TodayViewModel {
             gateway: dependencies.gateway,
             mapper: dependencies.mapper,
             recognizer: dependencies.systemEventRecognizer,
+            localCards: dependencies.localTimelineCards,
             settingsStore: dependencies.settingsStore,
             calendar: dependencies.calendar
         )
         snapshotCommitter = SnapshotCommitter(
             store: dependencies.snapshotStore
         )
+        timelineManager.onMutation = { [weak self] in
+            await self?.refresh()
+        }
     }
 
     func refresh(now: Date = .now) async {

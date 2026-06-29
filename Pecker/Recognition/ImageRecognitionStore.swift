@@ -140,3 +140,72 @@ struct ImageRecognitionCoordinator: ImageRecognizing {
         }
     }
 }
+
+enum LocalTimelineCardError: Error, Equatable {
+    case recordNotFound
+    case readOnlySource
+    case imageCleanupFailed
+}
+
+protocol LocalTimelineCardManaging: Sendable {
+    func loadAll() async throws -> [StoredEventRecord]
+    func update(_ record: StoredEventRecord) async throws
+    func delete(id: String) async throws
+}
+
+actor NoopLocalTimelineCardService: LocalTimelineCardManaging {
+    func loadAll() async throws -> [StoredEventRecord] { [] }
+    func update(_ record: StoredEventRecord) async throws {
+        throw LocalTimelineCardError.readOnlySource
+    }
+    func delete(id: String) async throws {
+        throw LocalTimelineCardError.recordNotFound
+    }
+}
+
+struct LocalTimelineCardService: LocalTimelineCardManaging {
+    private let repository: any EventRepositoryStoring
+    private let imageStore: any ImageFileStoring
+
+    init(
+        repository: any EventRepositoryStoring,
+        imageStore: any ImageFileStoring
+    ) {
+        self.repository = repository
+        self.imageStore = imageStore
+    }
+
+    func loadAll() async throws -> [StoredEventRecord] {
+        try await repository.loadAll().filter(Self.isMutable)
+    }
+
+    func update(_ record: StoredEventRecord) async throws {
+        guard Self.isMutable(record) else {
+            throw LocalTimelineCardError.readOnlySource
+        }
+        try await repository.upsert(record)
+    }
+
+    func delete(id: String) async throws {
+        guard let record = try await repository.loadAll().first(where: {
+            $0.id == id
+        }) else {
+            throw LocalTimelineCardError.recordNotFound
+        }
+        guard Self.isMutable(record) else {
+            throw LocalTimelineCardError.readOnlySource
+        }
+        try await repository.delete(id: id)
+        if let imageReference = record.imageReference {
+            do {
+                try imageStore.deleteImage(at: imageReference)
+            } catch {
+                throw LocalTimelineCardError.imageCleanupFailed
+            }
+        }
+    }
+
+    private static func isMutable(_ record: StoredEventRecord) -> Bool {
+        record.source == .importedImage || record.source == .cameraImage
+    }
+}

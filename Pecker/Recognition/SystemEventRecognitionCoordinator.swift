@@ -5,9 +5,16 @@ protocol EventRepositoryStoring: Sendable {
     func loadAll() async throws -> [StoredEventRecord]
     func upsert(_ record: StoredEventRecord) async throws
     func delete(source: RecognitionSource) async throws
+    func delete(id: String) async throws
 }
 
 extension EventRepository: EventRepositoryStoring {}
+
+extension EventRepositoryStoring {
+    func delete(id: String) async throws {
+        throw RecognitionError.unsupportedInput
+    }
+}
 
 protocol SystemEventRecognizing: Sendable {
     func synchronize(

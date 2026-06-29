@@ -8,13 +8,17 @@ final class TimelineManagerModel {
     private let gateway: any EventKitGatewayProtocol
     private let mapper: EventKitMapper
     private let recognizer: any SystemEventRecognizing
+    private let localCards: any LocalTimelineCardManaging
     private let settingsStore: SettingsStore
     private let calendar: Calendar
     private let classifier = TimelineClassifier()
+    @ObservationIgnored
+    var onMutation: @MainActor () async -> Void = {}
 
     var selectedScope: TimelineDateScope = .today
     var selectedKind: TimelineKind?
     private(set) var items: [TimelineItem] = []
+    private(set) var recordsByID: [String: StoredEventRecord] = [:]
     private(set) var isLoading = false
     private(set) var errorText: String?
     private(set) var referenceDate = Date.now
@@ -23,12 +27,14 @@ final class TimelineManagerModel {
         gateway: any EventKitGatewayProtocol,
         mapper: EventKitMapper,
         recognizer: any SystemEventRecognizing,
+        localCards: any LocalTimelineCardManaging,
         settingsStore: SettingsStore,
         calendar: Calendar
     ) {
         self.gateway = gateway
         self.mapper = mapper
         self.recognizer = recognizer
+        self.localCards = localCards
         self.settingsStore = settingsStore
         self.calendar = calendar
     }
@@ -65,11 +71,16 @@ final class TimelineManagerModel {
                 settings: settings,
                 now: now
             )
+            async let localRecords = localCards.loadAll()
 
-            let (eventRecords, reminderRecords, externalItems) = try await (
+            let (eventRecords, reminderRecords, externalItems, records) = try await (
                 events,
                 reminders,
-                localItems
+                localItems,
+                localRecords
+            )
+            recordsByID = Dictionary(
+                uniqueKeysWithValues: records.map { ($0.id, $0) }
             )
             var merged = eventRecords.map { normalize(mapper.mapEvent($0)) }
             merged += reminderRecords.compactMap {
@@ -94,6 +105,38 @@ final class TimelineManagerModel {
 
     func isEditable(_ item: TimelineItem) -> Bool {
         item.source == .external
+    }
+
+    func editor(for item: TimelineItem) throws -> TimelineRecordEditor {
+        guard let record = recordsByID[item.id] else {
+            throw LocalTimelineCardError.recordNotFound
+        }
+        return try TimelineRecordEditor(record: record)
+    }
+
+    func save(
+        _ editor: TimelineRecordEditor,
+        now: Date = .now
+    ) async throws {
+        try await localCards.update(editor.makeRecord(updatedAt: now))
+        await load(now: now)
+        await onMutation()
+    }
+
+    func delete(_ item: TimelineItem, now: Date = .now) async throws {
+        guard isEditable(item) else {
+            throw LocalTimelineCardError.readOnlySource
+        }
+        try await localCards.delete(id: item.id)
+        if settingsStore.value.manualPinnedSourceIdentifier
+            == item.sourceIdentifier
+        {
+            settingsStore.update {
+                $0.manualPinnedSourceIdentifier = nil
+            }
+        }
+        await load(now: now)
+        await onMutation()
     }
 
     nonisolated static func visibleItems(

@@ -23,6 +23,7 @@ struct AppDependencies {
     let activityCoordinator: ActivityCoordinator
     let systemEventRecognizer: any SystemEventRecognizing
     let imageRecognizer: any ImageRecognizing
+    let localTimelineCards: any LocalTimelineCardManaging
 
     init(
         gateway: any EventKitGatewayProtocol,
@@ -33,7 +34,8 @@ struct AppDependencies {
         calendar: Calendar,
         activityClient: any ActivityClient = LiveActivityClient(),
         systemEventRecognizer: (any SystemEventRecognizing)? = nil,
-        imageRecognizer: (any ImageRecognizing)? = nil
+        imageRecognizer: (any ImageRecognizing)? = nil,
+        localTimelineCards: (any LocalTimelineCardManaging)? = nil
     ) {
         self.gateway = gateway
         self.mapper = mapper
@@ -47,6 +49,8 @@ struct AppDependencies {
         )
         self.systemEventRecognizer = systemEventRecognizer ?? NoopSystemEventRecognizer()
         self.imageRecognizer = imageRecognizer ?? NoopImageRecognizer()
+        self.localTimelineCards =
+            localTimelineCards ?? NoopLocalTimelineCardService()
     }
 
     static func production(
@@ -72,8 +76,10 @@ struct AppDependencies {
         )
 
         let recognitionCoordinator = SystemEventRecognitionCoordinator(
-            repository: repository
+            repository: repository,
+            calendar: .autoupdatingCurrent
         )
+        let imageStore = ImageRecognitionStore(directoryURL: containerURL)
 
         return AppDependencies(
             gateway: EventKitGateway(),
@@ -84,8 +90,12 @@ struct AppDependencies {
             calendar: .autoupdatingCurrent,
             systemEventRecognizer: recognitionCoordinator,
             imageRecognizer: ImageRecognitionCoordinator(
-                imageStore: ImageRecognitionStore(directoryURL: containerURL),
+                imageStore: imageStore,
                 systemCoordinator: recognitionCoordinator
+            ),
+            localTimelineCards: LocalTimelineCardService(
+                repository: repository,
+                imageStore: imageStore
             )
         )
     }

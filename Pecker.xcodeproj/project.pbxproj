@@ -28,6 +28,7 @@
 		3F0AFEA4DD2B3336E26BB654 /* SystemEventRecognitionCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E939AA89EC67F964F184E9F /* SystemEventRecognitionCoordinatorTests.swift */; };
 		40520A76F7CE37C59F9986E4 /* TimelineManagerModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 307BB69E2BCAA2B9B0E62B5F /* TimelineManagerModelTests.swift */; };
 		43306A7001C18FB42ADFB3F8 /* RecognitionProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A611540DA5E60CB389AB26 /* RecognitionProvider.swift */; };
+		446F9F6C4BA1872360B46FD7 /* LiveActivityBoundarySchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A149B20F87BBFBD0549B2F73 /* LiveActivityBoundarySchedulerTests.swift */; };
 		46CD6777F1132878CA2097D1 /* TimelineGrouping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654B01ACEFF0AD692C0B2961 /* TimelineGrouping.swift */; };
 		473C1E628C60D03F7236547C /* ActivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57445D879DB7069DBC6ACDC5 /* ActivityCoordinator.swift */; };
 		4762E05BD9BE126DE68DA375 /* EventTemplateFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */; };
@@ -55,6 +56,7 @@
 		A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */; };
 		A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE836F09322111FAF97F46BD /* ItemDetailView.swift */; };
 		ADA29F053B0A1C6190387FAA /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C45B689809643A0E569744 /* AppGroup.swift */; };
+		AEFE703CF972BC05C8501E54 /* LiveActivityBoundaryScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE12C1FC57A1314CE6F7EA0E /* LiveActivityBoundaryScheduler.swift */; };
 		B4C465A8034618E774EB554E /* EventKitGatewayProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */; };
 		B7882A7EC5D854AF217F8A92 /* PeckerLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36AE66BA85521E6D53AF3AC1 /* PeckerLiveActivityBundle.swift */; };
 		B8A0301D482CF2E70727C9CB /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83AF32813BC226C5DA46D1C2 /* AppModel.swift */; };
@@ -187,9 +189,11 @@
 		960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityPresentation.swift; sourceTree = "<group>"; };
 		994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineGroupingTests.swift; sourceTree = "<group>"; };
 		9FFF02FFA689038CCB31C51C /* APIKeyStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyStore.swift; sourceTree = "<group>"; };
+		A149B20F87BBFBD0549B2F73 /* LiveActivityBoundarySchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityBoundarySchedulerTests.swift; sourceTree = "<group>"; };
 		A81FEBCC0EA3B9E86251CD78 /* TimelineDateScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineDateScope.swift; sourceTree = "<group>"; };
 		A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
 		A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionStore.swift; sourceTree = "<group>"; };
+		AE12C1FC57A1314CE6F7EA0E /* LiveActivityBoundaryScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityBoundaryScheduler.swift; sourceTree = "<group>"; };
 		B1023C8365A60F7B0D763E54 /* TimelineManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineManagerModel.swift; sourceTree = "<group>"; };
 		B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineEngineTests.swift; sourceTree = "<group>"; };
 		B3780D2E7AADB4001ACBACBA /* TimelineRecordEditorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineRecordEditorTests.swift; sourceTree = "<group>"; };
@@ -460,6 +464,7 @@
 				46AAEA61125C158D814DE509 /* ActivityCoordinatorTests.swift */,
 				B6B1A611EC65F927F6D7DCEE /* EventKitMapperTests.swift */,
 				039834399FFB7E60E6C39C1D /* ItemDetailActionTests.swift */,
+				A149B20F87BBFBD0549B2F73 /* LiveActivityBoundarySchedulerTests.swift */,
 				513FAE2E4967AD8A312C9CFC /* LiveActivityPresentationAdapterTests.swift */,
 				DAEECB031A5C0E7E350974B9 /* LiveActivityPresentationTests.swift */,
 				E125643CB612C366015BCD60 /* OnboardingStateTests.swift */,
@@ -501,6 +506,7 @@
 			children = (
 				C6FF99F545E305EE9C7D4B08 /* ActivityClient.swift */,
 				57445D879DB7069DBC6ACDC5 /* ActivityCoordinator.swift */,
+				AE12C1FC57A1314CE6F7EA0E /* LiveActivityBoundaryScheduler.swift */,
 				52685F7C0BEC8076E4E44D97 /* LiveActivityPresentationAdapter.swift */,
 			);
 			name = Activity;
@@ -749,6 +755,7 @@
 				85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */,
 				EE85E349417FE3DD3A2DFAA0 /* ImageRecognitionStore.swift in Sources */,
 				A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */,
+				AEFE703CF972BC05C8501E54 /* LiveActivityBoundaryScheduler.swift in Sources */,
 				C5A3723C1A4AC4D356EA50C7 /* LiveActivityPresentationAdapter.swift in Sources */,
 				5BEEB285930BADB1698B4A16 /* OnboardingModel.swift in Sources */,
 				265795E04003DA59AC3AF528 /* OnboardingView.swift in Sources */,
@@ -795,6 +802,7 @@
 				D1BD5DBE059A7F95A632E521 /* ActivityCoordinatorTests.swift in Sources */,
 				D993DAB4ED7AB12BDECEDE9C /* EventKitMapperTests.swift in Sources */,
 				5836C37E4AB4EC1F68B6C8F1 /* ItemDetailActionTests.swift in Sources */,
+				446F9F6C4BA1872360B46FD7 /* LiveActivityBoundarySchedulerTests.swift in Sources */,
 				BE9304D962BD9DB1BAE0CE79 /* LiveActivityPresentationAdapterTests.swift in Sources */,
 				1307FD6CBC0E86085BAF07D8 /* LiveActivityPresentationTests.swift in Sources */,
 				1AA7058DEFA5CFB45BD011AA /* OnboardingStateTests.swift in Sources */,

@@ -161,6 +161,10 @@ final class TodayViewModelTests: XCTestCase {
         }
         XCTAssertEqual(state.primaryTitle, "Team meeting")
         XCTAssertEqual(attributes.localDayIdentifier, "2027-01-15")
+        XCTAssertEqual(
+            viewModel.nextLiveActivityBoundary,
+            now.addingTimeInterval(15 * 60)
+        )
     }
 
     @MainActor

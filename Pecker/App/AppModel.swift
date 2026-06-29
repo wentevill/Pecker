@@ -12,6 +12,8 @@ final class AppModel {
     private let notificationCenter: NotificationCenter
     private let refreshOperation: @MainActor () async -> Void
     private nonisolated let lifetime: AppModelLifetime
+    @ObservationIgnored
+    private let liveActivityBoundaryScheduler: LiveActivityBoundaryScheduler
     private(set) var hasStarted = false
     private var isActive = false
 
@@ -34,8 +36,13 @@ final class AppModel {
             defaults: onboardingDefaults
         )
         self.notificationCenter = notificationCenter
-        self.refreshOperation = refreshOperation ?? {
+        let resolvedRefreshOperation = refreshOperation ?? {
             await todayViewModel.refresh()
+        }
+        self.refreshOperation = resolvedRefreshOperation
+        liveActivityBoundaryScheduler = LiveActivityBoundaryScheduler {
+            await resolvedRefreshOperation()
+            return todayViewModel.nextLiveActivityBoundary
         }
         lifetime = AppModelLifetime(notificationCenter: notificationCenter)
     }
@@ -73,6 +80,7 @@ final class AppModel {
 
     func becameInactive() {
         isActive = false
+        try? liveActivityBoundaryScheduler.becameInactive()
     }
 
     func settingsChanged() {
@@ -87,6 +95,9 @@ final class AppModel {
 
     func refresh() async {
         await todayViewModel.refresh()
+        liveActivityBoundaryScheduler.schedule(
+            todayViewModel.nextLiveActivityBoundary
+        )
     }
 
     private func scheduleRefresh() {
@@ -95,6 +106,12 @@ final class AppModel {
                 return
             }
             await refreshOperation()
+            guard !Task.isCancelled else {
+                return
+            }
+            liveActivityBoundaryScheduler.schedule(
+                todayViewModel.nextLiveActivityBoundary
+            )
         }
         lifetime.replaceRefreshTask(with: task)
     }

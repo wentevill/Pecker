@@ -17,6 +17,7 @@ final class TodayViewModel {
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
     private(set) var liveActivityStatusText = "等待内容"
+    private(set) var nextLiveActivityBoundary: Date?
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -204,22 +205,27 @@ final class TodayViewModel {
         }
 
         let statusText: String
+        let nextBoundary: Date?
         do {
-            let decision = try await dependencies.activityCoordinator.reconcile(
+            let result = try await dependencies.activityCoordinator
+                .reconcileWithBoundary(
                 snapshot: snapshot,
                 settings: settings,
                 now: now
             )
             statusText = self.statusText(
-                for: decision,
+                for: result.decision,
                 settings: settings
             )
+            nextBoundary = result.nextBoundary
         } catch {
             statusText = "暂不可用"
+            nextBoundary = nil
         }
 
         if isCurrent(generation), !Task.isCancelled {
             liveActivityStatusText = statusText
+            nextLiveActivityBoundary = nextBoundary
         }
         await activityReconciliationQueue.release()
     }

@@ -477,7 +477,9 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 fields: [
                     "startDateTime": "2026-06-28T10:30:00+08:00",
                     "endDateTime": "2026-06-28T11:48:00+08:00",
-                    "trainNumber": "G123"
+                    "trainNumber": "G123",
+                    "departureStation": "上海虹桥",
+                    "arrivalStation": "北京南"
                 ]
             ),
             confidence: nil
@@ -550,6 +552,93 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
 
     #expect(imageStore.savedImages.count == 1)
     #expect(imageStore.deletedPaths == ["Images/test.jpg"])
+}
+
+@Test func validatorAcceptsMinimumFieldsForEveryRecognitionKind() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+    let fixtures: [ExternalEventTemplatePayload] = [
+        .init(kind: .meeting, fields: [
+            "title": "设计评审",
+            "startDateTime": "2026-07-03T10:00:00+08:00"
+        ]),
+        .init(kind: .task, fields: [
+            "title": "提交材料",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .flight, fields: [
+            "flightNumber": "MU5101",
+            "departureAirportCode": "SHA",
+            "arrivalAirportCode": "PEK",
+            "startDateTime": "2026-07-03T09:00:00+08:00"
+        ]),
+        .init(kind: .train, fields: [
+            "trainNumber": "G123",
+            "departureStation": "上海虹桥站",
+            "arrivalStation": "北京南站",
+            "startDateTime": "2026-07-03T08:00:00+08:00"
+        ]),
+        .init(kind: .travel, fields: [
+            "destination": "苏州",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .interview, fields: [
+            "title": "产品面试",
+            "startDateTime": "2026-07-03T11:00:00+08:00"
+        ]),
+        .init(kind: .deadline, fields: [
+            "title": "报名截止",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .unknown, fields: [
+            "title": "社区活动",
+            "eventDate": "2026-07-03"
+        ])
+    ]
+
+    for fixture in fixtures {
+        let result = try validator.validate(fixture)
+        #expect(result.payload == fixture)
+        #expect(result.isAllDay == fixture.fields["eventDate"].map { _ in true } ?? false)
+    }
+}
+
+@Test func validatorReportsExactMissingTrainMinimum() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+
+    do {
+        _ = try validator.validate(.init(kind: .train, fields: [
+            "departureStation": "上海虹桥站",
+            "arrivalStation": "北京南站",
+            "eventDate": "2026-07-03",
+            "departureTime": "08:00"
+        ]))
+        Issue.record("Expected minimum-field failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .validation)
+        #expect(failure.missingFields == ["车次"])
+        #expect(failure.reason == "核对后仍缺少：车次")
+    }
+}
+
+@Test func validatorRollsImplicitOvernightArrivalIntoNextDay() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+
+    let result = try validator.validate(.init(kind: .train, fields: [
+        "trainNumber": "D1",
+        "departureStation": "北京站",
+        "arrivalStation": "上海站",
+        "eventDate": "2026-07-03",
+        "departureTime": "23:30",
+        "arrivalTime": "05:10"
+    ]))
+
+    #expect(result.endDate?.timeIntervalSince(result.startDate) == 20_400)
 }
 
 private actor RecordingEventRepository: EventRepositoryStoring {

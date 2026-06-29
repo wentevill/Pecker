@@ -57,7 +57,32 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
     let recognizedAt: Date
     let startDate: Date
     let endDate: Date?
+    let isAllDay: Bool
     let template: TimelineEventTemplate
+
+    init(
+        id: String,
+        sourceIdentifier: String,
+        source: RecognitionSource,
+        filename: String?,
+        imageData: Data,
+        recognizedAt: Date,
+        startDate: Date,
+        endDate: Date?,
+        isAllDay: Bool = false,
+        template: TimelineEventTemplate
+    ) {
+        self.id = id
+        self.sourceIdentifier = sourceIdentifier
+        self.source = source
+        self.filename = filename
+        self.imageData = imageData
+        self.recognizedAt = recognizedAt
+        self.startDate = startDate
+        self.endDate = endDate
+        self.isAllDay = isAllDay
+        self.template = template
+    }
 }
 
 struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
@@ -194,13 +219,22 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         }
 
         let result = try await provider.recognize(input)
-        guard let template = templateFactory.makeTemplate(from: result.payload) else {
-            throw RecognitionError.unsupportedInput
+        let validation = try RecognizedEventValidator(calendar: calendar)
+            .validate(result.payload)
+        guard let template = templateFactory.makeTemplate(
+            from: validation.payload
+        ) else {
+            throw RecognitionPipelineFailure(
+                stage: .validation,
+                reason: "未识别到可保存的事件内容",
+                technicalSummary: "模板工厂无法从核对后的字段构建事件",
+                httpStatus: nil,
+                serviceCode: nil,
+                serviceMessage: nil,
+                missingFields: [],
+                responseExcerpt: nil
+            )
         }
-        let timing = try RecognizedEventTiming.parse(
-            fields: result.payload.fields,
-            calendar: calendar
-        )
 
         return ImageRecognitionDraft(
             id: "\(idPrefix):\(sourceIdentifier)",
@@ -209,8 +243,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             filename: filename,
             imageData: data,
             recognizedAt: now,
-            startDate: timing.startDate,
-            endDate: timing.endDate,
+            startDate: validation.startDate,
+            endDate: validation.endDate,
+            isAllDay: validation.isAllDay,
             template: template
         )
     }
@@ -397,103 +432,6 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             recognitionStatus: status,
             updatedAt: updatedAt
         )
-    }
-}
-
-private struct RecognizedEventTiming {
-    let startDate: Date
-    let endDate: Date?
-
-    static func parse(
-        fields: [String: String],
-        calendar: Calendar
-    ) throws -> RecognizedEventTiming {
-        let explicitStart = value(
-            in: fields,
-            keys: ["startDateTime", "start_datetime", "departureDateTime"]
-        ).flatMap(parseISO8601)
-        let eventDate = value(in: fields, keys: ["eventDate", "event_date", "date"])
-        let startTime = value(
-            in: fields,
-            keys: ["departureTime", "departure_time", "startTime", "start_time"]
-        )
-        let startDate = explicitStart ?? combine(
-            date: eventDate,
-            time: startTime,
-            calendar: calendar
-        )
-
-        guard let startDate else {
-            throw RecognitionError.invalidResponse
-        }
-
-        let explicitEndText = value(
-            in: fields,
-            keys: ["endDateTime", "end_datetime", "arrivalDateTime"]
-        )
-        let explicitEnd = explicitEndText.flatMap(parseISO8601)
-        let arrivalDate = value(
-            in: fields,
-            keys: ["arrivalDate", "arrival_date"]
-        )
-        let endTime = value(
-            in: fields,
-            keys: ["arrivalTime", "arrival_time", "endTime", "end_time"]
-        )
-        var endDate = explicitEnd ?? combine(
-            date: arrivalDate ?? eventDate,
-            time: endTime,
-            calendar: calendar
-        )
-
-        if explicitEndText == nil,
-           arrivalDate == nil,
-           let parsedEnd = endDate,
-           parsedEnd < startDate
-        {
-            endDate = calendar.date(byAdding: .day, value: 1, to: parsedEnd)
-        }
-
-        if let endDate, endDate <= startDate {
-            throw RecognitionError.invalidResponse
-        }
-
-        return RecognizedEventTiming(startDate: startDate, endDate: endDate)
-    }
-
-    private static func value(
-        in fields: [String: String],
-        keys: [String]
-    ) -> String? {
-        keys.lazy
-            .compactMap { fields[$0]?.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .first { !$0.isEmpty }
-    }
-
-    private static func parseISO8601(_ value: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: value) {
-            return date
-        }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: value)
-    }
-
-    private static func combine(
-        date: String?,
-        time: String?,
-        calendar: Calendar
-    ) -> Date? {
-        guard let date, let time else {
-            return nil
-        }
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        return formatter.date(from: "\(date) \(time)")
     }
 }
 

@@ -38,12 +38,15 @@ public struct ExternalEventTemplatePayload: Sendable, Equatable, Codable {
 
 public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
     case trainTicket(TrainTicketTemplate)
+    case flightTicket(FlightTicketTemplate)
     case generic(GenericEventTemplate)
 
     public var kind: TimelineKind {
         switch self {
         case .trainTicket:
             .train
+        case .flightTicket:
+            .flight
         case let .generic(event):
             event.kind
         }
@@ -52,6 +55,8 @@ public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
     public var presentation: EventTemplatePresentation {
         switch self {
         case let .trainTicket(ticket):
+            ticket.presentation
+        case let .flightTicket(ticket):
             ticket.presentation
         case let .generic(event):
             event.presentation
@@ -62,6 +67,7 @@ public enum TimelineEventTemplate: Sendable, Equatable, Hashable, Codable {
 public struct EventTemplatePresentation: Sendable, Equatable, Hashable, Codable {
     public enum Style: String, Sendable, Equatable, Hashable, Codable {
         case trainTicket
+        case flightTicket
         case generic
     }
 
@@ -98,17 +104,45 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
     public let title: String
     public let location: String?
     public let notes: String?
+    public let fields: [String: String]
 
     public init(
         kind: TimelineKind,
         title: String,
         location: String?,
-        notes: String?
+        notes: String?,
+        fields: [String: String] = [:]
     ) {
         self.kind = kind
         self.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         self.location = location?.nilIfBlank
         self.notes = notes?.nilIfBlank
+        self.fields = fields.compactMapValues(\.nilIfBlank)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case title
+        case location
+        case notes
+        case fields
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            kind: try container.decode(TimelineKind.self, forKey: .kind),
+            title: try container.decode(String.self, forKey: .title),
+            location: try container.decodeIfPresent(
+                String.self,
+                forKey: .location
+            ),
+            notes: try container.decodeIfPresent(String.self, forKey: .notes),
+            fields: try container.decodeIfPresent(
+                [String: String].self,
+                forKey: .fields
+            ) ?? [:]
+        )
     }
 
     public var presentation: EventTemplatePresentation {
@@ -140,6 +174,101 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
         case .deadline: "截止"
         case .unknown: "未分类"
         }
+    }
+}
+
+public struct FlightTicketTemplate: Sendable, Equatable, Hashable, Codable {
+    public let flightNumber: String?
+    public let carrier: String?
+    public let departureAirport: String?
+    public let departureAirportCode: String?
+    public let arrivalAirport: String?
+    public let arrivalAirportCode: String?
+    public let departureTimeText: String?
+    public let arrivalTimeText: String?
+    public let terminal: String?
+    public let gate: String?
+    public let seat: String?
+    public let travelStatus: String?
+
+    public init(
+        flightNumber: String?,
+        carrier: String?,
+        departureAirport: String?,
+        departureAirportCode: String?,
+        arrivalAirport: String?,
+        arrivalAirportCode: String?,
+        departureTimeText: String?,
+        arrivalTimeText: String?,
+        terminal: String?,
+        gate: String?,
+        seat: String?,
+        travelStatus: String?
+    ) {
+        self.flightNumber = flightNumber?.nilIfBlank
+        self.carrier = carrier?.nilIfBlank
+        self.departureAirport = departureAirport?.nilIfBlank
+        self.departureAirportCode = departureAirportCode?.nilIfBlank
+        self.arrivalAirport = arrivalAirport?.nilIfBlank
+        self.arrivalAirportCode = arrivalAirportCode?.nilIfBlank
+        self.departureTimeText = departureTimeText?.nilIfBlank
+        self.arrivalTimeText = arrivalTimeText?.nilIfBlank
+        self.terminal = terminal?.nilIfBlank
+        self.gate = gate?.nilIfBlank
+        self.seat = seat?.nilIfBlank
+        self.travelStatus = travelStatus?.nilIfBlank
+    }
+
+    public var presentation: EventTemplatePresentation {
+        let departure = endpoint(
+            name: departureAirport,
+            code: departureAirportCode
+        )
+        let arrival = endpoint(name: arrivalAirport, code: arrivalAirportCode)
+        let route = [departure, arrival]
+            .compactMap(\.?.nilIfBlank)
+            .joined(separator: " → ")
+        var fields: [EventTemplatePresentation.Field] = []
+        append("承运方", carrier, to: &fields)
+        append("出发", departure, to: &fields)
+        append("到达", arrival, to: &fields)
+        append("出发时间", departureTimeText, to: &fields)
+        append("到达时间", arrivalTimeText, to: &fields)
+        append("航站楼", terminal, to: &fields)
+        append("登机口", gate, to: &fields)
+        append("座位", seat, to: &fields)
+        append("状态", travelStatus, to: &fields)
+
+        return EventTemplatePresentation(
+            style: .flightTicket,
+            title: flightNumber ?? "航班",
+            subtitle: route.nilIfBlank,
+            fields: fields
+        )
+    }
+
+    private func endpoint(name: String?, code: String?) -> String? {
+        switch (name?.nilIfBlank, code?.nilIfBlank) {
+        case let (name?, code?):
+            "\(code) · \(name)"
+        case let (name?, nil):
+            name
+        case let (nil, code?):
+            code
+        case (nil, nil):
+            nil
+        }
+    }
+
+    private func append(
+        _ label: String,
+        _ value: String?,
+        to fields: inout [EventTemplatePresentation.Field]
+    ) {
+        guard let value = value?.nilIfBlank else {
+            return
+        }
+        fields.append(.init(label: label, value: value))
     }
 }
 
@@ -251,7 +380,54 @@ public struct EventTemplateFactory: Sendable {
                 seatClass: payload.value(for: "seatClass", "seat_class", "class", "席别"),
                 priceText: payload.value(for: "price", "priceText", "票价")
             ))
-        case .meeting, .task, .flight, .travel, .interview, .deadline, .unknown:
+        case .flight:
+            .flightTicket(.init(
+                flightNumber: payload.value(
+                    for: "flightNumber",
+                    "flight_number",
+                    "航班号"
+                ),
+                carrier: payload.value(for: "carrier", "airline", "承运方", "航空公司"),
+                departureAirport: payload.value(
+                    for: "departureAirport",
+                    "departure_airport",
+                    "origin",
+                    "出发机场"
+                ),
+                departureAirportCode: payload.value(
+                    for: "departureAirportCode",
+                    "departure_airport_code",
+                    "originCode",
+                    "出发机场代码"
+                ),
+                arrivalAirport: payload.value(
+                    for: "arrivalAirport",
+                    "arrival_airport",
+                    "destination",
+                    "到达机场"
+                ),
+                arrivalAirportCode: payload.value(
+                    for: "arrivalAirportCode",
+                    "arrival_airport_code",
+                    "destinationCode",
+                    "到达机场代码"
+                ),
+                departureTimeText: payload.value(
+                    for: "departureTime",
+                    "departure_time",
+                    "出发时间"
+                ),
+                arrivalTimeText: payload.value(
+                    for: "arrivalTime",
+                    "arrival_time",
+                    "到达时间"
+                ),
+                terminal: payload.value(for: "terminal", "航站楼"),
+                gate: payload.value(for: "gate", "boardingGate", "登机口"),
+                seat: payload.value(for: "seat", "seatNumber", "座位"),
+                travelStatus: payload.value(for: "status", "travelStatus", "状态")
+            ))
+        case .meeting, .task, .travel, .interview, .deadline, .unknown:
             makeGenericTemplate(from: payload)
         }
     }
@@ -266,7 +442,8 @@ public struct EventTemplateFactory: Sendable {
             kind: payload.kind,
             title: title,
             location: payload.value(for: "location", "地点"),
-            notes: payload.value(for: "notes", "description", "details", "备注")
+            notes: payload.value(for: "notes", "description", "details", "备注"),
+            fields: payload.fields
         ))
     }
 

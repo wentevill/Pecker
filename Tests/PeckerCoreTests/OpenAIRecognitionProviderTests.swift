@@ -88,127 +88,6 @@ import Testing
     #expect(text.contains("data:image/jpeg;base64,/9j/"))
 }
 
-@Test func openAIProviderRecognizesOutputTextPayload() async throws {
-    let client = StubRecognitionHTTPClient(
-        data: Data(
-            """
-            {
-              "output_text": "{\\"kind\\":\\"train\\",\\"fields\\":{\\"trainNumber\\":\\"G123\\",\\"departureStation\\":\\"上海虹桥\\",\\"arrivalStation\\":\\"北京南\\"}}"
-            }
-            """.utf8
-        ),
-        statusCode: 200
-    )
-    let provider = OpenAIRecognitionProvider(
-        configuration: .init(
-            host: "https://api.openai.com",
-            apiKey: "sk-test",
-            model: "gpt-test"
-        ),
-        httpClient: client
-    )
-
-    let result = try await provider.recognize(
-        .calendar(
-            sourceIdentifier: "calendar-1",
-            title: "G123 上海虹桥 → 北京南",
-            startDate: nil,
-            endDate: nil,
-            isAllDay: false,
-            location: nil,
-            notes: nil
-        )
-    )
-
-    #expect(result.payload.kind == .train)
-    #expect(result.payload.fields["trainNumber"] == "G123")
-    let request = try #require(await client.recordedRequest)
-    #expect(request.url?.absoluteString == "https://api.openai.com/v1/chat/completions")
-}
-
-@Test func openAIProviderRecognizesNestedOutputContentPayload() async throws {
-    let client = StubRecognitionHTTPClient(
-        data: Data(
-            """
-            {
-              "output": [
-                {
-                  "content": [
-                    {
-                      "type": "output_text",
-                      "text": "{\\"kind\\":\\"train\\",\\"fields\\":{\\"seatNumber\\":\\"03A\\"}}"
-                    }
-                  ]
-                }
-              ]
-            }
-            """.utf8
-        ),
-        statusCode: 200
-    )
-    let provider = OpenAIRecognitionProvider(
-        configuration: .init(
-            host: "https://api.openai.com",
-            apiKey: "sk-test",
-            model: "gpt-test"
-        ),
-        httpClient: client
-    )
-
-    let result = try await provider.recognize(
-        .reminder(
-            sourceIdentifier: "reminder-1",
-            title: "火车票",
-            dueDate: nil,
-            endDate: nil,
-            notes: "03A"
-        )
-    )
-
-    #expect(result.payload.kind == .train)
-    #expect(result.payload.fields["seatNumber"] == "03A")
-}
-
-@Test func openAIProviderRecognizesChatCompletionsPayload() async throws {
-    let client = StubRecognitionHTTPClient(
-        data: Data(
-            """
-            {
-              "choices": [
-                {
-                  "message": {
-                    "content": "{\\"kind\\":\\"train\\",\\"fields\\":{\\"seatNumber\\":\\"03A\\"}}"
-                  }
-                }
-              ]
-            }
-            """.utf8
-        ),
-        statusCode: 200
-    )
-    let provider = OpenAIRecognitionProvider(
-        configuration: .init(
-            host: "https://api.openai.com/v1",
-            apiKey: "sk-test",
-            model: "gpt-test"
-        ),
-        httpClient: client
-    )
-
-    let result = try await provider.recognize(
-        .reminder(
-            sourceIdentifier: "reminder-1",
-            title: "火车票",
-            dueDate: nil,
-            endDate: nil,
-            notes: "03A"
-        )
-    )
-
-    #expect(result.payload.kind == .train)
-    #expect(result.payload.fields["seatNumber"] == "03A")
-}
-
 @Test func openAIProviderReportsWhenModelDoesNotSupportImages() async throws {
     let client = StubRecognitionHTTPClient(
         data: Data(
@@ -243,45 +122,7 @@ import Testing
     }
 }
 
-@Test func openAIProviderDiscardsReasoningBeforeFinalJSON() async throws {
-    let client = StubRecognitionHTTPClient(
-        data: Data(
-            """
-            {
-              "choices": [
-                {
-                  "message": {
-                    "content": "<think>模型提示中含有未配对引号 \\" 但不应影响结果</think>\\n\\n{\\"kind\\":\\"train\\",\\"fields\\":{\\"trainNumber\\":\\"G123\\"}}"
-                  }
-                }
-              ]
-            }
-            """.utf8
-        ),
-        statusCode: 200
-    )
-    let provider = OpenAIRecognitionProvider(
-        configuration: .init(
-            host: "https://api.example.com/v1",
-            apiKey: "sk-test",
-            model: "vision"
-        ),
-        httpClient: client
-    )
-
-    let result = try await provider.recognize(
-        .importedImage(
-            id: "image-1",
-            imageData: Data([1]),
-            filename: "ticket.jpg"
-        )
-    )
-
-    #expect(result.payload.kind == .train)
-    #expect(result.payload.fields["trainNumber"] == "G123")
-}
-
-@Test func openAIProviderRejectsTextWithoutFinalJSON() async throws {
+@Test func openAIProviderRejectsContentWithoutFunctionCall() async throws {
     let client = StubRecognitionHTTPClient(
         data: Data(
             """
@@ -315,11 +156,11 @@ import Testing
                 filename: "ticket.jpg"
             )
         )
-        Issue.record("Expected structured decoding failure")
+        Issue.record("Expected missing-function-call failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "识别结果格式异常")
-        #expect(failure.responseExcerpt?.contains("无法识别") == true)
+        #expect(failure.reason == "模型未调用要求的函数")
+        #expect(failure.technicalDetails.contains("无法识别"))
     }
 }
 
@@ -327,12 +168,17 @@ import Testing
     let referenceDate = ISO8601DateFormatter()
         .date(from: "2026-07-03T01:30:00Z")!
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
-        .response(chatEnvelope(
-            #"{"kind":"train","fields":{"departureStation":"上海虹桥站","arrivalStation":"北京南站"}}"#
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"train"}"#
         ), 200),
-        .response(chatEnvelope(
-            #"{"kind":"train","fields":{"trainNumber":"G123","departureStation":"上海虹桥站","arrivalStation":"北京南站","startDateTime":"2026-07-03T08:00:00+08:00"}}"#
+        .response(toolCallEnvelope(
+            name: "fill_train_event",
+            arguments: #"{"departureStation":"上海虹桥站","arrivalStation":"北京南站"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_train_event",
+            arguments: #"{"trainNumber":"G123","departureStation":"上海虹桥站","arrivalStation":"北京南站","departureDateTime":"2026-07-03T08:00:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -369,12 +215,17 @@ import Testing
 
 @Test func openAIProviderSendsMandatoryFunctionToolsForEveryStage() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"task"}"#), 200),
-        .response(chatEnvelope(
-            #"{"kind":"task","fields":{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}}"#
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"task"}"#
         ), 200),
-        .response(chatEnvelope(
-            #"{"kind":"task","fields":{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}}"#
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -428,14 +279,151 @@ import Testing
     }
 }
 
-@Test func openAIProviderLetsVerificationCorrectUnknownToGeneric() async throws {
+@Test func openAIProviderDecodesRequiredFunctionCalls() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"unknown"}"#), 200),
-        .response(chatEnvelope(
-            #"{"kind":"unknown","fields":{"title":"社区活动"}}"#
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"task"}"#
         ), 200),
-        .response(chatEnvelope(
-            #"{"kind":"unknown","fields":{"title":"社区活动","eventDate":"2026-07-03","notes":"携带报名二维码"}}"#
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"仓库","priority":null,"assignee":null,"project":null,"notes":null}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"仓库","priority":null,"assignee":null,"project":null,"notes":null}"#
+        ), 200)
+    ])
+    let provider = makeProvider(client: client)
+
+    let result = try await provider.recognize(.reminder(
+        sourceIdentifier: "patrol",
+        title: "今天晚上11点半巡逻仓库",
+        dueDate: nil,
+        endDate: nil,
+        notes: nil
+    ))
+
+    #expect(result.payload.kind == .task)
+    #expect(result.payload.fields["title"] == "巡逻仓库")
+    #expect(
+        result.payload.fields["dueDateTime"]
+            == "2026-06-29T23:30:00+08:00"
+    )
+    #expect(result.payload.fields["priority"] == nil)
+}
+
+@Test func openAIProviderDecodesLegacySingleFunctionCalls() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(legacyFunctionCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"unknown"}"#
+        ), 200),
+        .response(legacyFunctionCallEnvelope(
+            name: "fill_generic_event",
+            arguments: #"{"title":"社区活动","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
+        ), 200),
+        .response(legacyFunctionCallEnvelope(
+            name: "fill_generic_event",
+            arguments: #"{"title":"社区活动","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
+        ), 200)
+    ])
+
+    let result = try await makeProvider(client: client).recognize(
+        .importedImage(
+            id: "poster",
+            imageData: Data([1]),
+            filename: "poster.jpg"
+        )
+    )
+
+    #expect(result.payload.kind == .unknown)
+    #expect(result.payload.fields["eventDate"] == "2026-07-03")
+}
+
+@Test func openAIProviderRejectsMultipleFunctionCalls() async throws {
+    let data = multipleToolCallsEnvelope([
+        ("classify_event", #"{"kind":"task"}"#),
+        ("classify_event", #"{"kind":"meeting"}"#)
+    ])
+    let client = QueuedRecognitionHTTPClient(steps: [.response(data, 200)])
+
+    do {
+        _ = try await makeProvider(client: client).recognize(
+            .importedImage(
+                id: "multiple",
+                imageData: Data([1]),
+                filename: "input.jpg"
+            )
+        )
+        Issue.record("Expected multiple-call failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "模型返回了多个函数调用")
+        #expect(failure.technicalDetails.contains("classify_event"))
+    }
+}
+
+@Test func openAIProviderRejectsWrongFunctionForStage() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"巡逻仓库"}"#
+        ), 200)
+    ])
+
+    do {
+        _ = try await makeProvider(client: client).recognize(
+            .importedImage(
+                id: "wrong",
+                imageData: Data([1]),
+                filename: "input.jpg"
+            )
+        )
+        Issue.record("Expected wrong-function failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "模型调用了当前阶段不允许的函数")
+        #expect(failure.technicalDetails.contains("fill_task_event"))
+    }
+}
+
+@Test func openAIProviderRejectsMalformedFunctionArguments() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"#
+        ), 200)
+    ])
+
+    do {
+        _ = try await makeProvider(client: client).recognize(
+            .importedImage(
+                id: "bad-args",
+                imageData: Data([1]),
+                filename: "input.jpg"
+            )
+        )
+        Issue.record("Expected malformed-arguments failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "函数参数格式异常")
+    }
+}
+
+@Test func openAIProviderLetsVerificationCorrectTheEventType() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"unknown"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_generic_event",
+            arguments: #"{"title":"提交材料"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_task_event",
+            arguments: #"{"title":"提交材料","eventDate":"2026-07-03"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -455,35 +443,41 @@ import Testing
         )
     )
 
-    #expect(result.payload.kind == .unknown)
+    #expect(result.payload.kind == .task)
     #expect(result.payload.fields["eventDate"] == "2026-07-03")
     #expect(await client.recordedRequests.count == 3)
 }
 
 @Test func openAIProviderAcceptsNumericPriceInReportedTrainPayload() async throws {
-    let trainPayload = #"""
+    let trainArguments = #"""
     {
-      "kind": "train",
-      "fields": {
-        "title": "C5788 成都东站 → 重庆西站",
-        "trainNumber": "C5788",
-        "departureStation": "成都东站",
-        "arrivalStation": "重庆西站",
-        "departureDateTime": "2026-06-28T23:00:00+08:00",
-        "arrivalDateTime": "2026-06-28T23:30:00+08:00",
-        "seatClass": "二等座",
-        "carriageNumber": "02",
-        "seatNumber": "06D",
-        "price": 96.0,
-        "ticketType": "成人票",
-        "orderNumber": "E123456789"
-      }
+      "title": "C5788 成都东站 → 重庆西站",
+      "trainNumber": "C5788",
+      "departureStation": "成都东站",
+      "arrivalStation": "重庆西站",
+      "departureDateTime": "2026-06-28T23:00:00+08:00",
+      "arrivalDateTime": "2026-06-28T23:30:00+08:00",
+      "seatClass": "二等座",
+      "carriageNumber": "02",
+      "seatNumber": "06D",
+      "price": 96.0,
+      "ticketType": "成人票",
+      "orderNumber": "E123456789"
     }
     """#
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
-        .response(chatEnvelope(trainPayload), 200),
-        .response(chatEnvelope(trainPayload), 200)
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"train"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_train_event",
+            arguments: trainArguments
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_train_event",
+            arguments: trainArguments
+        ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
         configuration: .init(
@@ -508,12 +502,17 @@ import Testing
 
 @Test func openAIProviderIncludesTextSourceInEveryPipelineStage() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"meeting"}"#), 200),
-        .response(chatEnvelope(
-            #"{"kind":"meeting","fields":{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}}"#
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"meeting"}"#
         ), 200),
-        .response(chatEnvelope(
-            #"{"kind":"meeting","fields":{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}}"#
+        .response(toolCallEnvelope(
+            name: "fill_meeting_event",
+            arguments: #"{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_meeting_event",
+            arguments: #"{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -546,8 +545,14 @@ import Testing
 
 @Test func openAIProviderPreservesVerificationServiceError() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
-        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
-        .response(chatEnvelope(#"{"kind":"train","fields":{}}"#), 200),
+        .response(toolCallEnvelope(
+            name: "classify_event",
+            arguments: #"{"kind":"train"}"#
+        ), 200),
+        .response(toolCallEnvelope(
+            name: "fill_train_event",
+            arguments: #"{}"#
+        ), 200),
         .response(Data(
             #"{"error":{"message":"Too many requests","code":"rate_limit"}}"#.utf8
         ), 429)
@@ -615,6 +620,64 @@ private func chatEnvelope(_ content: String) -> Data {
         ]
     ]
     return try! JSONSerialization.data(withJSONObject: envelope)
+}
+
+private func toolCallEnvelope(name: String, arguments: String) -> Data {
+    multipleToolCallsEnvelope([(name, arguments)])
+}
+
+private func multipleToolCallsEnvelope(
+    _ calls: [(name: String, arguments: String)]
+) -> Data {
+    let toolCalls: [[String: Any]] = calls.enumerated().map { index, call in
+        [
+            "id": "call_\(index)",
+            "type": "function",
+            "function": [
+                "name": call.name,
+                "arguments": call.arguments
+            ]
+        ]
+    }
+    let envelope: [String: Any] = [
+        "choices": [
+            ["message": ["content": NSNull(), "tool_calls": toolCalls]]
+        ]
+    ]
+    return try! JSONSerialization.data(withJSONObject: envelope)
+}
+
+private func legacyFunctionCallEnvelope(
+    name: String,
+    arguments: String
+) -> Data {
+    let envelope: [String: Any] = [
+        "choices": [
+            [
+                "message": [
+                    "content": NSNull(),
+                    "function_call": [
+                        "name": name,
+                        "arguments": arguments
+                    ]
+                ]
+            ]
+        ]
+    ]
+    return try! JSONSerialization.data(withJSONObject: envelope)
+}
+
+private func makeProvider(
+    client: any RecognitionHTTPClient
+) -> OpenAIRecognitionProvider {
+    OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
 }
 
 private func requestJSON(_ request: URLRequest) throws -> [String: Any] {

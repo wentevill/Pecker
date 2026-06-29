@@ -5,6 +5,65 @@ import XCTest
 @testable import Pecker
 
 final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
+    func testGenericPatrolImageUsesRecognitionDayAndLocalTimeZone() async throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Shanghai"))
+        let now = try XCTUnwrap(
+            ISO8601DateFormatter().date(from: "2026-06-28T12:00:00+08:00")
+        )
+        let provider = RecordingRecognitionProvider(
+            result: RecognitionResult(
+                payload: ExternalEventTemplatePayload(
+                    kind: .task,
+                    fields: [
+                        "title": "巡逻",
+                        "eventDate": "2026-06-28",
+                        "startTime": "23:00",
+                        "endTime": "23:30",
+                        "notes": "巡查楼梯口、仓库、围栏"
+                    ]
+                ),
+                confidence: 0.95
+            )
+        )
+        let coordinator = SystemEventRecognitionCoordinator(
+            repository: RecordingEventRepository(),
+            apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+            calendar: calendar,
+            providerFactory: { _, _ in provider }
+        )
+
+        let draft = try await coordinator.recognizeImage(
+            data: Data([1, 2, 3]),
+            source: .importedImage,
+            filename: "patrol.jpg",
+            settings: TimelineSettings(
+                aiRecognitionMode: .openAI,
+                openAIAPIKeyConfigured: true
+            ),
+            now: now
+        )
+
+        guard case let .generic(event) = draft.template else {
+            return XCTFail("Expected a generic event")
+        }
+        XCTAssertEqual(event.title, "巡逻")
+        XCTAssertEqual(event.kind, .task)
+        XCTAssertEqual(event.notes, "巡查楼梯口、仓库、围栏")
+        XCTAssertEqual(
+            draft.startDate,
+            ISO8601DateFormatter().date(from: "2026-06-28T15:00:00Z")
+        )
+        XCTAssertEqual(
+            draft.endDate,
+            ISO8601DateFormatter().date(from: "2026-06-28T15:30:00Z")
+        )
+        let inputs = await provider.inputs()
+        let input = try XCTUnwrap(inputs.first)
+        XCTAssertEqual(input.referenceDate, now)
+        XCTAssertEqual(input.timeZoneIdentifier, "Asia/Shanghai")
+    }
+
     func testImageRecognitionStoresRecognizedTemplateFromProviderPayload() async throws {
         let repository = RecordingEventRepository()
         let provider = RecordingRecognitionProvider(

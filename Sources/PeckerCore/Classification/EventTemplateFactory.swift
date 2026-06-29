@@ -112,7 +112,9 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
     }
 
     public var presentation: EventTemplatePresentation {
-        var fields: [EventTemplatePresentation.Field] = []
+        var fields: [EventTemplatePresentation.Field] = [
+            .init(label: "类型", value: kindTitle)
+        ]
         if let location {
             fields.append(.init(label: "地点", value: location))
         }
@@ -125,6 +127,19 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
             subtitle: location ?? notes,
             fields: fields
         )
+    }
+
+    private var kindTitle: String {
+        switch kind {
+        case .meeting: "会议"
+        case .task: "任务"
+        case .flight: "航班"
+        case .train: "火车"
+        case .travel: "行程"
+        case .interview: "面试"
+        case .deadline: "截止"
+        case .unknown: "未分类"
+        }
     }
 }
 

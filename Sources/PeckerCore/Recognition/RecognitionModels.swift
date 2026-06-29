@@ -25,6 +25,8 @@ public struct RecognitionInput: Sendable, Equatable {
     public let isAllDay: Bool
     public let imageData: Data?
     public let filename: String?
+    public let referenceDate: Date?
+    public let timeZoneIdentifier: String?
 
     public init(
         id: String,
@@ -37,7 +39,9 @@ public struct RecognitionInput: Sendable, Equatable {
         endDate: Date?,
         isAllDay: Bool,
         imageData: Data?,
-        filename: String?
+        filename: String?,
+        referenceDate: Date? = nil,
+        timeZoneIdentifier: String? = nil
     ) {
         self.id = id
         self.source = source
@@ -50,6 +54,8 @@ public struct RecognitionInput: Sendable, Equatable {
         self.isAllDay = isAllDay
         self.imageData = imageData
         self.filename = filename
+        self.referenceDate = referenceDate
+        self.timeZoneIdentifier = timeZoneIdentifier
     }
 
     public static func calendar(
@@ -101,7 +107,9 @@ public struct RecognitionInput: Sendable, Equatable {
     public static func importedImage(
         id: String,
         imageData: Data,
-        filename: String?
+        filename: String?,
+        referenceDate: Date? = nil,
+        timeZoneIdentifier: String? = nil
     ) -> RecognitionInput {
         RecognitionInput(
             id: "image:\(id)",
@@ -114,13 +122,17 @@ public struct RecognitionInput: Sendable, Equatable {
             endDate: nil,
             isAllDay: false,
             imageData: imageData,
-            filename: filename
+            filename: filename,
+            referenceDate: referenceDate,
+            timeZoneIdentifier: timeZoneIdentifier
         )
     }
 
     public static func cameraImage(
         id: String,
-        imageData: Data
+        imageData: Data,
+        referenceDate: Date? = nil,
+        timeZoneIdentifier: String? = nil
     ) -> RecognitionInput {
         RecognitionInput(
             id: "camera:\(id)",
@@ -133,7 +145,9 @@ public struct RecognitionInput: Sendable, Equatable {
             endDate: nil,
             isAllDay: false,
             imageData: imageData,
-            filename: nil
+            filename: nil,
+            referenceDate: referenceDate,
+            timeZoneIdentifier: timeZoneIdentifier
         )
     }
 }

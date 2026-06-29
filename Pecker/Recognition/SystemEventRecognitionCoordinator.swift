@@ -166,8 +166,19 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
         let input: RecognitionInput = source == .cameraImage
-            ? .cameraImage(id: sourceIdentifier, imageData: data)
-            : .importedImage(id: sourceIdentifier, imageData: data, filename: filename)
+            ? .cameraImage(
+                id: sourceIdentifier,
+                imageData: data,
+                referenceDate: now,
+                timeZoneIdentifier: calendar.timeZone.identifier
+            )
+            : .importedImage(
+                id: sourceIdentifier,
+                imageData: data,
+                filename: filename,
+                referenceDate: now,
+                timeZoneIdentifier: calendar.timeZone.identifier
+            )
 
         guard settings.aiRecognitionMode != .off,
               let provider = provider(for: settings)

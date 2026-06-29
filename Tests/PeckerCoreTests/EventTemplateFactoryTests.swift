@@ -84,6 +84,7 @@ import Testing
         location: nil,
         notes: "巡查楼梯口、仓库、围栏"
     )))
+    #expect(template?.presentation.fields.first?.label == "类型")
 }
 
 @Test func classifierUsesFactoryButKeepsReminderFallback() {

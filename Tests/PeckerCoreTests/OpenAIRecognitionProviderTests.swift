@@ -236,8 +236,10 @@ import Testing
             )
         )
         Issue.record("Expected image-model compatibility error")
-    } catch {
-        #expect(error as? RecognitionError == .imageInputUnsupported)
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "当前模型不支持图片识别")
+        #expect(failure.serviceMessage?.contains("do not support image") == true)
     }
 }
 
@@ -305,7 +307,7 @@ import Testing
         httpClient: client
     )
 
-    await #expect(throws: RecognitionError.invalidResponse) {
+    do {
         _ = try await provider.recognize(
             .importedImage(
                 id: "image-1",
@@ -313,6 +315,193 @@ import Testing
                 filename: "ticket.jpg"
             )
         )
+        Issue.record("Expected structured decoding failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "识别结果格式异常")
+        #expect(failure.responseExcerpt?.contains("无法识别") == true)
+    }
+}
+
+@Test func openAIProviderRunsThreeStagesAndInjectsDeviceTimeContext() async throws {
+    let referenceDate = ISO8601DateFormatter()
+        .date(from: "2026-07-03T01:30:00Z")!
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
+        .response(chatEnvelope(
+            #"{"kind":"train","fields":{"departureStation":"上海虹桥站","arrivalStation":"北京南站"}}"#
+        ), 200),
+        .response(chatEnvelope(
+            #"{"kind":"train","fields":{"trainNumber":"G123","departureStation":"上海虹桥站","arrivalStation":"北京南站","startDateTime":"2026-07-03T08:00:00+08:00"}}"#
+        ), 200)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+    let result = try await provider.recognize(
+        .importedImage(
+            id: "ticket",
+            imageData: Data([1]),
+            filename: "ticket.jpg",
+            referenceDate: referenceDate,
+            timeZoneIdentifier: "Asia/Shanghai"
+        )
+    )
+
+    #expect(result.payload.fields["trainNumber"] == "G123")
+    let requests = await client.recordedRequests
+    #expect(requests.count == 3)
+    let bodies = requests.compactMap(\.httpBody).compactMap {
+        String(data: $0, encoding: .utf8)
+    }
+    #expect(bodies[0].contains("类型识别"))
+    #expect(bodies[1].contains("字段提取"))
+    #expect(bodies[2].contains("结果核对"))
+    #expect(bodies.allSatisfy { $0.contains("Asia/Shanghai") })
+    #expect(bodies.allSatisfy { $0.contains("+08:00") })
+    #expect(bodies.allSatisfy { $0.contains("2026-07-03T09:30:00+08:00") })
+}
+
+@Test func openAIProviderLetsVerificationCorrectUnknownToGeneric() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"unknown"}"#), 200),
+        .response(chatEnvelope(
+            #"{"kind":"unknown","fields":{"title":"社区活动"}}"#
+        ), 200),
+        .response(chatEnvelope(
+            #"{"kind":"unknown","fields":{"title":"社区活动","eventDate":"2026-07-03","notes":"携带报名二维码"}}"#
+        ), 200)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    let result = try await provider.recognize(
+        .importedImage(
+            id: "generic",
+            imageData: Data([1]),
+            filename: "poster.jpg"
+        )
+    )
+
+    #expect(result.payload.kind == .unknown)
+    #expect(result.payload.fields["eventDate"] == "2026-07-03")
+    #expect(await client.recordedRequests.count == 3)
+}
+
+@Test func openAIProviderPreservesVerificationServiceError() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"train"}"#), 200),
+        .response(chatEnvelope(#"{"kind":"train","fields":{}}"#), 200),
+        .response(Data(
+            #"{"error":{"message":"Too many requests","code":"rate_limit"}}"#.utf8
+        ), 429)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    do {
+        _ = try await provider.recognize(
+            .importedImage(
+                id: "ticket",
+                imageData: Data([1]),
+                filename: "ticket.jpg"
+            )
+        )
+        Issue.record("Expected structured verification failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .verification)
+        #expect(failure.httpStatus == 429)
+        #expect(failure.serviceCode == "rate_limit")
+        #expect(failure.serviceMessage == "Too many requests")
+        #expect(failure.reason.contains("429"))
+    }
+}
+
+@Test func openAIProviderPreservesNetworkFailure() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .failure(URLError(.timedOut))
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    do {
+        _ = try await provider.recognize(
+            .importedImage(
+                id: "ticket",
+                imageData: Data([1]),
+                filename: "ticket.jpg"
+            )
+        )
+        Issue.record("Expected structured network failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "网络连接超时")
+        #expect(failure.technicalDetails.contains("NSURLErrorDomain"))
+    }
+}
+
+private func chatEnvelope(_ content: String) -> Data {
+    let envelope = [
+        "choices": [
+            ["message": ["content": content]]
+        ]
+    ]
+    return try! JSONSerialization.data(withJSONObject: envelope)
+}
+
+private actor QueuedRecognitionHTTPClient: RecognitionHTTPClient {
+    enum Step: Sendable {
+        case response(Data, Int)
+        case failure(URLError)
+    }
+
+    private var steps: [Step]
+    private(set) var recordedRequests: [URLRequest] = []
+
+    init(steps: [Step]) {
+        self.steps = steps
+    }
+
+    func data(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        recordedRequests.append(request)
+        guard !steps.isEmpty else {
+            throw URLError(.badServerResponse)
+        }
+        switch steps.removeFirst() {
+        case let .response(data, statusCode):
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: statusCode,
+                httpVersion: nil,
+                headerFields: nil
+            )!
+            return (data, response)
+        case let .failure(error):
+            throw error
+        }
     }
 }
 

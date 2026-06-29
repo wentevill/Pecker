@@ -63,18 +63,9 @@ final class ActivityCoordinatorTests: XCTestCase {
             now: testNow
         )
 
-        let expectedState = PeckerActivityAttributes.ContentState(
-            primaryTitle: "Design Review",
-            primarySubtitle: "Room 42",
-            primaryStartDate: nowItem.startDate,
-            primaryEndDate: nowItem.endDate,
-            primaryKindRawValue: TimelineKind.meeting.rawValue,
-            primarySourceIdentifier: "calendar-now",
-            nextTitle: "Ship Train",
-            nextStartDate: nextItem.startDate,
-            pinnedTitle: "Pinned Task",
-            pinnedSubtitle: "Pinned notes",
-            additionalActiveCount: 2,
+        let expectedState = LiveActivityPresentationAdapter().makeState(
+            item: nowItem,
+            status: .now,
             generatedAt: snapshot.generatedAt
         )
         let expectedStaleDate = nextItem.startDate
@@ -94,6 +85,51 @@ final class ActivityCoordinatorTests: XCTestCase {
         )
     }
 
+    func testReconciliationUsesSingleItemAdapterAndReportsNearestBoundary() async throws {
+        let client = FakeActivityClient()
+        let coordinator = ActivityCoordinator(
+            client: client,
+            calendar: utcCalendar()
+        )
+        let nowItem = makeItem(
+            id: "now-id",
+            sourceIdentifier: "calendar-source",
+            title: "Design Review",
+            startDate: testNow.addingTimeInterval(-600),
+            endDate: testNow.addingTimeInterval(1_200),
+            kind: .meeting,
+            location: "Room 42"
+        )
+        let nextItem = makeItem(
+            id: "next-id",
+            title: "Product Review",
+            startDate: testNow.addingTimeInterval(900),
+            endDate: testNow.addingTimeInterval(1_800)
+        )
+        let snapshot = makeSnapshot(
+            items: [nowItem, nextItem],
+            nowItemID: nowItem.id,
+            nextItemID: nextItem.id
+        )
+
+        let result = try await coordinator.reconcileWithBoundary(
+            snapshot: snapshot,
+            settings: TimelineSettings(liveActivityEnabled: true),
+            now: testNow
+        )
+
+        guard case let .start(state, staleDate) = result.decision else {
+            return XCTFail("Expected start")
+        }
+        XCTAssertEqual(state.itemIdentifier, nowItem.id)
+        XCTAssertEqual(state.symbolName, "person.2.fill")
+        XCTAssertEqual(state.location, "Room 42")
+        XCTAssertNil(state.nextTitle)
+        XCTAssertNil(state.pinnedTitle)
+        XCTAssertEqual(staleDate, nextItem.startDate)
+        XCTAssertEqual(result.nextBoundary, nextItem.startDate)
+    }
+
     func testChangedContentUpdatesCurrentActivity() async throws {
         let existingState = makeContentState(primaryTitle: "Old Title")
         let client = FakeActivityClient(currentState: existingState)
@@ -107,12 +143,9 @@ final class ActivityCoordinatorTests: XCTestCase {
             now: testNow
         )
 
-        let expectedState = makeContentState(
-            primaryTitle: "New Title",
-            primarySubtitle: "Room",
-            primaryStartDate: nowItem.startDate,
-            primaryEndDate: nowItem.endDate,
-            primarySourceIdentifier: nowItem.sourceIdentifier,
+        let expectedState = LiveActivityPresentationAdapter().makeState(
+            item: nowItem,
+            status: .now,
             generatedAt: snapshot.generatedAt
         )
         XCTAssertEqual(decision, .update(expectedState, nowItem.endDate!))
@@ -131,12 +164,9 @@ final class ActivityCoordinatorTests: XCTestCase {
     func testEqualContentProducesNoneAndAppliesNoOp() async throws {
         let nowItem = makeItem(id: "now", title: "Design Review")
         let snapshot = makeSnapshot(now: nowItem)
-        let currentState = makeContentState(
-            primaryTitle: "Design Review",
-            primarySubtitle: "Room",
-            primaryStartDate: nowItem.startDate,
-            primaryEndDate: nowItem.endDate,
-            primarySourceIdentifier: nowItem.sourceIdentifier,
+        let currentState = LiveActivityPresentationAdapter().makeState(
+            item: nowItem,
+            status: .now,
             generatedAt: snapshot.generatedAt
         )
         let client = FakeActivityClient(currentState: currentState)
@@ -150,6 +180,29 @@ final class ActivityCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(decision, .none)
         XCTAssertEqual(client.appliedOperations(), [])
+    }
+
+    func testEqualContentStillReportsItsNextBoundary() async throws {
+        let nowItem = makeItem(id: "now", title: "Design Review")
+        let snapshot = makeSnapshot(now: nowItem)
+        let currentState = LiveActivityPresentationAdapter().makeState(
+            item: nowItem,
+            status: .now,
+            generatedAt: snapshot.generatedAt
+        )
+        let coordinator = ActivityCoordinator(
+            client: FakeActivityClient(currentState: currentState),
+            calendar: utcCalendar()
+        )
+
+        let result = try await coordinator.reconcileWithBoundary(
+            snapshot: snapshot,
+            settings: TimelineSettings(liveActivityEnabled: true),
+            now: testNow
+        )
+
+        XCTAssertEqual(result.decision, .none)
+        XCTAssertEqual(result.nextBoundary, nowItem.endDate)
     }
 
     func testEmptySnapshotEndsActivity() async throws {
@@ -280,12 +333,9 @@ final class ActivityCoordinatorTests: XCTestCase {
             [
                 .end(id: "stale"),
                 .start(
-                    state: makeContentState(
-                        primaryTitle: "Today",
-                        primarySubtitle: "Room",
-                        primaryStartDate: nowItem.startDate,
-                        primaryEndDate: nowItem.endDate,
-                        primarySourceIdentifier: nowItem.sourceIdentifier,
+                    state: LiveActivityPresentationAdapter().makeState(
+                        item: nowItem,
+                        status: .now,
                         generatedAt: snapshot.generatedAt
                     ),
                     staleDate: nowItem.endDate!,
@@ -300,12 +350,9 @@ final class ActivityCoordinatorTests: XCTestCase {
     func testDuplicateCurrentDayActivitiesAreCollapsedWhileKeepingOneMatchingActivity() async throws {
         let nowItem = makeItem(id: "now", title: "Updated")
         let snapshot = makeSnapshot(now: nowItem)
-        let currentState = makeContentState(
-            primaryTitle: "Updated",
-            primarySubtitle: "Room",
-            primaryStartDate: nowItem.startDate,
-            primaryEndDate: nowItem.endDate,
-            primarySourceIdentifier: nowItem.sourceIdentifier,
+        let currentState = LiveActivityPresentationAdapter().makeState(
+            item: nowItem,
+            status: .now,
             generatedAt: snapshot.generatedAt
         )
         let duplicateState = makeContentState(primaryTitle: "Duplicate")

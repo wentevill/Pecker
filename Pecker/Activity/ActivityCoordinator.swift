@@ -4,10 +4,16 @@ import PeckerCore
 struct ActivityCoordinator: Sendable {
     private let client: any ActivityClient
     private let calendar: Calendar
+    private let presentationAdapter: LiveActivityPresentationAdapter
 
-    init(client: any ActivityClient, calendar: Calendar = .current) {
+    init(
+        client: any ActivityClient,
+        calendar: Calendar = .current,
+        presentationAdapter: LiveActivityPresentationAdapter = .init()
+    ) {
         self.client = client
         self.calendar = calendar
+        self.presentationAdapter = presentationAdapter
     }
 
     @discardableResult
@@ -16,6 +22,18 @@ struct ActivityCoordinator: Sendable {
         settings: TimelineSettings,
         now: Date
     ) async throws -> ActivityDecision {
+        try await reconcileWithBoundary(
+            snapshot: snapshot,
+            settings: settings,
+            now: now
+        ).decision
+    }
+
+    func reconcileWithBoundary(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ActivityReconciliationResult {
         let attributes = PeckerActivityAttributes(
             localDayIdentifier: localDayIdentifier(for: now)
         )
@@ -34,12 +52,20 @@ struct ActivityCoordinator: Sendable {
             now: now,
             currentDaySnapshot: currentDaySnapshot
         )
+        let nextBoundary = settings.liveActivityEnabled
+            ? desiredState(snapshot: snapshot, now: now).map {
+                staleDate(for: $0, snapshot: snapshot, now: now)
+            }
+            : nil
 
         if case .end = decision {
             for snapshot in staleSnapshots + currentDaySnapshots {
                 await client.end(id: snapshot.id)
             }
-            return decision
+            return ActivityReconciliationResult(
+                decision: decision,
+                nextBoundary: nil
+            )
         }
 
         for snapshot in staleSnapshots + duplicateSnapshots {
@@ -48,7 +74,7 @@ struct ActivityCoordinator: Sendable {
 
         switch decision {
         case .none, .end:
-            return decision
+            break
         case let .start(state, staleDate):
             try await client.start(
                 state: state,
@@ -64,7 +90,10 @@ struct ActivityCoordinator: Sendable {
                 )
             }
         }
-        return decision
+        return ActivityReconciliationResult(
+            decision: decision,
+            nextBoundary: nextBoundary
+        )
     }
 
     private func decision(
@@ -101,29 +130,13 @@ struct ActivityCoordinator: Sendable {
             return nil
         }
 
-        let next = snapshot.resolvedNextItem
-        let pinned = snapshot.resolvedPinnedItem
-
-        return PeckerActivityAttributes.ContentState(
-            primaryTitle: primary.title,
-            primarySubtitle: subtitle(for: primary),
-            primaryStartDate: primary.startDate,
-            primaryEndDate: primary.endDate,
-            primaryKindRawValue: primary.kind.rawValue,
-            primarySourceIdentifier: primary.sourceIdentifier,
-            nextTitle: next?.title,
-            nextStartDate: next?.startDate,
-            pinnedTitle: pinned?.title,
-            pinnedSubtitle: pinned.flatMap(subtitle(for:)),
-            additionalActiveCount: additionalActiveCount(
+        return presentationAdapter.makeState(
+            item: primary,
+            status: primaryStatus(
                 snapshot: snapshot,
                 primary: primary
             ),
             generatedAt: snapshot.generatedAt,
-            primaryStatusRawValue: primaryStatus(
-                snapshot: snapshot,
-                primary: primary
-            )
         )
     }
 
@@ -148,61 +161,17 @@ struct ActivityCoordinator: Sendable {
         return nil
     }
 
-    private func additionalActiveCount(
-        snapshot: TodaySnapshot,
-        primary: TimelineItem
-    ) -> Int {
-        guard primary.id == snapshot.nowItemID else {
-            return 0
-        }
-
-        return snapshot.concurrentNowCount
-    }
-
-    private func subtitle(for item: TimelineItem) -> String? {
-        if case let .trainTicket(ticket) = item.template {
-            let route = [
-                ticket.departureStation,
-                ticket.arrivalStation
-            ]
-                .compactMap { $0 }
-                .joined(separator: " → ")
-            let seat = [
-                ticket.carriageNumber.map { "\($0)车" },
-                ticket.seatNumber,
-                ticket.checkInGate.map { "\($0)检票" }
-            ]
-                .compactMap { $0 }
-                .joined(separator: " · ")
-            return firstNonEmpty(
-                [route, seat].filter { !$0.isEmpty }.joined(separator: " · "),
-                item.location,
-                item.notes
-            )
-        }
-        return firstNonEmpty(item.location, item.notes)
-    }
-
     private func primaryStatus(
         snapshot: TodaySnapshot,
         primary: TimelineItem
-    ) -> String {
+    ) -> PeckerLiveActivityStatus {
         if primary.id == snapshot.nowItemID {
-            return "now"
+            return .now
         }
         if primary.id == snapshot.nextItemID {
-            return "next"
+            return .next
         }
-        return "pinned"
-    }
-
-    private func firstNonEmpty(_ values: String?...) -> String? {
-        values
-            .lazy
-            .compactMap { value in
-                value?.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            .first { !$0.isEmpty }
+        return .pinned
     }
 
     private func isUnfinished(_ item: TimelineItem, now: Date) -> Bool {
@@ -220,7 +189,7 @@ struct ActivityCoordinator: Sendable {
     ) -> Date {
         let candidates = [
             state.countdownTargetDate(at: now),
-            state.nextStartDate,
+            snapshot.resolvedNextItem?.startDate,
             snapshot.resolvedPinnedItem?.startDate,
             snapshot.resolvedPinnedItem?.endDate,
             snapshot.staleAfter

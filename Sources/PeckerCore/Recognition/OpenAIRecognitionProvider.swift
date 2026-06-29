@@ -50,7 +50,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             input: input,
             stage: .classification,
             systemPrompt: classificationPrompt,
-            taskText: classificationTask(context: context)
+            taskText: classificationTask(input: input, context: context)
         )
         let kind = try decodeKind(from: kindData, stage: .classification)
         let schema = RecognitionKindSchema.schema(for: kind)
@@ -59,6 +59,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             stage: .extraction,
             systemPrompt: extractionPrompt,
             taskText: extractionTask(
+                input: input,
                 kind: kind,
                 schema: schema,
                 context: context
@@ -73,6 +74,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             stage: .verification,
             systemPrompt: verificationPrompt,
             taskText: verificationTask(
+                input: input,
                 candidate: candidate,
                 context: context
             )
@@ -258,10 +260,15 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         """
     }
 
-    private func classificationTask(context: PromptContext) -> String {
+    private func classificationTask(
+        input: RecognitionInput,
+        context: PromptContext
+    ) -> String {
         """
         阶段：类型识别
         \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
 
         Tasks:
         - [ ] 查看全部图片内容。
@@ -272,6 +279,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     }
 
     private func extractionTask(
+        input: RecognitionInput,
         kind: TimelineKind,
         schema: RecognitionKindSchema,
         context: PromptContext
@@ -282,6 +290,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         return """
         阶段：字段提取
         \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
         已识别类型：\(kind.rawValue)
         最小必要元素：\(requirements)
         可选字段：\(schema.optionalFields.joined(separator: "、"))
@@ -298,6 +308,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     }
 
     private func verificationTask(
+        input: RecognitionInput,
         candidate: ExternalEventTemplatePayload,
         context: PromptContext
     ) -> String {
@@ -307,6 +318,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         return """
         阶段：结果核对
         \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
         候选结果：\(candidateText)
         当前类型最小必要元素：\(schema.requirements.map(\.label).joined(separator: "、"))
 

@@ -399,6 +399,44 @@ import Testing
     #expect(await client.recordedRequests.count == 3)
 }
 
+@Test func openAIProviderIncludesTextSourceInEveryPipelineStage() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"meeting"}"#), 200),
+        .response(chatEnvelope(
+            #"{"kind":"meeting","fields":{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}}"#
+        ), 200),
+        .response(chatEnvelope(
+            #"{"kind":"meeting","fields":{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}}"#
+        ), 200)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    _ = try await provider.recognize(.calendar(
+        sourceIdentifier: "meeting-1",
+        title: "设计评审",
+        startDate: nil,
+        endDate: nil,
+        isAllDay: false,
+        location: "会议室 A",
+        notes: "准备交互稿"
+    ))
+
+    let bodies = await client.recordedRequests.compactMap(\.httpBody).compactMap {
+        String(data: $0, encoding: .utf8)
+    }
+    #expect(bodies.count == 3)
+    #expect(bodies.allSatisfy { $0.contains("设计评审") })
+    #expect(bodies.allSatisfy { $0.contains("会议室 A") })
+    #expect(bodies.allSatisfy { $0.contains("准备交互稿") })
+}
+
 @Test func openAIProviderPreservesVerificationServiceError() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
         .response(chatEnvelope(#"{"kind":"train"}"#), 200),

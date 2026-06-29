@@ -391,11 +391,10 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             payload: ExternalEventTemplatePayload(
                 kind: .train,
                 fields: [
-                    "startDateTime": "2026-06-28T10:30:00+08:00",
-                    "endDateTime": "2026-06-28T11:48:00+08:00",
-                    "trainNumber": "G123",
-                    "departureStation": "上海虹桥",
-                    "arrivalStation": "北京南"
+                    "startDateTime": "2026-07-03T10:30:00+08:00",
+                    "trainNumber": "C5770",
+                    "departureStation": "重庆北站",
+                    "arrivalStation": "成都东站"
                 ]
             ),
             confidence: 0.88
@@ -424,7 +423,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(draft.source == .importedImage)
     #expect(draft.filename == "ticket.jpg")
     #expect(draft.recognizedAt == now)
-    #expect(draft.template.presentation.title == "G123")
+    #expect(draft.template.presentation.title == "C5770")
+    #expect(draft.template.presentation.subtitle == "重庆北站 → 成都东站")
     #expect(await repository.records().isEmpty)
 }
 

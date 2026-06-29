@@ -50,7 +50,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             input: input,
             stage: .classification,
             systemPrompt: classificationPrompt,
-            taskText: classificationTask(input: input, context: context)
+            taskText: classificationTask(input: input, context: context),
+            contracts: [.classifyEvent],
+            choice: .forced(.classifyEvent)
         )
         let kind = try decodeKind(from: kindData, stage: .classification)
         let schema = RecognitionKindSchema.schema(for: kind)
@@ -63,7 +65,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 kind: kind,
                 schema: schema,
                 context: context
-            )
+            ),
+            contracts: [.fieldContract(for: kind)],
+            choice: .forced(.fieldContract(for: kind))
         )
         let candidate = try decodePayload(
             from: extractionData,
@@ -77,7 +81,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 input: input,
                 candidate: candidate,
                 context: context
-            )
+            ),
+            contracts: RecognitionFunctionContract.fieldContracts,
+            choice: .required
         )
         let payload = try decodePayload(
             from: verificationData,
@@ -97,7 +103,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     private func makeRequest(
         for input: RecognitionInput,
         systemPrompt: String,
-        taskText: String
+        taskText: String,
+        contracts: [RecognitionFunctionContract] = [],
+        choice: FunctionChoice? = nil
     ) throws -> URLRequest {
         guard let url = endpointURL(host: configuration.host),
               !configuration.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -114,7 +122,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             withJSONObject: requestBody(
                 for: input,
                 systemPrompt: systemPrompt,
-                taskText: taskText
+                taskText: taskText,
+                contracts: contracts,
+                choice: choice
             ),
             options: [.sortedKeys, .withoutEscapingSlashes]
         )
@@ -140,9 +150,11 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     private func requestBody(
         for input: RecognitionInput,
         systemPrompt: String,
-        taskText: String
+        taskText: String,
+        contracts: [RecognitionFunctionContract],
+        choice: FunctionChoice?
     ) throws -> [String: Any] {
-        [
+        var body: [String: Any] = [
             "model": configuration.model,
             "messages": [
                 [
@@ -155,6 +167,12 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 ]
             ]
         ]
+        if !contracts.isEmpty, let choice {
+            body["tools"] = contracts.map(\.toolDefinition)
+            body["tool_choice"] = choice.jsonValue
+            body["parallel_tool_calls"] = false
+        }
+        return body
     }
 
     private func userContent(
@@ -337,12 +355,16 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         input: RecognitionInput,
         stage: RecognitionPipelineStage,
         systemPrompt: String,
-        taskText: String
+        taskText: String,
+        contracts: [RecognitionFunctionContract],
+        choice: FunctionChoice
     ) async throws -> Data {
         let request = try makeRequest(
             for: input,
             systemPrompt: systemPrompt,
-            taskText: taskText
+            taskText: taskText,
+            contracts: contracts,
+            choice: choice
         )
         let data: Data
         let response: HTTPURLResponse
@@ -578,6 +600,23 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             missingFields: [],
             responseExcerpt: excerpt
         )
+    }
+}
+
+private enum FunctionChoice {
+    case forced(RecognitionFunctionContract)
+    case required
+
+    var jsonValue: Any {
+        switch self {
+        case let .forced(contract):
+            [
+                "type": "function",
+                "function": ["name": contract.name]
+            ] as [String: Any]
+        case .required:
+            "required"
+        }
     }
 }
 

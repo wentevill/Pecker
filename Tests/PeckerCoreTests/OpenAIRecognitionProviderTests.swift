@@ -367,6 +367,67 @@ import Testing
     #expect(bodies.allSatisfy { $0.contains("2026-07-03T09:30:00+08:00") })
 }
 
+@Test func openAIProviderSendsMandatoryFunctionToolsForEveryStage() async throws {
+    let client = QueuedRecognitionHTTPClient(steps: [
+        .response(chatEnvelope(#"{"kind":"task"}"#), 200),
+        .response(chatEnvelope(
+            #"{"kind":"task","fields":{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}}"#
+        ), 200),
+        .response(chatEnvelope(
+            #"{"kind":"task","fields":{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}}"#
+        ), 200)
+    ])
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "vision"
+        ),
+        httpClient: client
+    )
+
+    _ = try await provider.recognize(.reminder(
+        sourceIdentifier: "patrol",
+        title: "今天晚上11点半巡逻仓库",
+        dueDate: nil,
+        endDate: nil,
+        notes: nil
+    ))
+
+    let requests = await client.recordedRequests
+    #expect(requests.count == 3)
+    let classification = try requestJSON(requests[0])
+    let extraction = try requestJSON(requests[1])
+    let verification = try requestJSON(requests[2])
+
+    #expect(classification["parallel_tool_calls"] as? Bool == false)
+    #expect(toolNames(in: classification) == ["classify_event"])
+    #expect(forcedFunctionName(in: classification) == "classify_event")
+
+    #expect(extraction["parallel_tool_calls"] as? Bool == false)
+    #expect(toolNames(in: extraction) == ["fill_task_event"])
+    #expect(forcedFunctionName(in: extraction) == "fill_task_event")
+
+    #expect(verification["parallel_tool_calls"] as? Bool == false)
+    #expect(
+        Set(toolNames(in: verification))
+            == Set(RecognitionFunctionContract.fieldContracts.map(\.name))
+    )
+    #expect(verification["tool_choice"] as? String == "required")
+
+    for request in requests {
+        let body = try requestJSON(request)
+        for tool in (body["tools"] as? [[String: Any]]) ?? [] {
+            let function = try #require(tool["function"] as? [String: Any])
+            #expect(function["strict"] as? Bool == true)
+            let parameters = try #require(
+                function["parameters"] as? [String: Any]
+            )
+            #expect(parameters["additionalProperties"] as? Bool == false)
+        }
+    }
+}
+
 @Test func openAIProviderLetsVerificationCorrectUnknownToGeneric() async throws {
     let client = QueuedRecognitionHTTPClient(steps: [
         .response(chatEnvelope(#"{"kind":"unknown"}"#), 200),
@@ -554,6 +615,28 @@ private func chatEnvelope(_ content: String) -> Data {
         ]
     ]
     return try! JSONSerialization.data(withJSONObject: envelope)
+}
+
+private func requestJSON(_ request: URLRequest) throws -> [String: Any] {
+    let data = try #require(request.httpBody)
+    return try #require(
+        JSONSerialization.jsonObject(with: data) as? [String: Any]
+    )
+}
+
+private func toolNames(in body: [String: Any]) -> [String] {
+    ((body["tools"] as? [[String: Any]]) ?? []).compactMap { tool in
+        (tool["function"] as? [String: Any])?["name"] as? String
+    }
+}
+
+private func forcedFunctionName(in body: [String: Any]) -> String? {
+    guard let choice = body["tool_choice"] as? [String: Any],
+          let function = choice["function"] as? [String: Any]
+    else {
+        return nil
+    }
+    return function["name"] as? String
 }
 
 private actor QueuedRecognitionHTTPClient: RecognitionHTTPClient {

@@ -368,13 +368,20 @@ final class TodayPresentationTests: XCTestCase {
         let failure = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .failure("API 请求失败，请检查 Host、Model 或网络。")
+                phase: .failure(.init(
+                    reason: "服务返回 429：请求过于频繁",
+                    technicalDetails: "阶段：结果核对\nHTTP 429\n错误码：rate_limit"
+                ))
             )
         )
         XCTAssertEqual(failure.statusText, "识别失败")
         XCTAssertFalse(failure.isLoading)
         XCTAssertFalse(failure.buttonsDisabled)
-        XCTAssertEqual(failure.errorText, "API 请求失败，请检查 Host、Model 或网络。")
+        XCTAssertEqual(failure.errorText, "服务返回 429：请求过于频繁")
+        XCTAssertEqual(
+            failure.errorTechnicalDetails,
+            "阶段：结果核对\nHTTP 429\n错误码：rate_limit"
+        )
     }
 
     func testSummaryCountIncludesActiveAndUpcomingButExcludesElapsedAndCompleted() {

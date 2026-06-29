@@ -140,7 +140,10 @@ struct TodayView: View {
         imageRecognitionPhase = .recognizing
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                imageRecognitionPhase = .failure("无法读取这张图片。")
+                imageRecognitionPhase = .failure(.init(
+                    reason: "无法读取这张图片。",
+                    technicalDetails: nil
+                ))
                 return
             }
 
@@ -153,7 +156,7 @@ struct TodayView: View {
             )
             imageRecognitionPhase = .awaitingConfirmation(draft)
         } catch {
-            imageRecognitionPhase = .failure(errorMessage(for: error))
+            imageRecognitionPhase = .failure(issuePresentation(for: error))
         }
     }
 
@@ -161,7 +164,10 @@ struct TodayView: View {
         imageRecognitionPhase = .recognizing
         do {
             guard let data = image.jpegData(compressionQuality: 0.88) else {
-                imageRecognitionPhase = .failure("无法读取相机照片。")
+                imageRecognitionPhase = .failure(.init(
+                    reason: "无法读取相机照片。",
+                    technicalDetails: nil
+                ))
                 return
             }
 
@@ -174,7 +180,7 @@ struct TodayView: View {
             )
             imageRecognitionPhase = .awaitingConfirmation(draft)
         } catch {
-            imageRecognitionPhase = .failure(errorMessage(for: error))
+            imageRecognitionPhase = .failure(issuePresentation(for: error))
         }
     }
 
@@ -211,27 +217,42 @@ struct TodayView: View {
         }
     }
 
-    private func errorMessage(for error: Error) -> String {
+    private func issuePresentation(
+        for error: Error
+    ) -> RecognitionIssuePresentation {
+        if let failure = error as? RecognitionPipelineFailure {
+            return .init(
+                reason: failure.reason,
+                technicalDetails: failure.technicalDetails
+            )
+        }
         guard let recognitionError = error as? RecognitionError else {
-            return "识别失败，请稍后重试。"
+            return .init(
+                reason: "识别失败，请稍后重试。",
+                technicalDetails: error.localizedDescription
+            )
         }
 
-        switch recognitionError {
+        let reason = switch recognitionError {
         case .invalidConfiguration:
-            return "API 配置无效，请检查 Host、Model 和 API Key。"
+            "API 配置无效，请检查 Host、Model 和 API Key。"
         case .requestFailed:
-            return "API 请求失败，请检查 Host、Model 或网络。"
+            "API 请求失败，请检查 Host、Model 或网络。"
         case .imageInputUnsupported:
-            return "当前模型不支持图片识别，请在设置中改用视觉模型。"
+            "当前模型不支持图片识别，请在设置中改用视觉模型。"
         case .invalidResponse:
-            return "识别结果格式异常，请稍后重试。"
+            "识别结果格式异常，请稍后重试。"
         case .networkExecutionNotImplemented:
-            return "当前识别服务尚未完成网络执行。"
+            "当前识别服务尚未完成网络执行。"
         case .localModelUnavailable:
-            return "内置小模型暂不可用，请改用 OpenAI。"
+            "内置小模型暂不可用，请改用 OpenAI。"
         case .unsupportedInput:
-            return "未识别到可添加的事件，请换一张包含票据、日程或任务信息的图片。"
+            "未识别到可添加的事件，请换一张包含票据、日程或任务信息的图片。"
         }
+        return .init(
+            reason: reason,
+            technicalDetails: "错误类型：\(recognitionError)"
+        )
     }
 
     @MainActor
@@ -456,6 +477,20 @@ struct TodayScreen: View {
                         .font(.caption)
                         .foregroundStyle(TimelineTheme.now)
                         .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let details = actions.errorTechnicalDetails,
+                   !details.isEmpty {
+                    DisclosureGroup("技术详情") {
+                        Text(details)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(TimelineTheme.textSecondary)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 4)
+                    }
+                    .font(.caption.weight(.medium))
+                    .accessibilityLabel("识别失败技术详情")
                 }
 
                 if let preview = actions.preview {

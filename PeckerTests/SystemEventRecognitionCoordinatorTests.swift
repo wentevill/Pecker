@@ -123,7 +123,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         )
     }
 
-    func testImageRecognitionThrowsUnsupportedInputWhenProviderFindsNoEventCard() async throws {
+    func testImageRecognitionReportsMissingFieldsWhenProviderFindsNoEventCard() async throws {
         let repository = RecordingEventRepository()
         let provider = RecordingRecognitionProvider(
             result: RecognitionResult(
@@ -148,9 +148,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 ),
                 now: Date(timeIntervalSince1970: 5_000)
             )
-            XCTFail("Expected unsupportedInput when image does not produce an event card")
-        } catch let error as RecognitionError {
-            XCTAssertEqual(error, .unsupportedInput)
+            XCTFail("Expected structured validation failure")
+        } catch let failure as RecognitionPipelineFailure {
+            XCTAssertEqual(failure.stage, .validation)
+            XCTAssertEqual(failure.missingFields, ["事件内容", "日期或时间"])
+            XCTAssertEqual(failure.reason, "核对后仍缺少：事件内容、日期或时间")
         }
 
         let records = await repository.records()
@@ -353,7 +355,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(inputs.first?.imageData == Data([0xFF, 0xD8, 0xFF]))
 }
 
-@Test func imageRecognitionThrowsUnsupportedInputWhenProviderFindsNoEventCard() async throws {
+@Test func imageRecognitionReportsMissingContentAndTimeForEmptyUnknownResult() async throws {
     let repository = RecordingEventRepository()
     let provider = RecordingRecognitionProvider(
         result: RecognitionResult(
@@ -367,7 +369,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         providerFactory: { _, _ in provider }
     )
 
-    await #expect(throws: RecognitionError.unsupportedInput) {
+    do {
         _ = try await coordinator.recognizeImage(
             data: Data([1, 2, 3]),
             source: .cameraImage,
@@ -378,6 +380,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             ),
             now: Date(timeIntervalSince1970: 5_000)
         )
+        Issue.record("Expected structured validation failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .validation)
+        #expect(failure.missingFields == ["事件内容", "日期或时间"])
+        #expect(failure.reason == "核对后仍缺少：事件内容、日期或时间")
     }
 
     let records = await repository.records()
@@ -391,11 +398,10 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             payload: ExternalEventTemplatePayload(
                 kind: .train,
                 fields: [
-                    "startDateTime": "2026-06-28T10:30:00+08:00",
-                    "endDateTime": "2026-06-28T11:48:00+08:00",
-                    "trainNumber": "G123",
-                    "departureStation": "上海虹桥",
-                    "arrivalStation": "北京南"
+                    "startDateTime": "2026-07-03T10:30:00+08:00",
+                    "trainNumber": "C5770",
+                    "departureStation": "重庆北站",
+                    "arrivalStation": "成都东站"
                 ]
             ),
             confidence: 0.88
@@ -424,7 +430,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(draft.source == .importedImage)
     #expect(draft.filename == "ticket.jpg")
     #expect(draft.recognizedAt == now)
-    #expect(draft.template.presentation.title == "G123")
+    #expect(draft.template.presentation.title == "C5770")
+    #expect(draft.template.presentation.subtitle == "重庆北站 → 成都东站")
     #expect(await repository.records().isEmpty)
 }
 
@@ -477,7 +484,9 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 fields: [
                     "startDateTime": "2026-06-28T10:30:00+08:00",
                     "endDateTime": "2026-06-28T11:48:00+08:00",
-                    "trainNumber": "G123"
+                    "trainNumber": "G123",
+                    "departureStation": "上海虹桥",
+                    "arrivalStation": "北京南"
                 ]
             ),
             confidence: nil
@@ -550,6 +559,140 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
 
     #expect(imageStore.savedImages.count == 1)
     #expect(imageStore.deletedPaths == ["Images/test.jpg"])
+}
+
+@Test func dateOnlyRecognitionPersistsAsAllDayTimelineItem() async throws {
+    let repository = RecordingEventRepository()
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: .init(kind: .task, fields: [
+                "title": "提交材料",
+                "eventDate": "2026-07-03"
+            ]),
+            confidence: nil
+        )
+    )
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        calendar: calendar,
+        providerFactory: { _, _ in provider }
+    )
+    let settings = TimelineSettings(
+        aiRecognitionMode: .openAI,
+        openAIAPIKeyConfigured: true
+    )
+    let now = Date(timeIntervalSince1970: 5_000)
+
+    let draft = try await coordinator.recognizeImage(
+        data: Data([1]),
+        source: .importedImage,
+        filename: "task.jpg",
+        settings: settings,
+        now: now
+    )
+    #expect(draft.isAllDay)
+
+    let saved = try await coordinator.saveRecognizedImage(
+        draft,
+        imageReference: "Images/task.jpg"
+    )
+    #expect(saved.isAllDay)
+
+    let items = await coordinator.recognizedImageItems(
+        settings: settings,
+        now: now
+    )
+    #expect(items.first?.isAllDay == true)
+}
+
+@Test func validatorAcceptsMinimumFieldsForEveryRecognitionKind() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+    let fixtures: [ExternalEventTemplatePayload] = [
+        .init(kind: .meeting, fields: [
+            "title": "设计评审",
+            "startDateTime": "2026-07-03T10:00:00+08:00"
+        ]),
+        .init(kind: .task, fields: [
+            "title": "提交材料",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .flight, fields: [
+            "flightNumber": "MU5101",
+            "departureAirportCode": "SHA",
+            "arrivalAirportCode": "PEK",
+            "startDateTime": "2026-07-03T09:00:00+08:00"
+        ]),
+        .init(kind: .train, fields: [
+            "trainNumber": "G123",
+            "departureStation": "上海虹桥站",
+            "arrivalStation": "北京南站",
+            "startDateTime": "2026-07-03T08:00:00+08:00"
+        ]),
+        .init(kind: .travel, fields: [
+            "destination": "苏州",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .interview, fields: [
+            "title": "产品面试",
+            "startDateTime": "2026-07-03T11:00:00+08:00"
+        ]),
+        .init(kind: .deadline, fields: [
+            "title": "报名截止",
+            "eventDate": "2026-07-03"
+        ]),
+        .init(kind: .unknown, fields: [
+            "title": "社区活动",
+            "eventDate": "2026-07-03"
+        ])
+    ]
+
+    for fixture in fixtures {
+        let result = try validator.validate(fixture)
+        #expect(result.payload == fixture)
+        #expect(result.isAllDay == fixture.fields["eventDate"].map { _ in true } ?? false)
+    }
+}
+
+@Test func validatorReportsExactMissingTrainMinimum() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+
+    do {
+        _ = try validator.validate(.init(kind: .train, fields: [
+            "departureStation": "上海虹桥站",
+            "arrivalStation": "北京南站",
+            "eventDate": "2026-07-03",
+            "departureTime": "08:00"
+        ]))
+        Issue.record("Expected minimum-field failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .validation)
+        #expect(failure.missingFields == ["车次"])
+        #expect(failure.reason == "核对后仍缺少：车次")
+    }
+}
+
+@Test func validatorRollsImplicitOvernightArrivalIntoNextDay() throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let validator = RecognizedEventValidator(calendar: calendar)
+
+    let result = try validator.validate(.init(kind: .train, fields: [
+        "trainNumber": "D1",
+        "departureStation": "北京站",
+        "arrivalStation": "上海站",
+        "eventDate": "2026-07-03",
+        "departureTime": "23:30",
+        "arrivalTime": "05:10"
+    ]))
+
+    #expect(result.endDate?.timeIntervalSince(result.startDate) == 20_400)
 }
 
 private actor RecordingEventRepository: EventRepositoryStoring {

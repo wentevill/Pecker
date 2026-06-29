@@ -18,6 +18,7 @@
 		265795E04003DA59AC3AF528 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF43BE233A9F68C253E25D35 /* OnboardingView.swift */; };
 		27369B319821E584C08C9DE1 /* TimelineRecordEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F095DD154FEDF491ED2A91B /* TimelineRecordEditor.swift */; };
 		28918716FDD4FB43CB33758F /* RecognitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3ED5714B825EF64F00F6545 /* RecognitionModels.swift */; };
+		2A7C9B1E4D5F60718293A4B5 /* RecognitionPipelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B8D0C2F5E6A718293A4B5C6 /* RecognitionPipelineModels.swift */; };
 		2FF408B7B706B7850512C675 /* PeckerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80A158B72D538CE0B38C7E5 /* PeckerApp.swift */; };
 		34DFE4DB545B657DF7BF7D8C /* TimelineManagerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1023C8365A60F7B0D763E54 /* TimelineManagerModel.swift */; };
 		376EAD5035495CC3A7364B48 /* TimelineClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801400D467F38808155B81EA /* TimelineClassifier.swift */; };
@@ -37,6 +38,7 @@
 		50F951B68AF5FAB9F5AB9D84 /* SnapshotStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */; };
 		5256453536F82ADE93A6F560 /* TodayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AE18E3A3D8462BEF5F0D539 /* TodayViewModel.swift */; };
 		52ADBC232F894542A4192FAE /* OpenAIRecognitionProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F62D02D5A83E462D37DA14EE /* OpenAIRecognitionProviderTests.swift */; };
+		53BECF3430A05653B52A5ABF /* RecognitionPipelineModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64CFD04541B16764C63B6AC6 /* RecognitionPipelineModelsTests.swift */; };
 		52BDAC3CE8EF089B8200CE10 /* SettingsStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C25D81314C360E33205A426 /* SettingsStoreTests.swift */; };
 		5836C37E4AB4EC1F68B6C8F1 /* ItemDetailActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 039834399FFB7E60E6C39C1D /* ItemDetailActionTests.swift */; };
 		58BE3E25257FA6AA43A7798A /* TimelineDateScopeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCBC93D0C9EB1A32516512A7 /* TimelineDateScopeTests.swift */; };
@@ -51,6 +53,7 @@
 		88E4838DF7C0565E97B5F4DB /* TodayPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9E916A64D9C5437B74083A0 /* TodayPresentation.swift */; };
 		895C321CAECBDE8B4A88450D /* TodayPreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA1A1C1B94B7E4BABF76F56B /* TodayPreviewFixtures.swift */; };
 		8E86012BDB4DB612CAB67524 /* SystemEventRecognitionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */; };
+		9F97123ACB4D5E6F708192A3 /* RecognizedEventValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0A8234BDC5E6F708192A3B4 /* RecognizedEventValidator.swift */; };
 		98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */; };
 		9DDEEFD02099D01BF5B9AB0F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */; };
 		A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */; };
@@ -170,6 +173,7 @@
 		5C25D81314C360E33205A426 /* SettingsStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStoreTests.swift; sourceTree = "<group>"; };
 		5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineClassifierTests.swift; sourceTree = "<group>"; };
 		623FE5114396A1D0CFBF42D0 /* OpenAIRecognitionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIRecognitionProvider.swift; sourceTree = "<group>"; };
+		3B8D0C2F5E6A718293A4B5C6 /* RecognitionPipelineModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionPipelineModels.swift; sourceTree = "<group>"; };
 		654B01ACEFF0AD692C0B2961 /* TimelineGrouping.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineGrouping.swift; sourceTree = "<group>"; };
 		6AB55EAD31CF9114728836CE /* TodayPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayPresentationTests.swift; sourceTree = "<group>"; };
 		6AE18E3A3D8462BEF5F0D539 /* TodayViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayViewModel.swift; sourceTree = "<group>"; };
@@ -193,6 +197,7 @@
 		A81FEBCC0EA3B9E86251CD78 /* TimelineDateScope.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineDateScope.swift; sourceTree = "<group>"; };
 		A8EE651D086F62C53810B2FE /* EventKitGatewayProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGatewayProtocol.swift; sourceTree = "<group>"; };
 		A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageRecognitionStore.swift; sourceTree = "<group>"; };
+		A0A8234BDC5E6F708192A3B4 /* RecognizedEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognizedEventValidator.swift; sourceTree = "<group>"; };
 		AE12C1FC57A1314CE6F7EA0E /* LiveActivityBoundaryScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityBoundaryScheduler.swift; sourceTree = "<group>"; };
 		B1023C8365A60F7B0D763E54 /* TimelineManagerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineManagerModel.swift; sourceTree = "<group>"; };
 		B24228916E5F6E30C68D54A7 /* TimelineEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineEngineTests.swift; sourceTree = "<group>"; };
@@ -224,6 +229,7 @@
 		F3970F963E48BEED739F23D9 /* FullTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullTimelineView.swift; sourceTree = "<group>"; };
 		F41A432CBEB3F03A8AFAC8BA /* TimelineItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineItem.swift; sourceTree = "<group>"; };
 		F62D02D5A83E462D37DA14EE /* OpenAIRecognitionProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIRecognitionProviderTests.swift; sourceTree = "<group>"; };
+		64CFD04541B16764C63B6AC6 /* RecognitionPipelineModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionPipelineModelsTests.swift; sourceTree = "<group>"; };
 		F8C886AC39412B52044E57BA /* TimelineStates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineStates.swift; sourceTree = "<group>"; };
 		FBE7C05294B46B68D0C1C377 /* RecognitionModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionModelTests.swift; sourceTree = "<group>"; };
 		FF43BE233A9F68C253E25D35 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -262,6 +268,7 @@
 			children = (
 				623FE5114396A1D0CFBF42D0 /* OpenAIRecognitionProvider.swift */,
 				B3ED5714B825EF64F00F6545 /* RecognitionModels.swift */,
+				3B8D0C2F5E6A718293A4B5C6 /* RecognitionPipelineModels.swift */,
 				11A611540DA5E60CB389AB26 /* RecognitionProvider.swift */,
 			);
 			path = Recognition;
@@ -424,6 +431,7 @@
 			isa = PBXGroup;
 			children = (
 				A9C4C68DBE73EC197B101CF0 /* ImageRecognitionStore.swift */,
+				A0A8234BDC5E6F708192A3B4 /* RecognizedEventValidator.swift */,
 				00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */,
 			);
 			name = Recognition;
@@ -437,6 +445,7 @@
 				B46B5DE45BF51AFA7211A9A7 /* EventTemplateFactoryTests.swift */,
 				0C43BF53CDA6ECA0B1D6EBFF /* ModelTests.swift */,
 				F62D02D5A83E462D37DA14EE /* OpenAIRecognitionProviderTests.swift */,
+				64CFD04541B16764C63B6AC6 /* RecognitionPipelineModelsTests.swift */,
 				FBE7C05294B46B68D0C1C377 /* RecognitionModelTests.swift */,
 				D29F7B1D887BEF3318BC22E2 /* SnapshotStoreTests.swift */,
 				5FA8A253064F4238B26398B6 /* TimelineClassifierTests.swift */,
@@ -754,6 +763,7 @@
 				BB3C7443B19E8A223DDA6ADD /* EventKitMapper.swift in Sources */,
 				85062EE5DB1B24D856F32F1B /* FullTimelineView.swift in Sources */,
 				EE85E349417FE3DD3A2DFAA0 /* ImageRecognitionStore.swift in Sources */,
+				9F97123ACB4D5E6F708192A3 /* RecognizedEventValidator.swift in Sources */,
 				A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */,
 				AEFE703CF972BC05C8501E54 /* LiveActivityBoundaryScheduler.swift in Sources */,
 				C5A3723C1A4AC4D356EA50C7 /* LiveActivityPresentationAdapter.swift in Sources */,
@@ -787,6 +797,7 @@
 				E0F9967027C774250F64642D /* EventTemplateFactoryTests.swift in Sources */,
 				5020840DF9867F8C2440DEC9 /* ModelTests.swift in Sources */,
 				52ADBC232F894542A4192FAE /* OpenAIRecognitionProviderTests.swift in Sources */,
+				53BECF3430A05653B52A5ABF /* RecognitionPipelineModelsTests.swift in Sources */,
 				E263F10E2981F75BE5F8D626 /* RecognitionModelTests.swift in Sources */,
 				50F951B68AF5FAB9F5AB9D84 /* SnapshotStoreTests.swift in Sources */,
 				F3CCD51A1E39912F08FA7D3C /* TimelineClassifierTests.swift in Sources */,
@@ -826,6 +837,7 @@
 				4762E05BD9BE126DE68DA375 /* EventTemplateFactory.swift in Sources */,
 				BD8CAF73F418A0CEC3B48614 /* OpenAIRecognitionProvider.swift in Sources */,
 				28918716FDD4FB43CB33758F /* RecognitionModels.swift in Sources */,
+				2A7C9B1E4D5F60718293A4B5 /* RecognitionPipelineModels.swift in Sources */,
 				43306A7001C18FB42ADFB3F8 /* RecognitionProvider.swift in Sources */,
 				BC0D9CD918F62FD91633C988 /* SnapshotStore.swift in Sources */,
 				376EAD5035495CC3A7364B48 /* TimelineClassifier.swift in Sources */,

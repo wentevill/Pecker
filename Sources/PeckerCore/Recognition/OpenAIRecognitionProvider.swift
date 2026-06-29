@@ -45,22 +45,60 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     }
 
     public func recognize(_ input: RecognitionInput) async throws -> RecognitionResult {
-        let request = try makeRequest(for: input)
-        let (data, response) = try await httpClient.data(for: request)
-        guard (200..<300).contains(response.statusCode) else {
-            if input.imageData != nil,
-               let message = String(data: data, encoding: .utf8)?.lowercased(),
-               message.contains("do not support image") {
-                throw RecognitionError.imageInputUnsupported
-            }
-            throw RecognitionError.requestFailed
-        }
-
-        let payload = try decodePayload(from: data)
+        let context = PromptContext(input: input)
+        let kindData = try await perform(
+            input: input,
+            stage: .classification,
+            systemPrompt: classificationPrompt,
+            taskText: classificationTask(input: input, context: context)
+        )
+        let kind = try decodeKind(from: kindData, stage: .classification)
+        let schema = RecognitionKindSchema.schema(for: kind)
+        let extractionData = try await perform(
+            input: input,
+            stage: .extraction,
+            systemPrompt: extractionPrompt,
+            taskText: extractionTask(
+                input: input,
+                kind: kind,
+                schema: schema,
+                context: context
+            )
+        )
+        let candidate = try decodePayload(
+            from: extractionData,
+            stage: .extraction
+        )
+        let verificationData = try await perform(
+            input: input,
+            stage: .verification,
+            systemPrompt: verificationPrompt,
+            taskText: verificationTask(
+                input: input,
+                candidate: candidate,
+                context: context
+            )
+        )
+        let payload = try decodePayload(
+            from: verificationData,
+            stage: .verification
+        )
         return RecognitionResult(payload: payload, confidence: nil)
     }
 
     public func makeRequest(for input: RecognitionInput) throws -> URLRequest {
+        try makeRequest(
+            for: input,
+            systemPrompt: systemPrompt,
+            taskText: inputDescription(for: input)
+        )
+    }
+
+    private func makeRequest(
+        for input: RecognitionInput,
+        systemPrompt: String,
+        taskText: String
+    ) throws -> URLRequest {
         guard let url = endpointURL(host: configuration.host),
               !configuration.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !configuration.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -73,7 +111,11 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(
-            withJSONObject: requestBody(for: input),
+            withJSONObject: requestBody(
+                for: input,
+                systemPrompt: systemPrompt,
+                taskText: taskText
+            ),
             options: [.sortedKeys, .withoutEscapingSlashes]
         )
         return request
@@ -95,7 +137,11 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         return components.url
     }
 
-    private func requestBody(for input: RecognitionInput) throws -> [String: Any] {
+    private func requestBody(
+        for input: RecognitionInput,
+        systemPrompt: String,
+        taskText: String
+    ) throws -> [String: Any] {
         [
             "model": configuration.model,
             "messages": [
@@ -105,17 +151,20 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 ],
                 [
                     "role": "user",
-                    "content": try userContent(for: input)
+                    "content": try userContent(for: input, taskText: taskText)
                 ]
             ]
         ]
     }
 
-    private func userContent(for input: RecognitionInput) throws -> [[String: Any]] {
+    private func userContent(
+        for input: RecognitionInput,
+        taskText: String
+    ) throws -> [[String: Any]] {
         var content: [[String: Any]] = [
             [
                 "type": "text",
-                "text": inputDescription(for: input)
+                "text": taskText
             ]
         ]
 
@@ -186,14 +235,153 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         """
     }
 
-    private func decodePayload(from data: Data) throws -> ExternalEventTemplatePayload {
-        guard let envelope = try? JSONDecoder().decode(RecognitionEnvelope.self, from: data) else {
-            throw RecognitionError.invalidResponse
-        }
-        guard let text = envelope.firstText else {
-            throw RecognitionError.invalidResponse
-        }
+    private var classificationPrompt: String {
+        """
+        你是 Pecker 的事件类型识别器。只判断图片或输入的基本类型，不提取字段。
+        只返回 JSON：{"kind":"train"}。
+        kind 必须是 meeting、task、flight、train、travel、interview、deadline 或 unknown。
+        不要输出推理、依据、Markdown 或额外文字。
+        """
+    }
 
+    private var extractionPrompt: String {
+        """
+        你是 Pecker 的精确字段提取器。根据指定类型尽可能扫描有效内容。
+        缺少可选字段时直接省略，绝不猜测。备注只保留用户需要准备、执行或查看的内容，
+        不写 OCR 过程、识别依据、置信度或无关文字。只返回约定 JSON。
+        """
+    }
+
+    private var verificationPrompt: String {
+        """
+        你是 Pecker 的最终结果核对器。重新查看原图，核对并直接修正候选 JSON。
+        可纠正事件类型、字段、日期、时区和先后顺序。不得虚构不可见信息。
+        只返回修正后的 JSON，不输出评论、推理、依据、Markdown 或额外文字。
+        """
+    }
+
+    private func classificationTask(
+        input: RecognitionInput,
+        context: PromptContext
+    ) -> String {
+        """
+        阶段：类型识别
+        \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
+
+        Tasks:
+        - [ ] 查看全部图片内容。
+        - [ ] 判断一个最符合的基本类型。
+        - [ ] 无法归入专用类型时返回 unknown，后续仍会尝试通用模板。
+        - [ ] 只返回 {"kind":"..."}。
+        """
+    }
+
+    private func extractionTask(
+        input: RecognitionInput,
+        kind: TimelineKind,
+        schema: RecognitionKindSchema,
+        context: PromptContext
+    ) -> String {
+        let requirements = schema.requirements
+            .map(\.label)
+            .joined(separator: "、")
+        return """
+        阶段：字段提取
+        \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
+        已识别类型：\(kind.rawValue)
+        最小必要元素：\(requirements)
+        可选字段：\(schema.optionalFields.joined(separator: "、"))
+        类型说明：\(schema.extractionGuidance)
+
+        Tasks:
+        - [ ] 扫描图片全部区域，但只保留与事件有关的信息。
+        - [ ] 优先提取最小必要元素。
+        - [ ] 尽可能提取清晰可见的可选字段；缺失字段省略。
+        - [ ] 相对日期必须依据 deviceNow 和 deviceTimeZone 转成标准日期。
+        - [ ] 精确时间使用带 UTC 偏移的 ISO-8601；仅日期使用 eventDate=YYYY-MM-DD。
+        - [ ] 返回 {"kind":"\(kind.rawValue)","fields":{"title":"..."}}。
+        """
+    }
+
+    private func verificationTask(
+        input: RecognitionInput,
+        candidate: ExternalEventTemplatePayload,
+        context: PromptContext
+    ) -> String {
+        let candidateText = (try? JSONEncoder().encode(candidate))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+        let schema = RecognitionKindSchema.schema(for: candidate.kind)
+        return """
+        阶段：结果核对
+        \(context.description)
+        输入信息：
+        \(inputDescription(for: input))
+        候选结果：\(candidateText)
+        当前类型最小必要元素：\(schema.requirements.map(\.label).joined(separator: "、"))
+
+        Tasks:
+        - [ ] 对照原图逐项核对类型和字段。
+        - [ ] 修正错字、字段错位、日期、UTC 偏移与跨日关系。
+        - [ ] 类型错误时直接更正 kind，并按新类型字段返回。
+        - [ ] 删除识别依据、重复内容和无关备注。
+        - [ ] 缺失可选字段可以省略，不得猜测。
+        - [ ] 返回最终 {"kind":"...","fields":{...}}。
+        """
+    }
+
+    private func perform(
+        input: RecognitionInput,
+        stage: RecognitionPipelineStage,
+        systemPrompt: String,
+        taskText: String
+    ) async throws -> Data {
+        let request = try makeRequest(
+            for: input,
+            systemPrompt: systemPrompt,
+            taskText: taskText
+        )
+        let data: Data
+        let response: HTTPURLResponse
+        do {
+            (data, response) = try await httpClient.data(for: request)
+        } catch let failure as RecognitionPipelineFailure {
+            throw failure
+        } catch {
+            throw networkFailure(error, stage: stage)
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw serviceFailure(
+                data: data,
+                statusCode: response.statusCode,
+                stage: stage,
+                hasImage: input.imageData != nil
+            )
+        }
+        return data
+    }
+
+    private func decodeKind(
+        from data: Data,
+        stage: RecognitionPipelineStage
+    ) throws -> TimelineKind {
+        let text = try responseText(from: data, stage: stage)
+        for candidate in ([text] + jsonObjectCandidates(in: text).reversed()) {
+            if let value = decodeKindObject(candidate) {
+                return value
+            }
+        }
+        throw decodingFailure(stage: stage, excerpt: text)
+    }
+
+    private func decodePayload(
+        from data: Data,
+        stage: RecognitionPipelineStage
+    ) throws -> ExternalEventTemplatePayload {
+        let text = try responseText(from: data, stage: stage)
         if let payload = decodePayloadObject(text) {
             return payload
         }
@@ -202,7 +390,36 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 return payload
             }
         }
-        throw RecognitionError.invalidResponse
+        throw decodingFailure(stage: stage, excerpt: text)
+    }
+
+    private func responseText(
+        from data: Data,
+        stage: RecognitionPipelineStage
+    ) throws -> String {
+        guard let envelope = try? JSONDecoder().decode(RecognitionEnvelope.self, from: data) else {
+            throw decodingFailure(
+                stage: stage,
+                excerpt: String(data: data, encoding: .utf8)
+            )
+        }
+        guard let text = envelope.firstText else {
+            throw decodingFailure(
+                stage: stage,
+                excerpt: String(data: data, encoding: .utf8)
+            )
+        }
+        return text
+    }
+
+    private func decodeKindObject(_ text: String) -> TimelineKind? {
+        guard let data = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .data(using: .utf8)
+        else {
+            return nil
+        }
+        return try? JSONDecoder().decode(KindResponse.self, from: data).kind
     }
 
     private func decodePayloadObject(
@@ -258,6 +475,144 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             }
         }
         return candidates
+    }
+
+    private func networkFailure(
+        _ error: Error,
+        stage: RecognitionPipelineStage
+    ) -> RecognitionPipelineFailure {
+        let urlError = error as? URLError
+        let reason: String
+        switch urlError?.code {
+        case .timedOut:
+            reason = "网络连接超时"
+        case .notConnectedToInternet:
+            reason = "设备未连接网络"
+        case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            reason = "无法连接识别服务"
+        default:
+            reason = "网络请求失败"
+        }
+        let summary: String
+        if let urlError {
+            summary = "NSURLErrorDomain \(urlError.errorCode): \(urlError.localizedDescription)"
+        } else {
+            summary = "\(type(of: error)): \(error.localizedDescription)"
+        }
+        return RecognitionPipelineFailure(
+            stage: stage,
+            reason: reason,
+            technicalSummary: summary,
+            httpStatus: nil,
+            serviceCode: nil,
+            serviceMessage: nil,
+            missingFields: [],
+            responseExcerpt: nil
+        )
+    }
+
+    private func serviceFailure(
+        data: Data,
+        statusCode: Int,
+        stage: RecognitionPipelineStage,
+        hasImage: Bool
+    ) -> RecognitionPipelineFailure {
+        let rawText = String(data: data, encoding: .utf8) ?? ""
+        let details = serviceErrorDetails(from: data)
+        let lowercased = [
+            rawText,
+            details.message ?? ""
+        ].joined(separator: " ").lowercased()
+        let imageUnsupported = hasImage && (
+            lowercased.contains("do not support image")
+                || lowercased.contains("image input unsupported")
+                || lowercased.contains("does not support image")
+        )
+        let reason: String
+        if imageUnsupported {
+            reason = "当前模型不支持图片识别"
+        } else if statusCode == 401 || statusCode == 403 {
+            reason = "API 鉴权失败（HTTP \(statusCode)）"
+        } else if statusCode == 429 {
+            reason = "服务返回 429：请求过于频繁"
+        } else {
+            reason = "识别服务返回 HTTP \(statusCode)"
+        }
+        return RecognitionPipelineFailure(
+            stage: stage,
+            reason: reason,
+            technicalSummary: nil,
+            httpStatus: statusCode,
+            serviceCode: details.code,
+            serviceMessage: details.message ?? rawText,
+            missingFields: [],
+            responseExcerpt: nil
+        )
+    }
+
+    private func serviceErrorDetails(
+        from data: Data
+    ) -> (code: String?, message: String?) {
+        guard let object = try? JSONSerialization.jsonObject(with: data),
+              let root = object as? [String: Any]
+        else {
+            return (nil, nil)
+        }
+        let details = (root["error"] as? [String: Any]) ?? root
+        let code = details["code"].map { String(describing: $0) }
+        let message = details["message"] as? String
+        return (code, message)
+    }
+
+    private func decodingFailure(
+        stage: RecognitionPipelineStage,
+        excerpt: String?
+    ) -> RecognitionPipelineFailure {
+        RecognitionPipelineFailure(
+            stage: stage,
+            reason: "识别结果格式异常",
+            technicalSummary: "服务响应不包含约定的结构化 JSON",
+            httpStatus: nil,
+            serviceCode: nil,
+            serviceMessage: nil,
+            missingFields: [],
+            responseExcerpt: excerpt
+        )
+    }
+}
+
+private struct KindResponse: Decodable {
+    let kind: TimelineKind
+}
+
+private struct PromptContext {
+    let now: Date
+    let timeZone: TimeZone
+
+    init(input: RecognitionInput) {
+        now = input.referenceDate ?? .now
+        timeZone = input.timeZoneIdentifier.flatMap(TimeZone.init(identifier:))
+            ?? .current
+    }
+
+    var description: String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.calendar = Calendar(identifier: .gregorian)
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.timeZone = timeZone
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssXXX"
+
+        let offsetFormatter = DateFormatter()
+        offsetFormatter.calendar = Calendar(identifier: .gregorian)
+        offsetFormatter.locale = Locale(identifier: "en_US_POSIX")
+        offsetFormatter.timeZone = timeZone
+        offsetFormatter.dateFormat = "XXX"
+
+        return """
+        deviceNow: \(dateFormatter.string(from: now))
+        deviceTimeZone: \(timeZone.identifier)
+        deviceUTCOffset: \(offsetFormatter.string(from: now))
+        """
     }
 }
 

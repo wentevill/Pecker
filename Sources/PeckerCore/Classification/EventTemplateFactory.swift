@@ -463,7 +463,18 @@ public struct EventTemplateFactory: Sendable {
     private func makeGenericTemplate(
         from payload: ExternalEventTemplatePayload
     ) -> TimelineEventTemplate? {
-        guard let title = payload.value(for: "title", "eventTitle", "事件标题") else {
+        let explicitTitle = payload.value(
+            for: "title",
+            "eventTitle",
+            "事件标题"
+        )
+        let destinationTitle: String? = switch payload.kind {
+        case .travel, .unknown:
+            payload.value(for: "destination", "目的地")
+        case .meeting, .task, .flight, .train, .interview, .deadline:
+            nil
+        }
+        guard let title = explicitTitle ?? destinationTitle else {
             return nil
         }
         return .generic(.init(

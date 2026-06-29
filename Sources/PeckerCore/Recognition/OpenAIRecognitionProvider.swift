@@ -288,9 +288,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     private var classificationPrompt: String {
         """
         你是 Pecker 的事件类型识别器。只判断图片或输入的基本类型，不提取字段。
-        只返回 JSON：{"kind":"train"}。
         kind 必须是 meeting、task、flight、train、travel、interview、deadline 或 unknown。
-        不要输出推理、依据、Markdown 或额外文字。
+        必须调用 classify_event 函数提交类型，不要输出普通内容、推理、依据或 Markdown。
         """
     }
 
@@ -298,7 +297,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         """
         你是 Pecker 的精确字段提取器。根据指定类型尽可能扫描有效内容。
         缺少可选字段时直接省略，绝不猜测。备注只保留用户需要准备、执行或查看的内容，
-        不写 OCR 过程、识别依据、置信度或无关文字。只返回约定 JSON。
+        不写 OCR 过程、识别依据、置信度或无关文字。必须调用提供的字段函数提交结果。
         """
     }
 
@@ -306,7 +305,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         """
         你是 Pecker 的最终结果核对器。重新查看原图，核对并直接修正候选 JSON。
         可纠正事件类型、字段、日期、时区和先后顺序。不得虚构不可见信息。
-        只返回修正后的 JSON，不输出评论、推理、依据、Markdown 或额外文字。
+        必须调用一个提供的字段函数提交最终结果，不输出评论、推理、依据或 Markdown。
         """
     }
 
@@ -324,7 +323,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         - [ ] 查看全部图片内容。
         - [ ] 判断一个最符合的基本类型。
         - [ ] 无法归入专用类型时返回 unknown，后续仍会尝试通用模板。
-        - [ ] 只返回 {"kind":"..."}。
+        - [ ] 必须调用 classify_event 提交唯一类型。
         """
     }
 
@@ -353,7 +352,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         - [ ] 尽可能提取清晰可见的可选字段；缺失字段省略。
         - [ ] 相对日期必须依据 deviceNow 和 deviceTimeZone 转成标准日期。
         - [ ] 精确时间使用带 UTC 偏移的 ISO-8601；仅日期使用 eventDate=YYYY-MM-DD。
-        - [ ] 返回 {"kind":"\(kind.rawValue)","fields":{"title":"..."}}。
+        - [ ] 必须调用提供的 \(RecognitionFunctionContract.fieldContract(for: kind).name) 函数。
         """
     }
 
@@ -379,7 +378,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         - [ ] 类型错误时直接更正 kind，并按新类型字段返回。
         - [ ] 删除识别依据、重复内容和无关备注。
         - [ ] 缺失可选字段可以省略，不得猜测。
-        - [ ] 返回最终 {"kind":"...","fields":{...}}。
+        - [ ] 必须调用且只调用一个最匹配类型的字段函数。
         """
     }
 
@@ -600,9 +599,21 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 || lowercased.contains("image input unsupported")
                 || lowercased.contains("does not support image")
         )
+        let functionCallingUnsupported =
+            lowercased.contains("function calling unsupported")
+            || lowercased.contains("function calling is not supported")
+            || (
+                lowercased.contains("tool")
+                    && (
+                        lowercased.contains("not supported")
+                            || lowercased.contains("unsupported")
+                    )
+            )
         let reason: String
         if imageUnsupported {
             reason = "当前模型不支持图片识别"
+        } else if functionCallingUnsupported {
+            reason = "当前模型或服务不支持函数调用"
         } else if statusCode == 401 || statusCode == 403 {
             reason = "API 鉴权失败（HTTP \(statusCode)）"
         } else if statusCode == 429 {

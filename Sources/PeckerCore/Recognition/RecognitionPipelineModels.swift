@@ -134,6 +134,14 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             ["eventDate", "departureTime"]
         ]
         let dateOrTime = preciseStart + [["eventDate"], ["date"]]
+        let taskDateOrTime = [
+            ["dueDateTime"],
+            ["executionDateTime"]
+        ] + dateOrTime
+        let deadlineDateOrTime = [
+            ["deadlineDateTime"],
+            ["dueDateTime"]
+        ] + dateOrTime
         let title = [["title"], ["eventTitle"]]
 
         switch kind {
@@ -204,7 +212,10 @@ public struct RecognitionKindSchema: Sendable, Equatable {
                 kind: kind,
                 requirements: [
                     .init(label: "标题", alternatives: title),
-                    .init(label: "执行日期", alternatives: dateOrTime)
+                    .init(
+                        label: "执行日期",
+                        alternatives: taskDateOrTime
+                    )
                 ],
                 optionalFields: [
                     "endDateTime", "location", "priority", "assignee", "project", "notes"
@@ -215,7 +226,10 @@ public struct RecognitionKindSchema: Sendable, Equatable {
                 kind: kind,
                 requirements: [
                     .init(label: "标题", alternatives: title),
-                    .init(label: "截止日期", alternatives: dateOrTime)
+                    .init(
+                        label: "截止日期",
+                        alternatives: deadlineDateOrTime
+                    )
                 ],
                 optionalFields: [
                     "location", "owner", "project", "submissionChannel", "notes"

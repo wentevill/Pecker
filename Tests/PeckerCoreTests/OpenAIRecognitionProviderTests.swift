@@ -122,6 +122,39 @@ import Testing
     }
 }
 
+@Test func openAIProviderReportsUnsupportedFunctionCalling() async throws {
+    let client = StubRecognitionHTTPClient(
+        data: Data(
+            #"{"error":{"message":"tools are not supported by this model","code":"unsupported_tools"}}"#.utf8
+        ),
+        statusCode: 400
+    )
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.example.com",
+            apiKey: "sk-test",
+            model: "text-only"
+        ),
+        httpClient: client
+    )
+
+    do {
+        _ = try await provider.recognize(.reminder(
+            sourceIdentifier: "patrol",
+            title: "今天晚上11点半巡逻仓库",
+            dueDate: nil,
+            endDate: nil,
+            notes: nil
+        ))
+        Issue.record("Expected function-calling compatibility failure")
+    } catch let failure as RecognitionPipelineFailure {
+        #expect(failure.stage == .classification)
+        #expect(failure.reason == "当前模型或服务不支持函数调用")
+        #expect(failure.httpStatus == 400)
+        #expect(failure.serviceCode == "unsupported_tools")
+    }
+}
+
 @Test func openAIProviderRejectsContentWithoutFunctionCall() async throws {
     let client = StubRecognitionHTTPClient(
         data: Data(
@@ -247,6 +280,11 @@ import Testing
 
     let requests = await client.recordedRequests
     #expect(requests.count == 3)
+    let bodyTexts = requests.compactMap(\.httpBody).compactMap {
+        String(data: $0, encoding: .utf8)
+    }
+    #expect(bodyTexts.allSatisfy { $0.contains("必须调用") })
+    #expect(bodyTexts.allSatisfy { !$0.contains("只返回 {") })
     let classification = try requestJSON(requests[0])
     let extraction = try requestJSON(requests[1])
     let verification = try requestJSON(requests[2])

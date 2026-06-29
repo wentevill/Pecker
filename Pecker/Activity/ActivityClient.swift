@@ -8,6 +8,11 @@ enum ActivityDecision: Equatable, Sendable {
     case end
 }
 
+struct ActivityReconciliationResult: Equatable, Sendable {
+    let decision: ActivityDecision
+    let nextBoundary: Date?
+}
+
 struct ActivityClientSnapshot: Equatable, Sendable {
     let id: String
     let localDayIdentifier: String

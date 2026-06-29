@@ -69,6 +69,14 @@ struct PeckerApp: App {
                 model.becameInactive()
             }
         }
+        .backgroundTask(
+            .appRefresh(LiveActivityBackgroundTask.identifier)
+        ) {
+            guard case let .ready(model) = root else {
+                return
+            }
+            await model.handleLiveActivityBackgroundRefresh()
+        }
     }
 }
 

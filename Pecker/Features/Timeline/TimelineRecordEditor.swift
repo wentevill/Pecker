@@ -70,6 +70,18 @@ struct TimelineRecordEditor: Equatable {
             seatClass = ticket.seatClass ?? ""
             priceText = ticket.priceText ?? ""
             ticketNumber = ticket.ticketNumber ?? ""
+        case let .flightTicket(ticket):
+            title = ticket.flightNumber ?? record.rawTitle ?? "航班"
+            kind = .flight
+            trainNumber = ""
+            departureStation = ""
+            arrivalStation = ""
+            carriageNumber = ""
+            seatNumber = ""
+            checkInGate = ""
+            seatClass = ""
+            priceText = ""
+            ticketNumber = ""
         case nil:
             title = record.rawTitle ?? ""
             kind = .unknown
@@ -118,12 +130,36 @@ struct TimelineRecordEditor: Equatable {
                 seatClass: seatClass.nilIfBlank,
                 priceText: priceText.nilIfBlank
             ))
+        } else if kind == .flight,
+                  case let .flightTicket(ticket) = original.template
+        {
+            template = .flightTicket(.init(
+                flightNumber: cleanTitle,
+                carrier: ticket.carrier,
+                departureAirport: ticket.departureAirport,
+                departureAirportCode: ticket.departureAirportCode,
+                arrivalAirport: ticket.arrivalAirport,
+                arrivalAirportCode: ticket.arrivalAirportCode,
+                departureTimeText: ticket.departureTimeText,
+                arrivalTimeText: ticket.arrivalTimeText,
+                terminal: ticket.terminal,
+                gate: ticket.gate,
+                seat: ticket.seat,
+                travelStatus: ticket.travelStatus
+            ))
         } else {
+            let preservedFields: [String: String]
+            if case let .generic(event) = original.template {
+                preservedFields = event.fields
+            } else {
+                preservedFields = [:]
+            }
             template = .generic(.init(
                 kind: kind,
                 title: cleanTitle,
                 location: cleanLocation,
-                notes: cleanNotes
+                notes: cleanNotes,
+                fields: preservedFields
             ))
         }
 

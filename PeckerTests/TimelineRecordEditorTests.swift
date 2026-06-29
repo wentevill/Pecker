@@ -64,6 +64,91 @@ final class TimelineRecordEditorTests: XCTestCase {
         }
     }
 
+    func testFlightEditorPreservesStructuredTicketFields() throws {
+        let ticket = FlightTicketTemplate(
+            flightNumber: "SQ 833",
+            carrier: "Singapore Airlines",
+            departureAirport: "Shanghai Pudong",
+            departureAirportCode: "PVG",
+            arrivalAirport: "Singapore Changi",
+            arrivalAirportCode: "SIN",
+            departureTimeText: "14:35",
+            arrivalTimeText: "20:25",
+            terminal: "T3",
+            gate: "B7",
+            seat: "12A",
+            travelStatus: "Boarding"
+        )
+        let record = StoredEventRecord(
+            id: "image:flight",
+            source: .importedImage,
+            sourceIdentifier: "flight",
+            rawTitle: "SQ 833",
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 2_000),
+            template: .flightTicket(ticket),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        var editor = try TimelineRecordEditor(record: record)
+        editor.title = "SQ 834"
+        let updated = try editor.makeRecord(
+            updatedAt: Date(timeIntervalSince1970: 3_000)
+        )
+
+        guard case let .flightTicket(updatedTicket) = updated.template else {
+            return XCTFail("Expected flight ticket")
+        }
+        XCTAssertEqual(updatedTicket.flightNumber, "SQ 834")
+        XCTAssertEqual(updatedTicket.departureAirportCode, "PVG")
+        XCTAssertEqual(updatedTicket.arrivalAirportCode, "SIN")
+        XCTAssertEqual(updatedTicket.gate, "B7")
+        XCTAssertEqual(updatedTicket.seat, "12A")
+    }
+
+    func testGenericEditorPreservesRecognitionFields() throws {
+        let fields = [
+            "title": "Design interview",
+            "location": "Zoom",
+            "interviewer": "Design Lead"
+        ]
+        let record = StoredEventRecord(
+            id: "image:interview",
+            source: .importedImage,
+            sourceIdentifier: "interview",
+            rawTitle: "Design interview",
+            rawLocation: "Zoom",
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 2_000),
+            template: .generic(.init(
+                kind: .interview,
+                title: "Design interview",
+                location: "Zoom",
+                notes: nil,
+                fields: fields
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        var editor = try TimelineRecordEditor(record: record)
+        editor.title = "Final interview"
+        let updated = try editor.makeRecord(
+            updatedAt: Date(timeIntervalSince1970: 3_000)
+        )
+
+        guard case let .generic(event) = updated.template else {
+            return XCTFail("Expected generic template")
+        }
+        XCTAssertEqual(event.fields["interviewer"], "Design Lead")
+    }
+
     func testEditorRejectsSystemOwnedRecord() {
         let record = StoredEventRecord(
             id: "calendar:event",

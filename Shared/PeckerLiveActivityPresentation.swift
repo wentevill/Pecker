@@ -24,18 +24,18 @@ struct PeckerLiveActivityColorSpec: Equatable {
         Color(red: red, green: green, blue: blue).opacity(opacity)
     }
 
-    static let peckerCoral = PeckerLiveActivityColorSpec(red: 1.0, green: 0.38, blue: 0.34)
-    static let peckerWarmOrange = PeckerLiveActivityColorSpec(red: 0.96, green: 0.58, blue: 0.28)
-    static let peckerAmber = PeckerLiveActivityColorSpec(red: 0.92, green: 0.66, blue: 0.28)
+    static let peckerGreen = PeckerLiveActivityColorSpec(red: 0.36, green: 0.88, blue: 0.47)
+    static let peckerBlue = PeckerLiveActivityColorSpec(red: 0.35, green: 0.68, blue: 1.0)
+    static let peckerOrange = PeckerLiveActivityColorSpec(red: 1.0, green: 0.60, blue: 0.18)
 }
 
 enum PeckerLiveActivityPalette {
-    static let darkTop = PeckerLiveActivityColorSpec(red: 0.13, green: 0.09, blue: 0.06)
-    static let darkMiddle = PeckerLiveActivityColorSpec(red: 0.18, green: 0.11, blue: 0.075)
-    static let darkBottom = PeckerLiveActivityColorSpec(red: 0.075, green: 0.052, blue: 0.04)
-    static let textPrimary = PeckerLiveActivityColorSpec(red: 1.0, green: 0.955, blue: 0.88)
-    static let textSecondary = PeckerLiveActivityColorSpec(red: 1.0, green: 0.955, blue: 0.88, opacity: 0.68)
-    static let hairline = PeckerLiveActivityColorSpec(red: 1.0, green: 0.74, blue: 0.54, opacity: 0.16)
+    static let darkTop = PeckerLiveActivityColorSpec(red: 0.03, green: 0.09, blue: 0.16)
+    static let darkMiddle = PeckerLiveActivityColorSpec(red: 0.06, green: 0.12, blue: 0.20)
+    static let darkBottom = PeckerLiveActivityColorSpec(red: 0.025, green: 0.055, blue: 0.10)
+    static let textPrimary = PeckerLiveActivityColorSpec(red: 0.94, green: 0.97, blue: 1.0)
+    static let textSecondary = PeckerLiveActivityColorSpec(red: 0.72, green: 0.78, blue: 0.86)
+    static let hairline = PeckerLiveActivityColorSpec(red: 0.48, green: 0.72, blue: 1.0, opacity: 0.18)
 
     static var backgroundGradient: LinearGradient {
         LinearGradient(
@@ -52,11 +52,11 @@ enum PeckerLiveActivityPalette {
     static func accentSpec(for status: PeckerLiveActivityStatus) -> PeckerLiveActivityColorSpec {
         switch status {
         case .now:
-            .peckerCoral
+            .peckerGreen
         case .next:
-            .peckerWarmOrange
+            .peckerBlue
         case .pinned:
-            .peckerAmber
+            .peckerOrange
         }
     }
 
@@ -114,8 +114,61 @@ enum PeckerLiveActivityCopy {
         usesChinese(locale) ? "进度" : "Progress"
     }
 
+    static func endedLabel(
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        usesChinese(locale) ? "已结束" : "Ended"
+    }
+
     private static func usesChinese(_ locale: Locale) -> Bool {
         let languageCode = locale.language.languageCode?.identifier
         return languageCode == "zh"
+    }
+}
+
+enum PeckerLiveActivityStyle {
+    static func symbolName(kindRawValue: String) -> String {
+        switch kindRawValue {
+        case "meeting":
+            "person.2.fill"
+        case "task":
+            "checklist"
+        case "flight":
+            "airplane"
+        case "train":
+            "train.side.front.car"
+        case "travel":
+            "suitcase.fill"
+        case "interview":
+            "person.text.rectangle"
+        case "deadline":
+            "calendar.badge.exclamationmark"
+        default:
+            "clock.fill"
+        }
+    }
+
+    static func status(for rawValue: String) -> PeckerLiveActivityStatus {
+        switch rawValue {
+        case "next":
+            .next
+        case "pinned":
+            .pinned
+        default:
+            .now
+        }
+    }
+
+    static func progress(
+        startDate: Date?,
+        endDate: Date?,
+        at date: Date
+    ) -> Double? {
+        guard let startDate, let endDate, endDate > startDate else {
+            return nil
+        }
+        let total = endDate.timeIntervalSince(startDate)
+        let elapsed = date.timeIntervalSince(startDate)
+        return min(max(elapsed / total, 0), 1)
     }
 }

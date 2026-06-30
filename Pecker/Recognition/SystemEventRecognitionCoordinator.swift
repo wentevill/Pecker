@@ -226,8 +226,8 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         ) else {
             throw RecognitionPipelineFailure(
                 stage: .validation,
-                reason: "未识别到可保存的事件内容",
-                technicalSummary: "模板工厂无法从核对后的字段构建事件",
+                reason: "\u{672a}\u{8bc6}\u{522b}\u{5230}\u{53ef}\u{4fdd}\u{5b58}\u{7684}\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}",
+                technicalSummary: "\u{6a21}\u{677f}\u{5de5}\u{5382}\u{65e0}\u{6cd5}\u{4ece}\u{6838}\u{5bf9}\u{540e}\u{7684}\u{5b57}\u{6bb5}\u{6784}\u{5efa}\u{4e8b}\u{4ef6}",
                 httpStatus: nil,
                 serviceCode: nil,
                 serviceMessage: nil,

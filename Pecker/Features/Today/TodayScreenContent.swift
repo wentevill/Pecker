@@ -131,7 +131,7 @@ struct TodayScreenContent: Equatable {
         switch phase {
         case .idle:
             return RecognitionActions(
-                statusText: "等待图片",
+                statusText: "\u{7b49}\u{5f85}\u{56fe}\u{7247}",
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: nil,
@@ -141,7 +141,7 @@ struct TodayScreenContent: Equatable {
             )
         case .recognizing:
             return RecognitionActions(
-                statusText: "正在识别",
+                statusText: "\u{6b63}\u{5728}\u{8bc6}\u{522b}",
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -151,7 +151,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .awaitingConfirmation(draft):
             return RecognitionActions(
-                statusText: "识别完成，确认后保存",
+                statusText: "\u{8bc6}\u{522b}\u{5b8c}\u{6210}，\u{786e}\u{8ba4}\u{540e}\u{4fdd}\u{5b58}",
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -161,7 +161,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .saving(draft):
             return RecognitionActions(
-                statusText: "正在保存",
+                statusText: "\u{6b63}\u{5728}\u{4fdd}\u{5b58}",
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -184,7 +184,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .failure(issue):
             return RecognitionActions(
-                statusText: "识别失败",
+                statusText: "\u{8bc6}\u{522b}\u{5931}\u{8d25}",
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: issue.reason,
@@ -194,7 +194,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .saveFailure(draft, errorText):
             return RecognitionActions(
-                statusText: "保存失败",
+                statusText: "\u{4fdd}\u{5b58}\u{5931}\u{8d25}",
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -226,7 +226,7 @@ struct TodayScreenContent: Equatable {
         }
         let fields = [
             EventTemplatePresentation.Field(
-                label: "时间",
+                label: "\u{65f6}\u{95f4}",
                 value: timingText
             )
         ] + presentation.fields
@@ -234,8 +234,8 @@ struct TodayScreenContent: Equatable {
             titleText: presentation.title,
             subtitleText: presentation.subtitle,
             fields: fields,
-            saveButtonText: "保存",
-            cancelButtonText: "取消",
+            saveButtonText: "\u{4fdd}\u{5b58}",
+            cancelButtonText: "\u{53d6}\u{6d88}",
             buttonsDisabled: buttonsDisabled,
             errorText: errorText
         )
@@ -266,7 +266,7 @@ struct TodayScreenContent: Equatable {
         let header = Header(
             dateText: dateText,
             todayText: "Today",
-            settingsButtonLabel: "设置",
+            settingsButtonLabel: "\u{8bbe}\u{7f6e}",
             accessibilityLabel: "\(dateText)，Today"
         )
 
@@ -293,7 +293,7 @@ struct TodayScreenContent: Equatable {
                 nowCard: nil,
                 nextCard: nil,
                 pinnedCard: nil,
-                summary: nil,
+                summary: fullTimelineSummary(),
                 footer: nil,
                 permission: nil,
                 failure: nil,
@@ -429,7 +429,13 @@ struct TodayScreenContent: Equatable {
                 makeNextCard($0, now: now, locale: locale)
             },
             pinnedCard: pinnedItem.map {
-                makePinnedCard($0, now: now, locale: locale, pinOrigin: snapshot.pinOrigin)
+                makePinnedCard(
+                    $0,
+                    now: now,
+                    locale: locale,
+                    calendar: calendar,
+                    pinOrigin: snapshot.pinOrigin
+                )
             },
             summary: {
                 let count = TodayPresentation.summaryCount(
@@ -437,8 +443,8 @@ struct TodayScreenContent: Equatable {
                     now: now
                 )
                 return Summary(
-                    titleText: "今天还有 \(count) 个日程",
-                    accessibilityLabel: "今天还有 \(count) 个日程，打开完整时间线"
+                    titleText: "\u{4eca}\u{5929}\u{8fd8}\u{6709} \(count) \u{4e2a}\u{65e5}\u{7a0b}",
+                    accessibilityLabel: "\u{4eca}\u{5929}\u{8fd8}\u{6709} \(count) \u{4e2a}\u{65e5}\u{7a0b}，\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}"
                 )
             }(),
             footer: Footer(
@@ -448,6 +454,13 @@ struct TodayScreenContent: Equatable {
                 authorization: authorization,
                 settings: settings
             )
+        )
+    }
+
+    private static func fullTimelineSummary() -> Summary {
+        Summary(
+            titleText: "\u{67e5}\u{770b}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}",
+            accessibilityLabel: "\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}，\u{67e5}\u{770b}\u{5386}\u{53f2}\u{548c}\u{672a}\u{6765}\u{65e5}\u{7a0b}"
         )
     }
 
@@ -497,11 +510,11 @@ struct TodayScreenContent: Equatable {
             "\(Int(($0 * 100).rounded()))%"
         }
         let accessibilityLabel = accessibilityLabel(
-            statusText: "现在",
+            statusText: "\u{73b0}\u{5728}",
             badgeText: nil,
             titleText: item.title,
             timeText: timeText,
-            secondaryText: "剩余 \(remainingText)",
+            secondaryText: "\u{5269}\u{4f59} \(remainingText)",
             tertiaryText: concurrentText,
             progressText: progressText
         )
@@ -510,12 +523,12 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .now,
             accent: .now,
-            statusText: "现在",
+            statusText: "\u{73b0}\u{5728}",
             badgeText: nil,
             symbolName: symbolName(for: item, fallback: .now),
             titleText: item.title,
             timeText: timeText,
-            secondaryText: "剩余 \(remainingText)",
+            secondaryText: "\u{5269}\u{4f59} \(remainingText)",
             tertiaryText: concurrentText,
             progress: progress,
             progressText: progressText,
@@ -538,7 +551,7 @@ struct TodayScreenContent: Equatable {
             now: now
         )
         let accessibilityLabel = accessibilityLabel(
-            statusText: "下一项",
+            statusText: "\u{4e0b}\u{4e00}\u{9879}",
             badgeText: nil,
             titleText: item.title,
             timeText: timeText,
@@ -551,7 +564,7 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .next,
             accent: .next,
-            statusText: "下一项",
+            statusText: "\u{4e0b}\u{4e00}\u{9879}",
             badgeText: nil,
             symbolName: symbolName(for: item, fallback: .next),
             titleText: item.title,
@@ -568,16 +581,23 @@ struct TodayScreenContent: Equatable {
         _ item: TimelineItem,
         now: Date,
         locale: Locale,
+        calendar: Calendar,
         pinOrigin: PinOrigin?
     ) -> Card {
         let badgeText = TodayPresentation.pinBadgeText(for: pinOrigin)
-        let timeText = pinnedTimeText(for: item, locale: locale, includeLocation: true)
+        let timeText = pinnedTimeText(
+            for: item,
+            now: now,
+            locale: locale,
+            calendar: calendar,
+            includeLocation: true
+        )
         let countdown = relativeCountdownText(
             target: countdownTargetDate(for: item, now: now),
             now: now
         )
         let accessibilityLabel = accessibilityLabel(
-            statusText: "固定行程",
+            statusText: "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}",
             badgeText: badgeText,
             titleText: item.title,
             timeText: timeText,
@@ -590,7 +610,7 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .pinned,
             accent: .pinned,
-            statusText: "固定行程",
+            statusText: "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}",
             badgeText: badgeText,
             symbolName: symbolName(for: item, fallback: .pinned),
             titleText: item.title,
@@ -637,15 +657,25 @@ struct TodayScreenContent: Equatable {
 
     private static func pinnedTimeText(
         for item: TimelineItem,
+        now: Date,
         locale: Locale,
+        calendar: Calendar,
         includeLocation: Bool
     ) -> String {
-        let startText = item.startDate.formatted(
-            Date.FormatStyle()
+        var style = calendar.isDate(item.startDate, inSameDayAs: now)
+            ? Date.FormatStyle()
                 .hour(.defaultDigits(amPM: .omitted))
                 .minute()
                 .locale(locale)
-        )
+            : Date.FormatStyle()
+                .month()
+                .day()
+                .hour(.defaultDigits(amPM: .omitted))
+                .minute()
+                .locale(locale)
+        style.calendar = calendar
+        style.timeZone = calendar.timeZone
+        let startText = item.startDate.formatted(style)
 
         let baseText: String
         if let kind = kindText(for: item.kind) {
@@ -664,17 +694,17 @@ struct TodayScreenContent: Equatable {
     private static func kindText(for kind: TimelineKind) -> String? {
         switch kind {
         case .flight:
-            "起飞"
+            "\u{8d77}\u{98de}"
         case .train:
-            "发车"
+            "\u{53d1}\u{8f66}"
         case .interview:
-            "面试"
+            "\u{9762}\u{8bd5}"
         case .meeting:
-            "会议"
+            "\u{4f1a}\u{8bae}"
         case .deadline:
-            "截止"
+            "\u{622a}\u{6b62}"
         case .task:
-            "待办"
+            "\u{5f85}\u{529e}"
         case .travel, .unknown:
             nil
         }
@@ -696,7 +726,7 @@ struct TodayScreenContent: Equatable {
         }
 
         let interval = max(0, target.timeIntervalSince(now))
-        return "还有 \(durationText(for: interval))"
+        return "\u{8fd8}\u{6709} \(durationText(for: interval))"
     }
 
     private static func countdownTargetDate(
@@ -727,7 +757,7 @@ struct TodayScreenContent: Equatable {
 
     private static func durationText(for interval: TimeInterval) -> String {
         if interval < 60 {
-            return "不到 1 分钟"
+            return "\u{4e0d}\u{5230} 1 \u{5206}\u{949f}"
         }
 
         let totalMinutes = Int((interval / 60).rounded(.down))
@@ -736,11 +766,11 @@ struct TodayScreenContent: Equatable {
 
         switch (hours, minutes) {
         case let (hours, 0) where hours > 0:
-            return "\(hours) 小时"
+            return "\(hours) \u{5c0f}\u{65f6}"
         case let (0, minutes):
-            return "\(minutes) 分钟"
+            return "\(minutes) \u{5206}\u{949f}"
         case let (hours, minutes):
-            return "\(hours) 小时 \(minutes) 分钟"
+            return "\(hours) \u{5c0f}\u{65f6} \(minutes) \u{5206}\u{949f}"
         }
     }
 
@@ -751,14 +781,14 @@ struct TodayScreenContent: Equatable {
     ) -> String {
         let interval = abs(date.timeIntervalSince(now))
         if interval < 60 {
-            return "刚刚更新"
+            return "\u{521a}\u{521a}\u{66f4}\u{65b0}"
         }
 
         let style = Date.FormatStyle()
             .hour(.defaultDigits(amPM: .omitted))
             .minute()
             .locale(locale)
-        return "更新于 \(date.formatted(style))"
+        return "\u{66f4}\u{65b0}\u{4e8e} \(date.formatted(style))"
     }
 
     private static func symbolName(
@@ -814,7 +844,7 @@ struct TodayScreenContent: Equatable {
             parts.append(tertiaryText)
         }
         if let progressText, !progressText.isEmpty {
-            parts.append("进度 \(progressText)")
+            parts.append("\u{8fdb}\u{5ea6} \(progressText)")
         }
         return parts.joined(separator: "，")
     }
@@ -823,15 +853,15 @@ struct TodayScreenContent: Equatable {
         for authorization: SourceAuthorization
     ) -> String {
         let missing: [String] = [
-            authorization.calendar == .fullAccess ? nil : "日历",
-            authorization.reminders == .fullAccess ? nil : "提醒事项"
+            authorization.calendar == .fullAccess ? nil : "\u{65e5}\u{5386}",
+            authorization.reminders == .fullAccess ? nil : "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
         ]
         .compactMap { $0 }
 
         guard !missing.isEmpty else {
-            return "开启后，Today 才能显示你的日程。"
+            return "\u{5f00}\u{542f}\u{540e}，Today \u{624d}\u{80fd}\u{663e}\u{793a}\u{4f60}\u{7684}\u{65e5}\u{7a0b}。"
         }
 
-        return "允许访问\(missing.joined(separator: "和"))后，Today 才能更新时间线。"
+        return "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\(missing.joined(separator: "\u{548c}"))\u{540e}，Today \u{624d}\u{80fd}\u{66f4}\u{65b0}\u{65f6}\u{95f4}\u{7ebf}。"
     }
 }

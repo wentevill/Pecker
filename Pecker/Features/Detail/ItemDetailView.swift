@@ -7,8 +7,8 @@ enum ItemDetailAction {
         settings: TimelineSettings
     ) -> String {
         settings.manualPinnedSourceIdentifier == item.sourceIdentifier
-            ? "取消固定"
-            : "固定行程"
+            ? "\u{53d6}\u{6d88}\u{56fa}\u{5b9a}"
+            : "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}"
     }
 
     static func updatedSettings(
@@ -46,11 +46,11 @@ struct ItemDetailView: View {
 
                 TimelineCard(accent: .neutral) {
                     VStack(alignment: .leading, spacing: 12) {
-                        detailRow(title: "来源", value: sourceText)
-                        detailRow(title: "类型", value: kindText)
-                        detailRow(title: "时间", value: timingText(now: now))
-                        detailRow(title: "地点", value: item.location.nilIfEmpty ?? "—")
-                        detailRow(title: "备注", value: item.notes.nilIfEmpty ?? "—")
+                        detailRow(title: "\u{6765}\u{6e90}", value: sourceText)
+                        detailRow(title: "\u{7c7b}\u{578b}", value: kindText)
+                        detailRow(title: "\u{65f6}\u{95f4}", value: timingText(now: now))
+                        detailRow(title: "\u{5730}\u{70b9}", value: item.location.nilIfEmpty ?? "—")
+                        detailRow(title: "\u{5907}\u{6ce8}", value: item.notes.nilIfEmpty ?? "—")
                     }
                 }
 
@@ -66,7 +66,7 @@ struct ItemDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    static let navigationTitle = "详情"
+    static let navigationTitle = "\u{8be6}\u{60c5}"
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -102,7 +102,7 @@ struct ItemDetailView: View {
         return [
             sourceText,
             kindText,
-            item.isAllDay ? "全天" : "定时",
+            item.isAllDay ? "\u{5168}\u{5929}" : "\u{5b9a}\u{65f6}",
             ItemDetailAction.primaryButtonTitle(for: item, settings: settings)
         ]
         .joined(separator: " · ")
@@ -110,8 +110,8 @@ struct ItemDetailView: View {
 
     private var sourceText: String {
         switch item.source {
-        case .calendar: "日历"
-        case .reminder: "提醒事项"
+        case .calendar: "\u{65e5}\u{5386}"
+        case .reminder: "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
         case .external: "Pecker"
         }
     }
@@ -119,21 +119,21 @@ struct ItemDetailView: View {
     private var kindText: String {
         switch item.kind {
         case .meeting:
-            "会议"
+            "\u{4f1a}\u{8bae}"
         case .task:
-            "待办"
+            "\u{5f85}\u{529e}"
         case .flight:
-            "航班"
+            "\u{822a}\u{73ed}"
         case .train:
-            "火车"
+            "\u{706b}\u{8f66}"
         case .travel:
-            "行程"
+            "\u{884c}\u{7a0b}"
         case .interview:
-            "面试"
+            "\u{9762}\u{8bd5}"
         case .deadline:
-            "截止"
+            "\u{622a}\u{6b62}"
         case .unknown:
-            "未分类"
+            "\u{672a}\u{5206}\u{7c7b}"
         }
     }
 
@@ -144,7 +144,7 @@ struct ItemDetailView: View {
             .minute()
 
         if item.isAllDay {
-            return "全天"
+            return "\u{5168}\u{5929}"
         }
 
         guard let endDate = item.endDate else {
@@ -153,10 +153,10 @@ struct ItemDetailView: View {
 
         let range = "\(item.startDate.formatted(formatter)) – \(endDate.formatted(formatter))"
         if item.startDate <= now, endDate > now {
-            return "\(range) · 进行中"
+            return "\(range) · \u{8fdb}\u{884c}\u{4e2d}"
         }
         if endDate <= now {
-            return "\(range) · 已结束"
+            return "\(range) · \u{5df2}\u{7ed3}\u{675f}"
         }
         return range
     }
@@ -237,7 +237,7 @@ private struct TrainTicketTemplateView: View {
     private var ticketHeader: some View {
         HStack(alignment: .center, spacing: 12) {
             Label {
-                Text("火车票")
+                Text("\u{706b}\u{8f66}\u{7968}")
                     .font(.subheadline.weight(.bold))
             } icon: {
                 Image(systemName: "train.side.front.car")
@@ -247,7 +247,7 @@ private struct TrainTicketTemplateView: View {
 
             Spacer(minLength: 8)
 
-            Text(ticket.trainNumber ?? "待识别车次")
+            Text(ticket.trainNumber ?? "\u{5f85}\u{8bc6}\u{522b}\u{8f66}\u{6b21}")
                 .font(.title2.weight(.black))
                 .monospacedDigit()
                 .foregroundStyle(
@@ -266,7 +266,7 @@ private struct TrainTicketTemplateView: View {
     private var routeRow: some View {
         HStack(alignment: .center, spacing: 12) {
             stationBlock(
-                title: ticket.departureStation ?? "出发站",
+                title: ticket.departureStation ?? "\u{51fa}\u{53d1}\u{7ad9}",
                 alignment: .leading
             )
 
@@ -281,7 +281,7 @@ private struct TrainTicketTemplateView: View {
             .frame(maxWidth: 90)
 
             stationBlock(
-                title: ticket.arrivalStation ?? "到达站",
+                title: ticket.arrivalStation ?? "\u{5230}\u{8fbe}\u{7ad9}",
                 alignment: .trailing
             )
         }
@@ -307,9 +307,9 @@ private struct TrainTicketTemplateView: View {
 
     private var timeRow: some View {
         HStack(alignment: .top, spacing: 12) {
-            timeBlock(label: "出发", value: departureTimeText)
+            timeBlock(label: "\u{51fa}\u{53d1}", value: departureTimeText)
             Spacer(minLength: 12)
-            timeBlock(label: "到达", value: arrivalTimeText)
+            timeBlock(label: "\u{5230}\u{8fbe}", value: arrivalTimeText)
         }
     }
 
@@ -327,11 +327,11 @@ private struct TrainTicketTemplateView: View {
 
     private var chips: [String] {
         [
-            ticket.carriageNumber.map { "\($0)车厢" },
-            ticket.seatNumber.map { "\($0)座" },
-            ticket.checkInGate.map { "检票口 \($0)" },
-            ticket.passengerName.map { "乘车人 \($0)" },
-            ticket.ticketNumber.map { "票号 \($0)" }
+            ticket.carriageNumber.map { "\($0)\u{8f66}\u{53a2}" },
+            ticket.seatNumber.map { "\($0)\u{5ea7}" },
+            ticket.checkInGate.map { "\u{68c0}\u{7968}\u{53e3} \($0)" },
+            ticket.passengerName.map { "\u{4e58}\u{8f66}\u{4eba} \($0)" },
+            ticket.ticketNumber.map { "\u{7968}\u{53f7} \($0)" }
         ]
         .compactMap(\.self)
     }
@@ -363,15 +363,15 @@ private struct TrainTicketTemplateView: View {
 
     private var accessibilityLabel: String {
         [
-            "火车票",
+            "\u{706b}\u{8f66}\u{7968}",
             ticket.trainNumber,
             ticket.departureStation,
             ticket.arrivalStation,
-            "出发 \(departureTimeText)",
-            "到达 \(arrivalTimeText)",
-            ticket.carriageNumber.map { "\($0)车厢" },
-            ticket.seatNumber.map { "\($0)座" },
-            ticket.checkInGate.map { "检票口 \($0)" }
+            "\u{51fa}\u{53d1} \(departureTimeText)",
+            "\u{5230}\u{8fbe} \(arrivalTimeText)",
+            ticket.carriageNumber.map { "\($0)\u{8f66}\u{53a2}" },
+            ticket.seatNumber.map { "\($0)\u{5ea7}" },
+            ticket.checkInGate.map { "\u{68c0}\u{7968}\u{53e3} \($0)" }
         ]
         .compactMap(\.self)
         .joined(separator: "，")
@@ -523,18 +523,18 @@ private struct ItemDetailPreviewHost: View {
             item: TimelineItem(
                 id: "train-ticket",
                 sourceIdentifier: "train-ticket",
-                title: "G123 上海虹桥 → 北京南",
+                title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
                 startDate: TodayPreviewFixtures.makeSampleNow(),
                 endDate: TodayPreviewFixtures.makeSampleNow().addingTimeInterval(4 * 3_600),
                 isAllDay: false,
                 source: .calendar,
                 kind: .train,
-                location: "检票口 B7",
-                notes: "08车 03A",
+                location: "\u{68c0}\u{7968}\u{53e3} B7",
+                notes: "08\u{8f66} 03A",
                 template: .trainTicket(.init(
                     trainNumber: "G123",
-                    departureStation: "上海虹桥",
-                    arrivalStation: "北京南",
+                    departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                    arrivalStation: "\u{5317}\u{4eac}\u{5357}",
                     departureTimeText: "08:30",
                     arrivalTimeText: "13:12",
                     carriageNumber: "08",

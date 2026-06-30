@@ -5,7 +5,7 @@ import XCTest
 final class ItemDetailActionTests: XCTestCase {
     @MainActor
     func testNavigationTitleUsesStableShortCopy() {
-        XCTAssertEqual(ItemDetailView.navigationTitle, "详情")
+        XCTAssertEqual(ItemDetailView.navigationTitle, "\u{8be6}\u{60c5}")
     }
 
     func testPrimaryButtonTitleReflectsPinnedState() {
@@ -19,14 +19,14 @@ final class ItemDetailActionTests: XCTestCase {
                 for: item,
                 settings: .init()
             ),
-            "固定行程"
+            "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}"
         )
         XCTAssertEqual(
             ItemDetailAction.primaryButtonTitle(
                 for: item,
                 settings: pinnedSettings
             ),
-            "取消固定"
+            "\u{53d6}\u{6d88}\u{56fa}\u{5b9a}"
         )
     }
 

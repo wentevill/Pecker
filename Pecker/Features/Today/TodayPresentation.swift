@@ -25,15 +25,15 @@ enum TodayPresentation {
             return nil
         }
 
-        return "另有 \(extraCount) 项进行中"
+        return "\u{53e6}\u{6709} \(extraCount) \u{9879}\u{8fdb}\u{884c}\u{4e2d}"
     }
 
     static func pinBadgeText(for origin: PinOrigin?) -> String? {
         switch origin {
         case .automatic:
-            "自动推荐"
+            "\u{81ea}\u{52a8}\u{63a8}\u{8350}"
         case .manual:
-            "手动固定"
+            "\u{624b}\u{52a8}\u{56fa}\u{5b9a}"
         case nil:
             nil
         }
@@ -56,12 +56,12 @@ enum TodayPresentation {
 }
 
 enum TodayStateCopy {
-    static let loadingTitle = "加载中"
-    static let emptyTitle = "今天暂时空闲"
-    static let permissionTitle = "需要访问日历与提醒事项"
-    static let permissionButton = "去系统设置"
-    static let staleBanner = "数据可能已过时"
-    static let staleRetry = "重新加载"
-    static let failureTitle = "今天暂时不可用"
-    static let failureRetry = "重试"
+    static let loadingTitle = "\u{52a0}\u{8f7d}\u{4e2d}"
+    static let emptyTitle = "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{7a7a}\u{95f2}"
+    static let permissionTitle = "\u{9700}\u{8981}\u{8bbf}\u{95ee}\u{65e5}\u{5386}\u{4e0e}\u{63d0}\u{9192}\u{4e8b}\u{9879}"
+    static let permissionButton = "\u{53bb}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}"
+    static let staleBanner = "\u{6570}\u{636e}\u{53ef}\u{80fd}\u{5df2}\u{8fc7}\u{65f6}"
+    static let staleRetry = "\u{91cd}\u{65b0}\u{52a0}\u{8f7d}"
+    static let failureTitle = "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{4e0d}\u{53ef}\u{7528}"
+    static let failureRetry = "\u{91cd}\u{8bd5}"
 }

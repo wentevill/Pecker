@@ -26,6 +26,25 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testLanguageSettingPersistsAndNotifies() {
+        let store = makeStore()
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            onSettingsChanged: {
+                refreshCount += 1
+            },
+            openURL: { _ in }
+        )
+
+        viewModel.setLanguage(.english)
+
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertEqual(store.value.language, .english)
+    }
+
+    @MainActor
     func testDeniedSourceRequestsSystemSettingsURL() {
         let store = makeStore()
         var openedURL: URL?
@@ -75,10 +94,10 @@ final class SettingsViewModelTests: XCTestCase {
             openURL: { _ in }
         )
 
-        XCTAssertEqual(viewModel.liveActivityStatusText, "已暂停")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{5df2}\u{6682}\u{505c}")
         store.update { $0.liveActivityEnabled = true }
-        XCTAssertEqual(viewModel.liveActivityStatusText, "等待内容")
-        XCTAssertFalse(viewModel.liveActivityDescriptionText.contains("尚未接入 ActivityKit"))
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{7b49}\u{5f85}\u{5185}\u{5bb9}")
+        XCTAssertFalse(viewModel.liveActivityDescriptionText.contains("\u{5c1a}\u{672a}\u{63a5}\u{5165} ActivityKit"))
     }
 
     @MainActor
@@ -89,23 +108,23 @@ final class SettingsViewModelTests: XCTestCase {
         let unavailable = SettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "暂不可用" },
+            liveActivityStatusText: { "\u{6682}\u{4e0d}\u{53ef}\u{7528}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
-        XCTAssertEqual(unavailable.liveActivityStatusText, "暂不可用")
+        XCTAssertEqual(unavailable.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
 
         let running = SettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "运行中" },
+            liveActivityStatusText: { "\u{8fd0}\u{884c}\u{4e2d}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
-        XCTAssertEqual(running.liveActivityStatusText, "运行中")
+        XCTAssertEqual(running.liveActivityStatusText, "\u{8fd0}\u{884c}\u{4e2d}")
 
         store.update { $0.liveActivityEnabled = false }
-        XCTAssertEqual(running.liveActivityStatusText, "已暂停")
+        XCTAssertEqual(running.liveActivityStatusText, "\u{5df2}\u{6682}\u{505c}")
     }
 
     @MainActor
@@ -145,19 +164,19 @@ final class SettingsViewModelTests: XCTestCase {
             openURL: { _ in }
         )
 
-        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "未配置")
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{672a}\u{914d}\u{7f6e}")
 
         try viewModel.saveOpenAIAPIKey(" sk-test ")
 
         XCTAssertEqual(try keyStore.loadOpenAIAPIKey(), "sk-test")
         XCTAssertTrue(store.value.openAIAPIKeyConfigured)
-        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "已配置")
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{5df2}\u{914d}\u{7f6e}")
 
         try viewModel.clearOpenAIAPIKey()
 
         XCTAssertNil(try keyStore.loadOpenAIAPIKey())
         XCTAssertFalse(store.value.openAIAPIKeyConfigured)
-        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "未配置")
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{672a}\u{914d}\u{7f6e}")
     }
 
     @MainActor

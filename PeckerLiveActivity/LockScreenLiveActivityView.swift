@@ -350,17 +350,17 @@ private enum LockScreenPreviewSamples {
     static let train = PeckerActivityAttributes.ContentState(
         itemIdentifier: "train",
         title: "C5770",
-        secondaryIdentity: "成都东 → 重庆西",
+        secondaryIdentity: "\u{6210}\u{90fd}\u{4e1c} → \u{91cd}\u{5e86}\u{897f}",
         kindRawValue: "train",
         symbolName: "train.side.front.car",
         statusRawValue: "now",
         startDate: now.addingTimeInterval(-30 * 60),
         endDate: now.addingTimeInterval(48 * 60),
-        leadingEndpoint: "成都东",
-        trailingEndpoint: "重庆西",
+        leadingEndpoint: "\u{6210}\u{90fd}\u{4e1c}",
+        trailingEndpoint: "\u{91cd}\u{5e86}\u{897f}",
         location: nil,
         supportingDetail: nil,
-        metadata: ["02 车", "06D 座", "B3 检票口", "二等座"],
+        metadata: ["02 \u{8f66}", "06D \u{5ea7}", "B3 \u{68c0}\u{7968}\u{53e3}", "\u{4e8c}\u{7b49}\u{5ea7}"],
         generatedAt: now
     )
 
@@ -373,11 +373,11 @@ private enum LockScreenPreviewSamples {
         statusRawValue: "now",
         startDate: now.addingTimeInterval(-20 * 60),
         endDate: now.addingTimeInterval(86 * 60),
-        leadingEndpoint: "PVG · 上海浦东",
-        trailingEndpoint: "SIN · 新加坡樟宜",
+        leadingEndpoint: "PVG · \u{4e0a}\u{6d77}\u{6d66}\u{4e1c}",
+        trailingEndpoint: "SIN · \u{65b0}\u{52a0}\u{5761}\u{6a1f}\u{5b9c}",
         location: nil,
         supportingDetail: nil,
-        metadata: ["T3", "Gate B7", "12A 座", "登机中"],
+        metadata: ["T3", "Gate B7", "12A \u{5ea7}", "\u{767b}\u{673a}\u{4e2d}"],
         generatedAt: now
     )
     static let meeting = state(
@@ -385,45 +385,45 @@ private enum LockScreenPreviewSamples {
         title: "Daily Standup",
         kind: "meeting",
         symbol: "person.2.fill",
-        location: "会议室 A"
+        location: "\u{4f1a}\u{8bae}\u{5ba4} A"
     )
     static let task = state(
         id: "task",
-        title: "提交发布说明",
+        title: "\u{63d0}\u{4ea4}\u{53d1}\u{5e03}\u{8bf4}\u{660e}",
         kind: "task",
         symbol: "checklist",
-        location: "产品发布清单"
+        location: "\u{4ea7}\u{54c1}\u{53d1}\u{5e03}\u{6e05}\u{5355}"
     )
     static let travel = state(
         id: "travel",
-        title: "酒店入住",
+        title: "\u{9152}\u{5e97}\u{5165}\u{4f4f}",
         kind: "travel",
         symbol: "suitcase.fill",
-        location: "上海静安"
+        location: "\u{4e0a}\u{6d77}\u{9759}\u{5b89}"
     )
     static let interview = state(
         id: "interview",
-        title: "产品设计师终面",
+        title: "\u{4ea7}\u{54c1}\u{8bbe}\u{8ba1}\u{5e08}\u{7ec8}\u{9762}",
         kind: "interview",
         symbol: "person.text.rectangle",
         location: "Zoom"
     )
     static let deadline = state(
         id: "deadline",
-        title: "提交报销材料",
+        title: "\u{63d0}\u{4ea4}\u{62a5}\u{9500}\u{6750}\u{6599}",
         kind: "deadline",
         symbol: "calendar.badge.exclamationmark",
         status: "next",
         startDate: now.addingTimeInterval(26 * 60),
         endDate: nil,
-        location: "财务系统"
+        location: "\u{8d22}\u{52a1}\u{7cfb}\u{7edf}"
     )
     static let unknown = state(
         id: "unknown",
-        title: "与 Alex 碰面",
+        title: "\u{4e0e} Alex \u{78b0}\u{9762}",
         kind: "unknown",
         symbol: "clock.fill",
-        location: "一楼咖啡厅"
+        location: "\u{4e00}\u{697c}\u{5496}\u{5561}\u{5385}"
     )
 
     private static func state(
@@ -448,7 +448,7 @@ private enum LockScreenPreviewSamples {
             leadingEndpoint: nil,
             trailingEndpoint: nil,
             location: location,
-            supportingDetail: "核心信息摘要",
+            supportingDetail: "\u{6838}\u{5fc3}\u{4fe1}\u{606f}\u{6458}\u{8981}",
             metadata: [],
             generatedAt: now
         )

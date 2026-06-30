@@ -47,7 +47,7 @@ struct PeckerApp: App {
             )
         } catch {
             root = .configurationFailure(
-                "无法打开 Pecker 的共享 App Group（\(AppGroup.identifier)）。请检查签名与 entitlements 配置。"
+                "\u{65e0}\u{6cd5}\u{6253}\u{5f00} Pecker \u{7684}\u{5171}\u{4eab} App Group（\(AppGroup.identifier)）。\u{8bf7}\u{68c0}\u{67e5}\u{7b7e}\u{540d}\u{4e0e} entitlements \u{914d}\u{7f6e}。"
             )
         }
     }
@@ -155,7 +155,7 @@ private struct FullTimelinePreviewHost: View {
 
     var body: some View {
         NavigationStack {
-            Text("请从今日页打开完整时间线")
+            Text("\u{8bf7}\u{4ece}\u{4eca}\u{65e5}\u{9875}\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}")
         }
     }
 
@@ -251,7 +251,7 @@ private struct ConfigurationFailureView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.orange)
                     .accessibilityHidden(true)
-                Text("配置错误")
+                Text("\u{914d}\u{7f6e}\u{9519}\u{8bef}")
                     .font(.title.bold())
                 Text(message)
                     .font(.body)

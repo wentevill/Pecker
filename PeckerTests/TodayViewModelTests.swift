@@ -73,7 +73,7 @@ final class TodayViewModelTests: XCTestCase {
     func testRefreshSynchronizesEnabledSystemSourcesAndAppliesRecognizedTemplates() async throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let eventRecord = event(
-            title: "G123 上海虹桥 → 北京南",
+            title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
             at: now.addingTimeInterval(600)
         )
         let reminderRecord = reminder(at: now.addingTimeInterval(1_200))
@@ -87,8 +87,8 @@ final class TodayViewModelTests: XCTestCase {
                 "calendar:event": .trainTicket(
                     .init(
                         trainNumber: "G123",
-                        departureStation: "上海虹桥",
-                        arrivalStation: "北京南",
+                        departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                        arrivalStation: "\u{5317}\u{4eac}\u{5357}",
                         departureTimeText: nil,
                         arrivalTimeText: nil,
                         carriageNumber: nil,
@@ -218,7 +218,7 @@ final class TodayViewModelTests: XCTestCase {
             return XCTFail("Expected content despite ActivityKit failure, got \(viewModel.state)")
         }
         XCTAssertEqual(snapshot.items.map(\.title), ["Team meeting"])
-        XCTAssertEqual(viewModel.liveActivityStatusText, "暂不可用")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     @MainActor
@@ -788,6 +788,82 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRefreshIncludesManualPinnedRecognizedImageOutsideToday() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let futurePinned = TimelineItem(
+            id: "image:future",
+            sourceIdentifier: "future",
+            title: "Future Train",
+            startDate: calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: calendar.startOfDay(for: now)
+            )!,
+            endDate: nil,
+            isAllDay: false,
+            source: .external,
+            kind: .train,
+            location: nil,
+            notes: nil
+        )
+        let recognizer = RecordingSystemEventRecognizer(
+            recognizedItems: [futurePinned]
+        )
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(
+                authorization: .init(calendar: .fullAccess, reminders: .fullAccess)
+            ),
+            settings: .init(manualPinnedSourceIdentifier: "future"),
+            calendar: calendar,
+            systemEventRecognizer: recognizer
+        )
+
+        await viewModel.refresh(now: now)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected pinned future item as content")
+        }
+        XCTAssertEqual(snapshot.items.map(\.id), ["image:future"])
+        XCTAssertEqual(snapshot.pinnedItemID, "image:future")
+        XCTAssertEqual(snapshot.pinOrigin, .manual)
+    }
+
+    @MainActor
+    func testRefreshIncludesManualPinnedCalendarEventOutsideToday() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let futureEvent = event(
+            identifier: "future",
+            title: "Future meeting",
+            at: now.addingTimeInterval(2 * 86_400)
+        )
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .denied),
+            events: [],
+            intervalEvents: [futureEvent]
+        )
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            settings: .init(
+                remindersEnabled: false,
+                manualPinnedSourceIdentifier: "future"
+            )
+        )
+
+        await viewModel.refresh(now: now)
+
+        guard case let .content(snapshot) = viewModel.state else {
+            return XCTFail("Expected pinned future event as content")
+        }
+        XCTAssertEqual(snapshot.items.map(\.id), ["calendar:future"])
+        XCTAssertEqual(snapshot.pinnedItemID, "calendar:future")
+        XCTAssertEqual(snapshot.pinOrigin, .manual)
+        let fetchCounts = await gateway.fetchCounts()
+        XCTAssertEqual(fetchCounts, .init(calendar: 2, reminders: 0))
+    }
+
+    @MainActor
     private func makeViewModel(
         gateway: any EventKitGatewayProtocol,
         store: FakeSnapshotStore = FakeSnapshotStore(),
@@ -892,6 +968,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
 
     private let sourceAuthorization: SourceAuthorization
     private let events: [EventRecord]
+    private let intervalEvents: [EventRecord]
     private let reminders: [ReminderRecord]
     private let eventError: Error?
     private let reminderError: Error?
@@ -912,6 +989,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     init(
         authorization: SourceAuthorization,
         events: [EventRecord] = [],
+        intervalEvents: [EventRecord] = [],
         reminders: [ReminderRecord] = [],
         eventError: Error? = nil,
         reminderError: Error? = nil,
@@ -921,6 +999,7 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
     ) {
         sourceAuthorization = authorization
         self.events = events
+        self.intervalEvents = intervalEvents
         self.reminders = reminders
         self.eventError = eventError
         self.reminderError = reminderError
@@ -963,6 +1042,18 @@ private actor FakeEventKitGateway: EventKitGatewayProtocol {
             throw eventError
         }
         return events
+    }
+
+    func fetchEvents(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) async throws -> [EventRecord] {
+        calendarFetchCount += 1
+        fetchesEntered.insert(.calendar)
+        if let eventError {
+            throw eventError
+        }
+        return intervalEvents
     }
 
     func fetchReminders(

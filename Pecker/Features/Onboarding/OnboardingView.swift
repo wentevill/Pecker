@@ -50,47 +50,47 @@ struct OnboardingView: View {
                 symbol: "sparkles",
                 eyebrow: "NOW TIMELINE",
                 title: "Your day, at a glance.",
-                message: "把日历、提醒事项与正在进行的活动，整理成一条安静清晰的时间线。"
+                message: "\u{628a}\u{65e5}\u{5386}、\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{4e0e}\u{6b63}\u{5728}\u{8fdb}\u{884c}\u{7684}\u{6d3b}\u{52a8}，\u{6574}\u{7406}\u{6210}\u{4e00}\u{6761}\u{5b89}\u{9759}\u{6e05}\u{6670}\u{7684}\u{65f6}\u{95f4}\u{7ebf}。"
             ) {
                 privacyBullet(
                     symbol: "lock.shield",
-                    text: "你的日程留在设备与私人 App Group 中"
+                    text: "\u{4f60}\u{7684}\u{65e5}\u{7a0b}\u{7559}\u{5728}\u{8bbe}\u{5907}\u{4e0e}\u{79c1}\u{4eba} App Group \u{4e2d}"
                 )
                 privacyBullet(
                     symbol: "hand.raised",
-                    text: "仅在你点击时请求系统权限"
+                    text: "\u{4ec5}\u{5728}\u{4f60}\u{70b9}\u{51fb}\u{65f6}\u{8bf7}\u{6c42}\u{7cfb}\u{7edf}\u{6743}\u{9650}"
                 )
                 privacyBullet(
                     symbol: "switch.2",
-                    text: "每个来源都可跳过，之后也能在设置中调整"
+                    text: "\u{6bcf}\u{4e2a}\u{6765}\u{6e90}\u{90fd}\u{53ef}\u{8df3}\u{8fc7}，\u{4e4b}\u{540e}\u{4e5f}\u{80fd}\u{5728}\u{8bbe}\u{7f6e}\u{4e2d}\u{8c03}\u{6574}"
                 )
             }
         case .calendar:
             onboardingCard(
                 symbol: "calendar",
                 eyebrow: "CALENDAR",
-                title: "连接你的日历",
-                message: "读取今天的事件，用于显示时间、地点与接下来的安排。拒绝或跳过不会阻止继续。"
+                title: "\u{8fde}\u{63a5}\u{4f60}\u{7684}\u{65e5}\u{5386}",
+                message: "\u{8bfb}\u{53d6}\u{4eca}\u{5929}\u{7684}\u{4e8b}\u{4ef6}，\u{7528}\u{4e8e}\u{663e}\u{793a}\u{65f6}\u{95f4}、\u{5730}\u{70b9}\u{4e0e}\u{63a5}\u{4e0b}\u{6765}\u{7684}\u{5b89}\u{6392}。\u{62d2}\u{7edd}\u{6216}\u{8df3}\u{8fc7}\u{4e0d}\u{4f1a}\u{963b}\u{6b62}\u{7ee7}\u{7eed}。"
             ) {
-                permissionNote("权限请求只会在点击下方按钮后出现。")
+                permissionNote("\u{6743}\u{9650}\u{8bf7}\u{6c42}\u{53ea}\u{4f1a}\u{5728}\u{70b9}\u{51fb}\u{4e0b}\u{65b9}\u{6309}\u{94ae}\u{540e}\u{51fa}\u{73b0}。")
             }
         case .reminders:
             onboardingCard(
                 symbol: "checklist",
                 eyebrow: "REMINDERS",
-                title: "加入提醒事项",
-                message: "把今天到期的任务放进时间线，与你的日历安排一起查看。"
+                title: "\u{52a0}\u{5165}\u{63d0}\u{9192}\u{4e8b}\u{9879}",
+                message: "\u{628a}\u{4eca}\u{5929}\u{5230}\u{671f}\u{7684}\u{4efb}\u{52a1}\u{653e}\u{8fdb}\u{65f6}\u{95f4}\u{7ebf}，\u{4e0e}\u{4f60}\u{7684}\u{65e5}\u{5386}\u{5b89}\u{6392}\u{4e00}\u{8d77}\u{67e5}\u{770b}。"
             ) {
-                permissionNote("即使未授权，你仍可以继续使用日历功能。")
+                permissionNote("\u{5373}\u{4f7f}\u{672a}\u{6388}\u{6743}，\u{4f60}\u{4ecd}\u{53ef}\u{4ee5}\u{7ee7}\u{7eed}\u{4f7f}\u{7528}\u{65e5}\u{5386}\u{529f}\u{80fd}。")
             }
         case .liveActivityIntroduction:
             onboardingCard(
                 symbol: "livephoto",
                 eyebrow: "LIVE ACTIVITY",
-                title: "开启 Live Activity",
-                message: "在锁定屏幕与灵动岛快速查看当前安排。开启后，Pecker 会在下次刷新时同步当前时间线。"
+                title: "\u{5f00}\u{542f} Live Activity",
+                message: "\u{5728}\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}\u{5feb}\u{901f}\u{67e5}\u{770b}\u{5f53}\u{524d}\u{5b89}\u{6392}。\u{5f00}\u{542f}\u{540e}，Pecker \u{4f1a}\u{5728}\u{4e0b}\u{6b21}\u{5237}\u{65b0}\u{65f6}\u{540c}\u{6b65}\u{5f53}\u{524d}\u{65f6}\u{95f4}\u{7ebf}。"
             ) {
-                permissionNote("你可以稍后在设置中开启。")
+                permissionNote("\u{4f60}\u{53ef}\u{4ee5}\u{7a0d}\u{540e}\u{5728}\u{8bbe}\u{7f6e}\u{4e2d}\u{5f00}\u{542f}。")
             }
         case .complete:
             EmptyView()
@@ -104,7 +104,7 @@ struct OnboardingView: View {
                     .font(.footnote)
                     .foregroundStyle(TimelineTheme.now)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityLabel("错误：\(errorMessage)")
+                    .accessibilityLabel("\u{9519}\u{8bef}：\(errorMessage)")
             }
 
             Button {
@@ -143,7 +143,7 @@ struct OnboardingView: View {
 
             if model.currentStep == .calendar
                 || model.currentStep == .reminders {
-                Button("跳过此来源") {
+                Button("\u{8df3}\u{8fc7}\u{6b64}\u{6765}\u{6e90}") {
                     let expectedStep = model.currentStep
                     _ = model.skipCurrentPermission(
                         expectedStep: expectedStep
@@ -152,9 +152,9 @@ struct OnboardingView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(TimelineTheme.textSecondary)
                 .disabled(model.isBusy)
-                .accessibilityHint("不请求权限并继续下一步")
+                .accessibilityHint("\u{4e0d}\u{8bf7}\u{6c42}\u{6743}\u{9650}\u{5e76}\u{7ee7}\u{7eed}\u{4e0b}\u{4e00}\u{6b65}")
             } else if model.currentStep == .liveActivityIntroduction {
-                Button("稍后开启") {
+                Button("\u{7a0d}\u{540e}\u{5f00}\u{542f}") {
                     let expectedStep = model.currentStep
                     if model.completeWithoutLiveActivity(
                         expectedStep: expectedStep
@@ -164,7 +164,7 @@ struct OnboardingView: View {
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(TimelineTheme.textSecondary)
-                .accessibilityHint("暂不开启 Live Activity 并完成设置")
+                .accessibilityHint("\u{6682}\u{4e0d}\u{5f00}\u{542f} Live Activity \u{5e76}\u{5b8c}\u{6210}\u{8bbe}\u{7f6e}")
             }
         }
     }
@@ -172,28 +172,28 @@ struct OnboardingView: View {
     private var primaryButtonTitle: String {
         switch model.currentStep {
         case .welcome:
-            "开始设置"
+            "\u{5f00}\u{59cb}\u{8bbe}\u{7f6e}"
         case .calendar:
-            "允许访问日历"
+            "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\u{65e5}\u{5386}"
         case .reminders:
-            "允许访问提醒事项"
+            "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\u{63d0}\u{9192}\u{4e8b}\u{9879}"
         case .liveActivityIntroduction:
-            "开启 Live Activity"
+            "\u{5f00}\u{542f} Live Activity"
         case .complete:
-            "已完成"
+            "\u{5df2}\u{5b8c}\u{6210}"
         }
     }
 
     private var primaryButtonHint: String {
         switch model.currentStep {
         case .welcome:
-            "继续到日历权限说明"
+            "\u{7ee7}\u{7eed}\u{5230}\u{65e5}\u{5386}\u{6743}\u{9650}\u{8bf4}\u{660e}"
         case .calendar:
-            "请求系统日历访问权限"
+            "\u{8bf7}\u{6c42}\u{7cfb}\u{7edf}\u{65e5}\u{5386}\u{8bbf}\u{95ee}\u{6743}\u{9650}"
         case .reminders:
-            "请求系统提醒事项访问权限"
+            "\u{8bf7}\u{6c42}\u{7cfb}\u{7edf}\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{8bbf}\u{95ee}\u{6743}\u{9650}"
         case .liveActivityIntroduction:
-            "保存 Live Activity 偏好并完成设置"
+            "\u{4fdd}\u{5b58} Live Activity \u{504f}\u{597d}\u{5e76}\u{5b8c}\u{6210}\u{8bbe}\u{7f6e}"
         case .complete:
             ""
         }

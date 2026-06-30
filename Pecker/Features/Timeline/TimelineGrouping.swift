@@ -32,11 +32,11 @@ enum TimelineGrouping {
         let elapsed = sortedItems.filter { isElapsed($0, now: now) }
 
         let sections: [Section] = [
-            makeSection(kind: .overdue, title: "已逾期", items: overdue),
-            makeSection(kind: .allDay, title: "全天", items: allDay),
-            makeSection(kind: .active, title: "进行中", items: active),
-            makeSection(kind: .upcoming, title: "即将开始", items: upcoming),
-            makeSection(kind: .elapsed, title: "已结束", items: elapsed)
+            makeSection(kind: .overdue, title: "\u{5df2}\u{903e}\u{671f}", items: overdue),
+            makeSection(kind: .allDay, title: "\u{5168}\u{5929}", items: allDay),
+            makeSection(kind: .active, title: "\u{8fdb}\u{884c}\u{4e2d}", items: active),
+            makeSection(kind: .upcoming, title: "\u{5373}\u{5c06}\u{5f00}\u{59cb}", items: upcoming),
+            makeSection(kind: .elapsed, title: "\u{5df2}\u{7ed3}\u{675f}", items: elapsed)
         ]
 
         return activeOnly

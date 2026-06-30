@@ -16,7 +16,7 @@ final class TodayViewModel {
     let timelineManager: TimelineManagerModel
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
-    private(set) var liveActivityStatusText = "等待内容"
+    private(set) var liveActivityStatusText = "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
     private(set) var nextLiveActivityBoundary: Date?
 
     init(dependencies: AppDependencies) {
@@ -96,20 +96,51 @@ final class TodayViewModel {
                     now: now
                 )
                 : []
+            async let pinnedEventRecords: [EventRecord] =
+                pinnedSystemEvents(
+                    fetchCalendar: fetchCalendar,
+                    manualPinnedSourceIdentifier:
+                        settings.manualPinnedSourceIdentifier,
+                    now: now
+                )
+            async let pinnedReminderRecords: [ReminderRecord] =
+                pinnedSystemReminders(
+                    fetchReminders: fetchReminders,
+                    manualPinnedSourceIdentifier:
+                        settings.manualPinnedSourceIdentifier,
+                    now: now
+                )
 
-            let (events, reminders) = try await (
+            let (
+                events,
+                reminders,
+                pinnedEvents,
+                pinnedReminders
+            ) = try await (
                 eventRecords,
-                reminderRecords
+                reminderRecords,
+                pinnedEventRecords,
+                pinnedReminderRecords
             )
             try Task.checkCancellation()
             guard isCurrent(generation) else {
                 return
             }
 
+            let mergedEvents = mergeRecords(
+                primary: events,
+                extras: pinnedEvents,
+                id: \.identifier
+            )
+            let mergedReminders = mergeRecords(
+                primary: reminders,
+                extras: pinnedReminders,
+                id: \.identifier
+            )
             let recognizedTemplates = await dependencies.systemEventRecognizer
                 .synchronize(
-                    events: events,
-                    reminders: reminders,
+                    events: mergedEvents,
+                    reminders: mergedReminders,
                     settings: settings,
                     now: now
                 )
@@ -119,13 +150,13 @@ final class TodayViewModel {
                     now: now
                 )
 
-            let allItems = events.map {
+            let allItems = mergedEvents.map {
                 dependencies.mapper.mapEvent(
                     $0,
                     template: recognizedTemplates["calendar:\($0.identifier)"]
                 )
             }
-                + reminders.compactMap {
+                + mergedReminders.compactMap {
                     dependencies.mapper.mapReminder(
                         $0,
                         template: recognizedTemplates["reminder:\($0.identifier)"]
@@ -138,6 +169,8 @@ final class TodayViewModel {
                     calendar: dependencies.calendar,
                     now: now
                 ) == .today
+                    || $0.sourceIdentifier
+                        == settings.manualPinnedSourceIdentifier
             }
             let snapshot = dependencies.engine.makeSnapshot(
                 items: items,
@@ -219,7 +252,7 @@ final class TodayViewModel {
             )
             nextBoundary = result.nextBoundary
         } catch {
-            statusText = "暂不可用"
+            statusText = "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
             nextBoundary = nil
         }
 
@@ -235,14 +268,14 @@ final class TodayViewModel {
         settings: TimelineSettings
     ) -> String {
         guard settings.liveActivityEnabled else {
-            return "已暂停"
+            return "\u{5df2}\u{6682}\u{505c}"
         }
 
         switch decision {
         case .none, .start, .update:
-            return "运行中"
+            return "\u{8fd0}\u{884c}\u{4e2d}"
         case .end:
-            return "等待内容"
+            return "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
         }
     }
 
@@ -253,6 +286,68 @@ final class TodayViewModel {
             settings: dependencies.settingsStore.value,
             staleInterval: Self.staleInterval
         )
+    }
+
+    private func pinnedSystemEvents(
+        fetchCalendar: Bool,
+        manualPinnedSourceIdentifier: String?,
+        now: Date
+    ) async throws -> [EventRecord] {
+        guard fetchCalendar, let manualPinnedSourceIdentifier else {
+            return []
+        }
+        return try await dependencies.gateway.fetchEvents(
+            in: pinnedLookupInterval(now: now),
+            calendar: dependencies.calendar
+        )
+        .filter { $0.identifier == manualPinnedSourceIdentifier }
+    }
+
+    private func pinnedSystemReminders(
+        fetchReminders: Bool,
+        manualPinnedSourceIdentifier: String?,
+        now: Date
+    ) async throws -> [ReminderRecord] {
+        guard fetchReminders, let manualPinnedSourceIdentifier else {
+            return []
+        }
+        return try await dependencies.gateway.fetchReminders(
+            in: pinnedLookupInterval(now: now),
+            calendar: dependencies.calendar
+        )
+        .filter {
+            $0.identifier == manualPinnedSourceIdentifier
+                && !$0.isCompleted
+        }
+    }
+
+    private func pinnedLookupInterval(now: Date) -> DateInterval {
+        let startOfToday = dependencies.calendar.startOfDay(for: now)
+        let start = dependencies.calendar.date(
+            byAdding: .year,
+            value: -1,
+            to: startOfToday
+        ) ?? startOfToday.addingTimeInterval(-366 * 86_400)
+        let end = dependencies.calendar.date(
+            byAdding: .year,
+            value: 1,
+            to: startOfToday
+        ) ?? startOfToday.addingTimeInterval(366 * 86_400)
+        return DateInterval(start: start, end: end)
+    }
+
+    private func mergeRecords<Record>(
+        primary: [Record],
+        extras: [Record],
+        id: (Record) -> String
+    ) -> [Record] {
+        var seen = Set(primary.map(id))
+        var records = primary
+        for record in extras where !seen.contains(id(record)) {
+            records.append(record)
+            seen.insert(id(record))
+        }
+        return records
     }
 
     private func loadSnapshot(now: Date, generation: Int) async {

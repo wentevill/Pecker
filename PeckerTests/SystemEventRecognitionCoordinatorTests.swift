@@ -16,11 +16,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 payload: ExternalEventTemplatePayload(
                     kind: .task,
                     fields: [
-                        "title": "巡逻",
+                        "title": "\u{5de1}\u{903b}",
                         "eventDate": "2026-06-28",
                         "startTime": "23:00",
                         "endTime": "23:30",
-                        "notes": "巡查楼梯口、仓库、围栏"
+                        "notes": "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}"
                     ]
                 ),
                 confidence: 0.95
@@ -47,9 +47,9 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         guard case let .generic(event) = draft.template else {
             return XCTFail("Expected a generic event")
         }
-        XCTAssertEqual(event.title, "巡逻")
+        XCTAssertEqual(event.title, "\u{5de1}\u{903b}")
         XCTAssertEqual(event.kind, .task)
-        XCTAssertEqual(event.notes, "巡查楼梯口、仓库、围栏")
+        XCTAssertEqual(event.notes, "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}")
         XCTAssertEqual(
             draft.startDate,
             ISO8601DateFormatter().date(from: "2026-06-28T15:00:00Z")
@@ -74,8 +74,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                         "startDateTime": "2026-06-28T10:30:00+08:00",
                         "endDateTime": "2026-06-28T11:48:00+08:00",
                         "trainNumber": "G123",
-                        "departureStation": "上海虹桥",
-                        "arrivalStation": "北京南",
+                        "departureStation": "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                        "arrivalStation": "\u{5317}\u{4eac}\u{5357}",
                         "carriageNumber": "08",
                         "seatNumber": "03A"
                     ]
@@ -109,8 +109,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         }
         XCTAssertEqual(record.recognitionStatus, .recognized)
         XCTAssertEqual(ticket.trainNumber, "G123")
-        XCTAssertEqual(ticket.departureStation, "上海虹桥")
-        XCTAssertEqual(ticket.arrivalStation, "北京南")
+        XCTAssertEqual(ticket.departureStation, "\u{4e0a}\u{6d77}\u{8679}\u{6865}")
+        XCTAssertEqual(ticket.arrivalStation, "\u{5317}\u{4eac}\u{5357}")
         XCTAssertEqual(ticket.carriageNumber, "08")
         XCTAssertEqual(ticket.seatNumber, "03A")
         XCTAssertEqual(
@@ -151,8 +151,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             XCTFail("Expected structured validation failure")
         } catch let failure as RecognitionPipelineFailure {
             XCTAssertEqual(failure.stage, .validation)
-            XCTAssertEqual(failure.missingFields, ["事件内容", "日期或时间"])
-            XCTAssertEqual(failure.reason, "核对后仍缺少：事件内容、日期或时间")
+            XCTAssertEqual(failure.missingFields, ["\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}", "\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}"])
+            XCTAssertEqual(failure.reason, "\u{6838}\u{5bf9}\u{540e}\u{4ecd}\u{7f3a}\u{5c11}：\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}、\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}")
         }
 
         let records = await repository.records()
@@ -174,8 +174,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
             endDate: nil,
             template: .trainTicket(.init(
                 trainNumber: "G123",
-                departureStation: "上海虹桥",
-                arrivalStation: "北京南",
+                departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                arrivalStation: "\u{5317}\u{4eac}\u{5357}",
                 departureTimeText: "09:24",
                 arrivalTimeText: nil,
                 carriageNumber: "08",
@@ -202,7 +202,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         XCTAssertEqual(items.first?.source, .external)
         XCTAssertEqual(items.first?.title, "G123")
         XCTAssertEqual(items.first?.kind, .train)
-        XCTAssertEqual(items.first?.template?.presentation.subtitle, "上海虹桥 → 北京南")
+        XCTAssertEqual(items.first?.template?.presentation.subtitle, "\u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}")
         XCTAssertEqual(items.first?.startDate, recognizedAt)
     }
 }
@@ -303,8 +303,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                     "startDateTime": "2026-06-28T10:30:00+08:00",
                     "endDateTime": "2026-06-28T11:48:00+08:00",
                     "trainNumber": "G123",
-                    "departureStation": "上海虹桥",
-                    "arrivalStation": "北京南",
+                    "departureStation": "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                    "arrivalStation": "\u{5317}\u{4eac}\u{5357}",
                     "carriageNumber": "08",
                     "seatNumber": "03A"
                 ]
@@ -340,8 +340,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     }
     #expect(record.recognitionStatus == .recognized)
     #expect(ticket.trainNumber == "G123")
-    #expect(ticket.departureStation == "上海虹桥")
-    #expect(ticket.arrivalStation == "北京南")
+    #expect(ticket.departureStation == "\u{4e0a}\u{6d77}\u{8679}\u{6865}")
+    #expect(ticket.arrivalStation == "\u{5317}\u{4eac}\u{5357}")
     #expect(ticket.carriageNumber == "08")
     #expect(ticket.seatNumber == "03A")
 
@@ -383,8 +383,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         Issue.record("Expected structured validation failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .validation)
-        #expect(failure.missingFields == ["事件内容", "日期或时间"])
-        #expect(failure.reason == "核对后仍缺少：事件内容、日期或时间")
+        #expect(failure.missingFields == ["\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}", "\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}"])
+        #expect(failure.reason == "\u{6838}\u{5bf9}\u{540e}\u{4ecd}\u{7f3a}\u{5c11}：\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}、\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}")
     }
 
     let records = await repository.records()
@@ -400,8 +400,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                 fields: [
                     "startDateTime": "2026-07-03T10:30:00+08:00",
                     "trainNumber": "C5770",
-                    "departureStation": "重庆北站",
-                    "arrivalStation": "成都东站"
+                    "departureStation": "\u{91cd}\u{5e86}\u{5317}\u{7ad9}",
+                    "arrivalStation": "\u{6210}\u{90fd}\u{4e1c}\u{7ad9}"
                 ]
             ),
             confidence: 0.88
@@ -431,7 +431,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(draft.filename == "ticket.jpg")
     #expect(draft.recognizedAt == now)
     #expect(draft.template.presentation.title == "C5770")
-    #expect(draft.template.presentation.subtitle == "重庆北站 → 成都东站")
+    #expect(draft.template.presentation.subtitle == "\u{91cd}\u{5e86}\u{5317}\u{7ad9} → \u{6210}\u{90fd}\u{4e1c}\u{7ad9}")
     #expect(await repository.records().isEmpty)
 }
 
@@ -452,8 +452,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         endDate: Date(timeIntervalSince1970: 7_000),
         template: .trainTicket(.init(
             trainNumber: "G123",
-            departureStation: "上海虹桥",
-            arrivalStation: "北京南",
+            departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+            arrivalStation: "\u{5317}\u{4eac}\u{5357}",
             departureTimeText: nil,
             arrivalTimeText: nil,
             carriageNumber: "08",
@@ -485,8 +485,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
                     "startDateTime": "2026-06-28T10:30:00+08:00",
                     "endDateTime": "2026-06-28T11:48:00+08:00",
                     "trainNumber": "G123",
-                    "departureStation": "上海虹桥",
-                    "arrivalStation": "北京南"
+                    "departureStation": "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                    "arrivalStation": "\u{5317}\u{4eac}\u{5357}"
                 ]
             ),
             confidence: nil
@@ -566,7 +566,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     let provider = RecordingRecognitionProvider(
         result: RecognitionResult(
             payload: .init(kind: .task, fields: [
-                "title": "提交材料",
+                "title": "\u{63d0}\u{4ea4}\u{6750}\u{6599}",
                 "eventDate": "2026-07-03"
             ]),
             confidence: nil
@@ -613,9 +613,9 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     let provider = RecordingRecognitionProvider(
         result: RecognitionResult(
             payload: .init(kind: .task, fields: [
-                "title": "巡逻仓库",
+                "title": "\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
                 "dueDateTime": "2026-06-29T23:30:00+08:00",
-                "location": "仓库"
+                "location": "\u{4ed3}\u{5e93}"
             ]),
             confidence: nil
         )
@@ -640,7 +640,7 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         now: Date(timeIntervalSince1970: 5_000)
     )
 
-    #expect(draft.template.presentation.title == "巡逻仓库")
+    #expect(draft.template.presentation.title == "\u{5de1}\u{903b}\u{4ed3}\u{5e93}")
     #expect(
         draft.startDate
             == ISO8601DateFormatter().date(
@@ -656,11 +656,11 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     let validator = RecognizedEventValidator(calendar: calendar)
     let fixtures: [ExternalEventTemplatePayload] = [
         .init(kind: .meeting, fields: [
-            "title": "设计评审",
+            "title": "\u{8bbe}\u{8ba1}\u{8bc4}\u{5ba1}",
             "startDateTime": "2026-07-03T10:00:00+08:00"
         ]),
         .init(kind: .task, fields: [
-            "title": "提交材料",
+            "title": "\u{63d0}\u{4ea4}\u{6750}\u{6599}",
             "eventDate": "2026-07-03"
         ]),
         .init(kind: .flight, fields: [
@@ -671,24 +671,24 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         ]),
         .init(kind: .train, fields: [
             "trainNumber": "G123",
-            "departureStation": "上海虹桥站",
-            "arrivalStation": "北京南站",
+            "departureStation": "\u{4e0a}\u{6d77}\u{8679}\u{6865}\u{7ad9}",
+            "arrivalStation": "\u{5317}\u{4eac}\u{5357}\u{7ad9}",
             "startDateTime": "2026-07-03T08:00:00+08:00"
         ]),
         .init(kind: .travel, fields: [
-            "destination": "苏州",
+            "destination": "\u{82cf}\u{5dde}",
             "eventDate": "2026-07-03"
         ]),
         .init(kind: .interview, fields: [
-            "title": "产品面试",
+            "title": "\u{4ea7}\u{54c1}\u{9762}\u{8bd5}",
             "startDateTime": "2026-07-03T11:00:00+08:00"
         ]),
         .init(kind: .deadline, fields: [
-            "title": "报名截止",
+            "title": "\u{62a5}\u{540d}\u{622a}\u{6b62}",
             "eventDate": "2026-07-03"
         ]),
         .init(kind: .unknown, fields: [
-            "title": "社区活动",
+            "title": "\u{793e}\u{533a}\u{6d3b}\u{52a8}",
             "eventDate": "2026-07-03"
         ])
     ]
@@ -707,16 +707,16 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
 
     do {
         _ = try validator.validate(.init(kind: .train, fields: [
-            "departureStation": "上海虹桥站",
-            "arrivalStation": "北京南站",
+            "departureStation": "\u{4e0a}\u{6d77}\u{8679}\u{6865}\u{7ad9}",
+            "arrivalStation": "\u{5317}\u{4eac}\u{5357}\u{7ad9}",
             "eventDate": "2026-07-03",
             "departureTime": "08:00"
         ]))
         Issue.record("Expected minimum-field failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .validation)
-        #expect(failure.missingFields == ["车次"])
-        #expect(failure.reason == "核对后仍缺少：车次")
+        #expect(failure.missingFields == ["\u{8f66}\u{6b21}"])
+        #expect(failure.reason == "\u{6838}\u{5bf9}\u{540e}\u{4ecd}\u{7f3a}\u{5c11}：\u{8f66}\u{6b21}")
     }
 }
 
@@ -727,8 +727,8 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
 
     let result = try validator.validate(.init(kind: .train, fields: [
         "trainNumber": "D1",
-        "departureStation": "北京站",
-        "arrivalStation": "上海站",
+        "departureStation": "\u{5317}\u{4eac}\u{7ad9}",
+        "arrivalStation": "\u{4e0a}\u{6d77}\u{7ad9}",
         "eventDate": "2026-07-03",
         "departureTime": "23:30",
         "arrivalTime": "05:10"

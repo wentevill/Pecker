@@ -49,9 +49,9 @@ struct LiveActivityPresentationAdapter: Sendable {
             .compactMap(clean)
             .joined(separator: " → ")
         let metadata = [
-            ticket.carriageNumber.map { "\($0) 车" },
-            ticket.seatNumber.map { "\($0) 座" },
-            ticket.checkInGate.map { "\($0) 检票口" },
+            ticket.carriageNumber.map { "\($0) \u{8f66}" },
+            ticket.seatNumber.map { "\($0) \u{5ea7}" },
+            ticket.checkInGate.map { "\($0) \u{68c0}\u{7968}\u{53e3}" },
             ticket.seatClass
         ]
         .compactMap(clean)
@@ -79,7 +79,7 @@ struct LiveActivityPresentationAdapter: Sendable {
         let metadata = [
             ticket.terminal,
             ticket.gate.map { "Gate \($0)" },
-            ticket.seat.map { "\($0) 座" },
+            ticket.seat.map { "\($0) \u{5ea7}" },
             ticket.travelStatus
         ]
         .compactMap(clean)
@@ -206,13 +206,13 @@ struct LiveActivityPresentationAdapter: Sendable {
     private static let genericIdentityKeys: Set<String> = [
         "title",
         "eventTitle",
-        "事件标题",
+        "\u{4e8b}\u{4ef6}\u{6807}\u{9898}",
         "location",
-        "地点",
+        "\u{5730}\u{70b9}",
         "notes",
         "description",
         "details",
-        "备注"
+        "\u{5907}\u{6ce8}"
     ]
 }
 

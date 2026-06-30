@@ -16,12 +16,12 @@ final class TodayPresentationTests: XCTestCase {
         let viewModel = TodayView.makeSettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "暂不可用" },
+            liveActivityStatusText: { "\u{6682}\u{4e0d}\u{53ef}\u{7528}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
 
-        XCTAssertEqual(viewModel.liveActivityStatusText, "暂不可用")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     func testPartialAuthorizationProducesNonBlockingNotice() {
@@ -50,8 +50,8 @@ final class TodayPresentationTests: XCTestCase {
             }()
         )
 
-        XCTAssertEqual(content.sourceNotice?.titleText, "部分权限受限")
-        XCTAssertEqual(content.sourceNotice?.buttonText, "去系统设置")
+        XCTAssertEqual(content.sourceNotice?.titleText, "\u{90e8}\u{5206}\u{6743}\u{9650}\u{53d7}\u{9650}")
+        XCTAssertEqual(content.sourceNotice?.buttonText, "\u{53bb}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}")
     }
 
     func testEmptyStatePreservesPartialAuthorizationNotice() {
@@ -71,9 +71,10 @@ final class TodayPresentationTests: XCTestCase {
         guard case let .empty(sourceNotice) = content.mode else {
             return XCTFail("Expected empty mode")
         }
-        XCTAssertEqual(sourceNotice?.titleText, "部分权限受限")
-        XCTAssertEqual(sourceNotice?.buttonText, "去系统设置")
+        XCTAssertEqual(sourceNotice?.titleText, "\u{90e8}\u{5206}\u{6743}\u{9650}\u{53d7}\u{9650}")
+        XCTAssertEqual(sourceNotice?.buttonText, "\u{53bb}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}")
         XCTAssertEqual(content.sourceNotice, sourceNotice)
+        XCTAssertEqual(content.summary?.titleText, "\u{67e5}\u{770b}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}")
     }
 
     func testEmptyStateOmitsNoticeWhenAllEnabledSourcesAreAuthorized() {
@@ -174,7 +175,7 @@ final class TodayPresentationTests: XCTestCase {
         XCTAssertNil(TodayPresentation.concurrentText(extraCount: 0))
         XCTAssertEqual(
             TodayPresentation.concurrentText(extraCount: 2),
-            "另有 2 项进行中"
+            "\u{53e6}\u{6709} 2 \u{9879}\u{8fdb}\u{884c}\u{4e2d}"
         )
     }
 
@@ -211,7 +212,7 @@ final class TodayPresentationTests: XCTestCase {
             calendar: utcCalendar()
         )
 
-        XCTAssertEqual(content.nowCard?.secondaryText, "剩余 5 分钟")
+        XCTAssertEqual(content.nowCard?.secondaryText, "\u{5269}\u{4f59} 5 \u{5206}\u{949f}")
     }
 
     func testPinnedCountdownUsesEndDateWhenRunningAndStartDateBeforeStart() {
@@ -254,13 +255,13 @@ final class TodayPresentationTests: XCTestCase {
             calendar: utcCalendar()
         )
 
-        XCTAssertEqual(runningContent.pinnedCard?.tertiaryText, "还有 7 分钟")
-        XCTAssertEqual(upcomingContent.pinnedCard?.tertiaryText, "还有 12 分钟")
+        XCTAssertEqual(runningContent.pinnedCard?.tertiaryText, "\u{8fd8}\u{6709} 7 \u{5206}\u{949f}")
+        XCTAssertEqual(upcomingContent.pinnedCard?.tertiaryText, "\u{8fd8}\u{6709} 12 \u{5206}\u{949f}")
     }
 
     func testPinBadgeCopyMatchesOrigin() {
-        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .automatic), "自动推荐")
-        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .manual), "手动固定")
+        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .automatic), "\u{81ea}\u{52a8}\u{63a8}\u{8350}")
+        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .manual), "\u{624b}\u{52a8}\u{56fa}\u{5b9a}")
         XCTAssertNil(TodayPresentation.pinBadgeText(for: nil))
     }
 
@@ -298,8 +299,8 @@ final class TodayPresentationTests: XCTestCase {
             endDate: Date(timeIntervalSince1970: 7_000),
             template: .trainTicket(.init(
                 trainNumber: "G123",
-                departureStation: "上海虹桥",
-                arrivalStation: "北京南",
+                departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
+                arrivalStation: "\u{5317}\u{4eac}\u{5357}",
                 departureTimeText: "09:24",
                 arrivalTimeText: nil,
                 carriageNumber: "08",
@@ -313,7 +314,7 @@ final class TodayPresentationTests: XCTestCase {
         let idle = try XCTUnwrap(
             TodayScreenContent.recognitionActions(settings: settings, phase: .idle)
         )
-        XCTAssertEqual(idle.statusText, "等待图片")
+        XCTAssertEqual(idle.statusText, "\u{7b49}\u{5f85}\u{56fe}\u{7247}")
         XCTAssertFalse(idle.isLoading)
         XCTAssertFalse(idle.buttonsDisabled)
         XCTAssertNil(idle.errorText)
@@ -326,7 +327,7 @@ final class TodayPresentationTests: XCTestCase {
                 phase: .recognizing
             )
         )
-        XCTAssertEqual(recognizing.statusText, "正在识别")
+        XCTAssertEqual(recognizing.statusText, "\u{6b63}\u{5728}\u{8bc6}\u{522b}")
         XCTAssertTrue(recognizing.isLoading)
         XCTAssertTrue(recognizing.buttonsDisabled)
         XCTAssertTrue(recognizing.showsTypingIndicator)
@@ -338,12 +339,12 @@ final class TodayPresentationTests: XCTestCase {
                 phase: .awaitingConfirmation(draft)
             )
         )
-        XCTAssertEqual(confirmation.statusText, "识别完成，确认后保存")
+        XCTAssertEqual(confirmation.statusText, "\u{8bc6}\u{522b}\u{5b8c}\u{6210}，\u{786e}\u{8ba4}\u{540e}\u{4fdd}\u{5b58}")
         XCTAssertFalse(confirmation.isLoading)
         XCTAssertTrue(confirmation.buttonsDisabled)
         XCTAssertEqual(confirmation.preview?.titleText, "G123")
-        XCTAssertEqual(confirmation.preview?.subtitleText, "上海虹桥 → 北京南")
-        XCTAssertEqual(confirmation.preview?.fields.first?.label, "时间")
+        XCTAssertEqual(confirmation.preview?.subtitleText, "\u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}")
+        XCTAssertEqual(confirmation.preview?.fields.first?.label, "\u{65f6}\u{95f4}")
         XCTAssertFalse(try XCTUnwrap(confirmation.preview).buttonsDisabled)
 
         let saving = try XCTUnwrap(
@@ -352,35 +353,35 @@ final class TodayPresentationTests: XCTestCase {
                 phase: .saving(draft)
             )
         )
-        XCTAssertEqual(saving.statusText, "正在保存")
+        XCTAssertEqual(saving.statusText, "\u{6b63}\u{5728}\u{4fdd}\u{5b58}")
         XCTAssertTrue(saving.isLoading)
         XCTAssertTrue(try XCTUnwrap(saving.preview).buttonsDisabled)
 
         let saveFailure = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .saveFailure(draft, "保存失败，请重试。")
+                phase: .saveFailure(draft, "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。")
             )
         )
-        XCTAssertEqual(saveFailure.preview?.errorText, "保存失败，请重试。")
+        XCTAssertEqual(saveFailure.preview?.errorText, "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。")
         XCTAssertFalse(try XCTUnwrap(saveFailure.preview).buttonsDisabled)
 
         let failure = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
                 phase: .failure(.init(
-                    reason: "服务返回 429：请求过于频繁",
-                    technicalDetails: "阶段：结果核对\nHTTP 429\n错误码：rate_limit"
+                    reason: "\u{670d}\u{52a1}\u{8fd4}\u{56de} 429：\u{8bf7}\u{6c42}\u{8fc7}\u{4e8e}\u{9891}\u{7e41}",
+                    technicalDetails: "\u{9636}\u{6bb5}：\u{7ed3}\u{679c}\u{6838}\u{5bf9}\nHTTP 429\n\u{9519}\u{8bef}\u{7801}：rate_limit"
                 ))
             )
         )
-        XCTAssertEqual(failure.statusText, "识别失败")
+        XCTAssertEqual(failure.statusText, "\u{8bc6}\u{522b}\u{5931}\u{8d25}")
         XCTAssertFalse(failure.isLoading)
         XCTAssertFalse(failure.buttonsDisabled)
-        XCTAssertEqual(failure.errorText, "服务返回 429：请求过于频繁")
+        XCTAssertEqual(failure.errorText, "\u{670d}\u{52a1}\u{8fd4}\u{56de} 429：\u{8bf7}\u{6c42}\u{8fc7}\u{4e8e}\u{9891}\u{7e41}")
         XCTAssertEqual(
             failure.errorTechnicalDetails,
-            "阶段：结果核对\nHTTP 429\n错误码：rate_limit"
+            "\u{9636}\u{6bb5}：\u{7ed3}\u{679c}\u{6838}\u{5bf9}\nHTTP 429\n\u{9519}\u{8bef}\u{7801}：rate_limit"
         )
     }
 
@@ -427,11 +428,11 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     func testStateCopyIsStable() {
-        XCTAssertEqual(TodayStateCopy.loadingTitle, "加载中")
-        XCTAssertEqual(TodayStateCopy.emptyTitle, "今天暂时空闲")
-        XCTAssertEqual(TodayStateCopy.permissionTitle, "需要访问日历与提醒事项")
-        XCTAssertEqual(TodayStateCopy.staleBanner, "数据可能已过时")
-        XCTAssertEqual(TodayStateCopy.failureTitle, "今天暂时不可用")
+        XCTAssertEqual(TodayStateCopy.loadingTitle, "\u{52a0}\u{8f7d}\u{4e2d}")
+        XCTAssertEqual(TodayStateCopy.emptyTitle, "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{7a7a}\u{95f2}")
+        XCTAssertEqual(TodayStateCopy.permissionTitle, "\u{9700}\u{8981}\u{8bbf}\u{95ee}\u{65e5}\u{5386}\u{4e0e}\u{63d0}\u{9192}\u{4e8b}\u{9879}")
+        XCTAssertEqual(TodayStateCopy.staleBanner, "\u{6570}\u{636e}\u{53ef}\u{80fd}\u{5df2}\u{8fc7}\u{65f6}")
+        XCTAssertEqual(TodayStateCopy.failureTitle, "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     func testHeaderAccessibilityLabelCombinesDateAndTodayTitle() {

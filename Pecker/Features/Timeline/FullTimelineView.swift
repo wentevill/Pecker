@@ -33,7 +33,7 @@ struct FullTimelineView: View {
                         kindFilters
 
                         if model.isLoading && model.items.isEmpty {
-                            ProgressView("加载时间线…")
+                            ProgressView("\u{52a0}\u{8f7d}\u{65f6}\u{95f4}\u{7ebf}…")
                                 .frame(maxWidth: .infinity)
                                 .padding(30)
                         } else if sections.isEmpty {
@@ -53,7 +53,7 @@ struct FullTimelineView: View {
                 await model.load(now: context.date)
             }
             .foregroundStyle(TimelineTheme.textPrimary)
-            .navigationTitle(activeOnly ? "进行中" : "完整时间线")
+            .navigationTitle(activeOnly ? "\u{8fdb}\u{884c}\u{4e2d}" : "\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -71,36 +71,36 @@ struct FullTimelineView: View {
             }
         }
         .confirmationDialog(
-            "删除这个事件？",
+            "\u{5220}\u{9664}\u{8fd9}\u{4e2a}\u{4e8b}\u{4ef6}？",
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("删除", role: .destructive) {
+            Button("\u{5220}\u{9664}", role: .destructive) {
                 guard let item = pendingDelete else { return }
                 pendingDelete = nil
                 Task {
                     do {
                         try await model.delete(item)
                     } catch {
-                        mutationError = "删除失败，请稍后重试。"
+                        mutationError = "\u{5220}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
                     }
                 }
             }
-            Button("取消", role: .cancel) {
+            Button("\u{53d6}\u{6d88}", role: .cancel) {
                 pendingDelete = nil
             }
         }
         .alert(
-            "操作失败",
+            "\u{64cd}\u{4f5c}\u{5931}\u{8d25}",
             isPresented: Binding(
                 get: { mutationError != nil },
                 set: { if !$0 { mutationError = nil } }
             )
         ) {
-            Button("好") { mutationError = nil }
+            Button("\u{597d}") { mutationError = nil }
         } message: {
             Text(mutationError ?? "")
         }
@@ -108,7 +108,7 @@ struct FullTimelineView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(activeOnly ? "进行中项目" : scopeTitle)
+            Text(activeOnly ? "\u{8fdb}\u{884c}\u{4e2d}\u{9879}\u{76ee}" : scopeTitle)
                 .font(.largeTitle.weight(.bold))
                 .foregroundStyle(TimelineTheme.textPrimary)
 
@@ -120,25 +120,25 @@ struct FullTimelineView: View {
 
     private var headerSubtitle: String {
         if activeOnly {
-            return "来自当前快照的所有进行中项目。"
+            return "\u{6765}\u{81ea}\u{5f53}\u{524d}\u{5feb}\u{7167}\u{7684}\u{6240}\u{6709}\u{8fdb}\u{884c}\u{4e2d}\u{9879}\u{76ee}。"
         }
 
-        return "按时间与类型管理日历、提醒事项和 Pecker 卡片。"
+        return "\u{6309}\u{65f6}\u{95f4}\u{4e0e}\u{7c7b}\u{578b}\u{7ba1}\u{7406}\u{65e5}\u{5386}、\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{548c} Pecker \u{5361}\u{7247}。"
     }
 
     private var scopeTitle: String {
         switch model.selectedScope {
-        case .today: "今日时间线"
-        case .future: "未来时间线"
-        case .history: "历史时间线"
+        case .today: "\u{4eca}\u{65e5}\u{65f6}\u{95f4}\u{7ebf}"
+        case .future: "\u{672a}\u{6765}\u{65f6}\u{95f4}\u{7ebf}"
+        case .history: "\u{5386}\u{53f2}\u{65f6}\u{95f4}\u{7ebf}"
         }
     }
 
     private var scopeControl: some View {
-        Picker("时间范围", selection: $model.selectedScope) {
-            Text("今日").tag(TimelineDateScope.today)
-            Text("未来").tag(TimelineDateScope.future)
-            Text("历史").tag(TimelineDateScope.history)
+        Picker("\u{65f6}\u{95f4}\u{8303}\u{56f4}", selection: $model.selectedScope) {
+            Text("\u{4eca}\u{65e5}").tag(TimelineDateScope.today)
+            Text("\u{672a}\u{6765}").tag(TimelineDateScope.future)
+            Text("\u{5386}\u{53f2}").tag(TimelineDateScope.history)
         }
         .pickerStyle(.segmented)
         .onChange(of: model.selectedScope) { _, scope in
@@ -149,7 +149,7 @@ struct FullTimelineView: View {
     private var kindFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                kindButton(title: "全部", kind: nil)
+                kindButton(title: "\u{5168}\u{90e8}", kind: nil)
                 ForEach(TimelineKind.allCases, id: \.self) { kind in
                     kindButton(title: kindTitle(kind), kind: kind)
                 }
@@ -197,9 +197,9 @@ struct FullTimelineView: View {
     private var emptyState: some View {
         TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(activeOnly ? "当前没有进行中的项目" : "当前没有可显示的项目")
+                Text(activeOnly ? "\u{5f53}\u{524d}\u{6ca1}\u{6709}\u{8fdb}\u{884c}\u{4e2d}\u{7684}\u{9879}\u{76ee}" : "\u{5f53}\u{524d}\u{6ca1}\u{6709}\u{53ef}\u{663e}\u{793a}\u{7684}\u{9879}\u{76ee}")
                     .font(.headline.weight(.semibold))
-                Text("可以下拉刷新，或者稍后再看。")
+                Text("\u{53ef}\u{4ee5}\u{4e0b}\u{62c9}\u{5237}\u{65b0}，\u{6216}\u{8005}\u{7a0d}\u{540e}\u{518d}\u{770b}。")
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
             }
@@ -229,98 +229,112 @@ struct FullTimelineView: View {
         section: TimelineGrouping.Section,
         now: Date
     ) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Button {
-                onSelectItem(item)
-            } label: {
-                TimelineCard(accent: accent(for: section.kind, item: item)) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .center, spacing: 10) {
-                            Label {
-                                Text(sourceTitle(for: item))
-                            } icon: {
-                                Image(systemName: sourceSymbol(for: item))
-                            }
+        SwipeDeleteAction(
+            isEnabled: model.isEditable(item),
+            onDelete: { pendingDelete = item }
+        ) {
+            TimelineCard(accent: accent(for: section.kind, item: item)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .center, spacing: 10) {
+                        Label {
+                            Text(sourceTitle(for: item))
+                        } icon: {
+                            Image(systemName: sourceSymbol(for: item))
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(TimelineTheme.textSecondary)
+                        .labelStyle(.titleAndIcon)
+
+                        Spacer(minLength: 8)
+
+                        Text(statusText(for: section.kind, item: item))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(TimelineTheme.textSecondary)
-                            .labelStyle(.titleAndIcon)
+                            .foregroundStyle(TimelineTheme.color(for: accent(for: section.kind, item: item)))
 
-                            Spacer(minLength: 8)
-
-                            Text(statusText(for: section.kind, item: item))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(TimelineTheme.color(for: accent(for: section.kind, item: item)))
-                        }
-
-                        Text(item.title)
-                            .font(.title3.weight(.semibold))
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(timeText(for: item, now: now))
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(TimelineTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if let detailText = detailText(for: item) {
-                            Text(detailText)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(TimelineTheme.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                        timelineActions(for: item)
                     }
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(accessibilityLabel(for: item, section: section, now: now))
 
-            Button {
-                onTogglePin(item)
-            } label: {
-                Image(systemName: pinSymbol(for: item))
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(pinTint(for: item))
-                    .frame(width: 34, height: 34)
-                    .background(Circle().fill(TimelineTheme.controlFill))
-                    .overlay(Circle().stroke(TimelineTheme.cardStroke, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(pinAccessibilityLabel(for: item))
-
-            if model.isEditable(item) {
-                Menu {
                     Button {
-                        openEditor(for: item)
+                        onSelectItem(item)
                     } label: {
-                        Label("编辑", systemImage: "pencil")
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(item.title)
+                                .font(.title3.weight(.semibold))
+                                .lineLimit(nil)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Text(timeText(for: item, now: now))
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(TimelineTheme.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if let detailText = detailText(for: item) {
+                                Text(detailText)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(TimelineTheme.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    Button(role: .destructive) {
-                        pendingDelete = item
-                    } label: {
-                        Label("删除", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .frame(width: 34, height: 34)
-                        .background(Circle().fill(TimelineTheme.controlFill))
-                        .overlay(Circle().stroke(TimelineTheme.cardStroke))
+                    .buttonStyle(.plain)
                 }
             }
         }
+        .accessibilityLabel(accessibilityLabel(for: item, section: section, now: now))
         .contextMenu {
             if model.isEditable(item) {
                 Button {
                     openEditor(for: item)
                 } label: {
-                    Label("编辑", systemImage: "pencil")
+                    Label("\u{7f16}\u{8f91}", systemImage: "pencil")
                 }
 
                 Button(role: .destructive) {
                     pendingDelete = item
                 } label: {
-                    Label("删除", systemImage: "trash")
+                    Label("\u{5220}\u{9664}", systemImage: "trash")
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func timelineActions(for item: TimelineItem) -> some View {
+        Button {
+            onTogglePin(item)
+        } label: {
+            Image(systemName: pinSymbol(for: item))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(pinTint(for: item))
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(TimelineTheme.controlFill))
+                .overlay(Circle().stroke(TimelineTheme.cardStroke, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(pinAccessibilityLabel(for: item))
+
+        if model.isEditable(item) {
+            Menu {
+                Button {
+                    openEditor(for: item)
+                } label: {
+                    Label("\u{7f16}\u{8f91}", systemImage: "pencil")
+                }
+                Button(role: .destructive) {
+                    pendingDelete = item
+                } label: {
+                    Label("\u{5220}\u{9664}", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(TimelineTheme.textSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(TimelineTheme.controlFill))
+                    .overlay(Circle().stroke(TimelineTheme.cardStroke))
+            }
+            .accessibilityLabel("\u{66f4}\u{591a}\u{64cd}\u{4f5c}")
         }
     }
 
@@ -329,14 +343,14 @@ struct FullTimelineView: View {
             editingRecord = try model.editor(for: item)
             isEditorPresented = true
         } catch {
-            mutationError = "无法打开编辑器。"
+            mutationError = "\u{65e0}\u{6cd5}\u{6253}\u{5f00}\u{7f16}\u{8f91}\u{5668}。"
         }
     }
 
     private func sourceTitle(for item: TimelineItem) -> String {
         switch item.source {
-        case .calendar: "日历"
-        case .reminder: "提醒事项"
+        case .calendar: "\u{65e5}\u{5386}"
+        case .reminder: "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
         case .external: "Pecker"
         }
     }
@@ -351,29 +365,29 @@ struct FullTimelineView: View {
 
     private func kindTitle(_ kind: TimelineKind) -> String {
         switch kind {
-        case .meeting: "会议"
-        case .task: "任务"
-        case .flight: "航班"
-        case .train: "火车"
-        case .travel: "行程"
-        case .interview: "面试"
-        case .deadline: "截止"
-        case .unknown: "未分类"
+        case .meeting: "\u{4f1a}\u{8bae}"
+        case .task: "\u{4efb}\u{52a1}"
+        case .flight: "\u{822a}\u{73ed}"
+        case .train: "\u{706b}\u{8f66}"
+        case .travel: "\u{884c}\u{7a0b}"
+        case .interview: "\u{9762}\u{8bd5}"
+        case .deadline: "\u{622a}\u{6b62}"
+        case .unknown: "\u{672a}\u{5206}\u{7c7b}"
         }
     }
 
     private func statusText(for section: TimelineGrouping.Section.Kind, item: TimelineItem) -> String {
         switch section {
         case .overdue:
-            "已逾期"
+            "\u{5df2}\u{903e}\u{671f}"
         case .allDay:
-            "全天"
+            "\u{5168}\u{5929}"
         case .active:
-            "进行中"
+            "\u{8fdb}\u{884c}\u{4e2d}"
         case .upcoming:
-            "即将开始"
+            "\u{5373}\u{5c06}\u{5f00}\u{59cb}"
         case .elapsed:
-            "已结束"
+            "\u{5df2}\u{7ed3}\u{675f}"
         }
     }
 
@@ -384,7 +398,7 @@ struct FullTimelineView: View {
             .locale(Locale(identifier: "zh_CN"))
 
         if item.isAllDay {
-            return "全天"
+            return "\u{5168}\u{5929}"
         }
 
         guard let end = item.endDate else {
@@ -393,7 +407,7 @@ struct FullTimelineView: View {
 
         let range = "\(item.startDate.formatted(formatter)) – \(end.formatted(formatter))"
         if item.endDate.map({ $0 > now }) == true, item.startDate <= now {
-            return "\(range) · 进行中"
+            return "\(range) · \u{8fdb}\u{884c}\u{4e2d}"
         }
 
         return range
@@ -441,8 +455,8 @@ struct FullTimelineView: View {
 
     private func pinAccessibilityLabel(for item: TimelineItem) -> String {
         settings.manualPinnedSourceIdentifier == item.sourceIdentifier
-            ? "取消固定"
-            : "固定行程"
+            ? "\u{53d6}\u{6d88}\u{56fa}\u{5b9a}"
+            : "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}"
     }
 
     private func accessibilityLabel(

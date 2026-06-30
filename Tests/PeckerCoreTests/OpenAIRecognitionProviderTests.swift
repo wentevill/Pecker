@@ -14,12 +14,12 @@ import Testing
     let request = try provider.makeRequest(
         for: .calendar(
             sourceIdentifier: "calendar-1",
-            title: "G123 上海虹桥 → 北京南",
+            title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
             startDate: Date(timeIntervalSince1970: 1_000),
             endDate: Date(timeIntervalSince1970: 2_000),
             isAllDay: false,
-            location: "检票口 B7",
-            notes: "08车 03A"
+            location: "\u{68c0}\u{7968}\u{53e3} B7",
+            notes: "08\u{8f66} 03A"
         )
     )
 
@@ -35,7 +35,7 @@ import Testing
     #expect(json["model"] as? String == "gpt-test")
     #expect(json["messages"] != nil)
     #expect(json["response_format"] == nil)
-    #expect(String(data: body, encoding: .utf8)?.contains("G123 上海虹桥") == true)
+    #expect(String(data: body, encoding: .utf8)?.contains("G123 \u{4e0a}\u{6d77}\u{8679}\u{6865}") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:16:40.000Z") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:33:20.000Z") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("isAllDay: false") == true)
@@ -55,7 +55,7 @@ import Testing
     let request = try provider.makeRequest(
         for: .reminder(
             sourceIdentifier: "reminder-1",
-            title: "提交报告",
+            title: "\u{63d0}\u{4ea4}\u{62a5}\u{544a}",
             dueDate: nil,
             endDate: nil,
             notes: nil
@@ -117,7 +117,7 @@ import Testing
         Issue.record("Expected image-model compatibility error")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "当前模型不支持图片识别")
+        #expect(failure.reason == "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{4e0d}\u{652f}\u{6301}\u{56fe}\u{7247}\u{8bc6}\u{522b}")
         #expect(failure.serviceMessage?.contains("do not support image") == true)
     }
 }
@@ -141,7 +141,7 @@ import Testing
     do {
         _ = try await provider.recognize(.reminder(
             sourceIdentifier: "patrol",
-            title: "今天晚上11点半巡逻仓库",
+            title: "\u{4eca}\u{5929}\u{665a}\u{4e0a}11\u{70b9}\u{534a}\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
             dueDate: nil,
             endDate: nil,
             notes: nil
@@ -149,7 +149,7 @@ import Testing
         Issue.record("Expected function-calling compatibility failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "当前模型或服务不支持函数调用")
+        #expect(failure.reason == "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{6216}\u{670d}\u{52a1}\u{4e0d}\u{652f}\u{6301}\u{51fd}\u{6570}\u{8c03}\u{7528}")
         #expect(failure.httpStatus == 400)
         #expect(failure.serviceCode == "unsupported_tools")
     }
@@ -163,7 +163,7 @@ import Testing
               "choices": [
                 {
                   "message": {
-                    "content": "<think>没有发现事件</think>\\n无法识别"
+                    "content": "<think>\u{6ca1}\u{6709}\u{53d1}\u{73b0}\u{4e8b}\u{4ef6}</think>\\n\u{65e0}\u{6cd5}\u{8bc6}\u{522b}"
                   }
                 }
               ]
@@ -192,8 +192,8 @@ import Testing
         Issue.record("Expected missing-function-call failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "模型未调用要求的函数")
-        #expect(failure.technicalDetails.contains("无法识别"))
+        #expect(failure.reason == "\u{6a21}\u{578b}\u{672a}\u{8c03}\u{7528}\u{8981}\u{6c42}\u{7684}\u{51fd}\u{6570}")
+        #expect(failure.technicalDetails.contains("\u{65e0}\u{6cd5}\u{8bc6}\u{522b}"))
     }
 }
 
@@ -207,11 +207,11 @@ import Testing
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_train_event",
-            arguments: #"{"departureStation":"上海虹桥站","arrivalStation":"北京南站"}"#
+            arguments: #"{"departureStation":"\#u{4e0a}\#u{6d77}\#u{8679}\#u{6865}\#u{7ad9}","arrivalStation":"\#u{5317}\#u{4eac}\#u{5357}\#u{7ad9}"}"#
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_train_event",
-            arguments: #"{"trainNumber":"G123","departureStation":"上海虹桥站","arrivalStation":"北京南站","departureDateTime":"2026-07-03T08:00:00+08:00"}"#
+            arguments: #"{"trainNumber":"G123","departureStation":"\#u{4e0a}\#u{6d77}\#u{8679}\#u{6865}\#u{7ad9}","arrivalStation":"\#u{5317}\#u{4eac}\#u{5357}\#u{7ad9}","departureDateTime":"2026-07-03T08:00:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -238,9 +238,9 @@ import Testing
     let bodies = requests.compactMap(\.httpBody).compactMap {
         String(data: $0, encoding: .utf8)
     }
-    #expect(bodies[0].contains("类型识别"))
-    #expect(bodies[1].contains("字段提取"))
-    #expect(bodies[2].contains("结果核对"))
+    #expect(bodies[0].contains("\u{7c7b}\u{578b}\u{8bc6}\u{522b}"))
+    #expect(bodies[1].contains("\u{5b57}\u{6bb5}\u{63d0}\u{53d6}"))
+    #expect(bodies[2].contains("\u{7ed3}\u{679c}\u{6838}\u{5bf9}"))
     #expect(bodies.allSatisfy { $0.contains("Asia/Shanghai") })
     #expect(bodies.allSatisfy { $0.contains("+08:00") })
     #expect(bodies.allSatisfy { $0.contains("2026-07-03T09:30:00+08:00") })
@@ -254,11 +254,11 @@ import Testing
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
+            arguments: #"{"title":"\#u{5de1}\#u{903b}\#u{4ed3}\#u{5e93}","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
+            arguments: #"{"title":"\#u{5de1}\#u{903b}\#u{4ed3}\#u{5e93}","dueDateTime":"2026-06-29T23:30:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -272,7 +272,7 @@ import Testing
 
     _ = try await provider.recognize(.reminder(
         sourceIdentifier: "patrol",
-        title: "今天晚上11点半巡逻仓库",
+        title: "\u{4eca}\u{5929}\u{665a}\u{4e0a}11\u{70b9}\u{534a}\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
         dueDate: nil,
         endDate: nil,
         notes: nil
@@ -283,8 +283,8 @@ import Testing
     let bodyTexts = requests.compactMap(\.httpBody).compactMap {
         String(data: $0, encoding: .utf8)
     }
-    #expect(bodyTexts.allSatisfy { $0.contains("必须调用") })
-    #expect(bodyTexts.allSatisfy { !$0.contains("只返回 {") })
+    #expect(bodyTexts.allSatisfy { $0.contains("\u{5fc5}\u{987b}\u{8c03}\u{7528}") })
+    #expect(bodyTexts.allSatisfy { !$0.contains("\u{53ea}\u{8fd4}\u{56de} {") })
     let classification = try requestJSON(requests[0])
     let extraction = try requestJSON(requests[1])
     let verification = try requestJSON(requests[2])
@@ -325,25 +325,25 @@ import Testing
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"仓库","priority":null,"assignee":null,"project":null,"notes":null}"#
+            arguments: #"{"title":"\#u{5de1}\#u{903b}\#u{4ed3}\#u{5e93}","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"\#u{4ed3}\#u{5e93}","priority":null,"assignee":null,"project":null,"notes":null}"#
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"巡逻仓库","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"仓库","priority":null,"assignee":null,"project":null,"notes":null}"#
+            arguments: #"{"title":"\#u{5de1}\#u{903b}\#u{4ed3}\#u{5e93}","dueDateTime":"2026-06-29T23:30:00+08:00","eventDate":null,"location":"\#u{4ed3}\#u{5e93}","priority":null,"assignee":null,"project":null,"notes":null}"#
         ), 200)
     ])
     let provider = makeProvider(client: client)
 
     let result = try await provider.recognize(.reminder(
         sourceIdentifier: "patrol",
-        title: "今天晚上11点半巡逻仓库",
+        title: "\u{4eca}\u{5929}\u{665a}\u{4e0a}11\u{70b9}\u{534a}\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
         dueDate: nil,
         endDate: nil,
         notes: nil
     ))
 
     #expect(result.payload.kind == .task)
-    #expect(result.payload.fields["title"] == "巡逻仓库")
+    #expect(result.payload.fields["title"] == "\u{5de1}\u{903b}\u{4ed3}\u{5e93}")
     #expect(
         result.payload.fields["dueDateTime"]
             == "2026-06-29T23:30:00+08:00"
@@ -359,11 +359,11 @@ import Testing
         ), 200),
         .response(legacyFunctionCallEnvelope(
             name: "fill_generic_event",
-            arguments: #"{"title":"社区活动","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
+            arguments: #"{"title":"\#u{793e}\#u{533a}\#u{6d3b}\#u{52a8}","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
         ), 200),
         .response(legacyFunctionCallEnvelope(
             name: "fill_generic_event",
-            arguments: #"{"title":"社区活动","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
+            arguments: #"{"title":"\#u{793e}\#u{533a}\#u{6d3b}\#u{52a8}","startDateTime":null,"eventDate":"2026-07-03","endDateTime":null,"destination":null,"location":null,"notes":null}"#
         ), 200)
     ])
 
@@ -397,7 +397,7 @@ import Testing
         Issue.record("Expected multiple-call failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "模型返回了多个函数调用")
+        #expect(failure.reason == "\u{6a21}\u{578b}\u{8fd4}\u{56de}\u{4e86}\u{591a}\u{4e2a}\u{51fd}\u{6570}\u{8c03}\u{7528}")
         #expect(failure.technicalDetails.contains("classify_event"))
     }
 }
@@ -406,7 +406,7 @@ import Testing
     let client = QueuedRecognitionHTTPClient(steps: [
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"巡逻仓库"}"#
+            arguments: #"{"title":"\#u{5de1}\#u{903b}\#u{4ed3}\#u{5e93}"}"#
         ), 200)
     ])
 
@@ -421,7 +421,7 @@ import Testing
         Issue.record("Expected wrong-function failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "模型调用了当前阶段不允许的函数")
+        #expect(failure.reason == "\u{6a21}\u{578b}\u{8c03}\u{7528}\u{4e86}\u{5f53}\u{524d}\u{9636}\u{6bb5}\u{4e0d}\u{5141}\u{8bb8}\u{7684}\u{51fd}\u{6570}")
         #expect(failure.technicalDetails.contains("fill_task_event"))
     }
 }
@@ -445,7 +445,7 @@ import Testing
         Issue.record("Expected malformed-arguments failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "函数参数格式异常")
+        #expect(failure.reason == "\u{51fd}\u{6570}\u{53c2}\u{6570}\u{683c}\u{5f0f}\u{5f02}\u{5e38}")
     }
 }
 
@@ -457,11 +457,11 @@ import Testing
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_generic_event",
-            arguments: #"{"title":"提交材料"}"#
+            arguments: #"{"title":"\#u{63d0}\#u{4ea4}\#u{6750}\#u{6599}"}"#
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_task_event",
-            arguments: #"{"title":"提交材料","eventDate":"2026-07-03"}"#
+            arguments: #"{"title":"\#u{63d0}\#u{4ea4}\#u{6750}\#u{6599}","eventDate":"2026-07-03"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -489,17 +489,17 @@ import Testing
 @Test func openAIProviderAcceptsNumericPriceInReportedTrainPayload() async throws {
     let trainArguments = #"""
     {
-      "title": "C5788 成都东站 → 重庆西站",
+      "title": "C5788 \#u{6210}\#u{90fd}\#u{4e1c}\#u{7ad9} → \#u{91cd}\#u{5e86}\#u{897f}\#u{7ad9}",
       "trainNumber": "C5788",
-      "departureStation": "成都东站",
-      "arrivalStation": "重庆西站",
+      "departureStation": "\#u{6210}\#u{90fd}\#u{4e1c}\#u{7ad9}",
+      "arrivalStation": "\#u{91cd}\#u{5e86}\#u{897f}\#u{7ad9}",
       "departureDateTime": "2026-06-28T23:00:00+08:00",
       "arrivalDateTime": "2026-06-28T23:30:00+08:00",
-      "seatClass": "二等座",
+      "seatClass": "\#u{4e8c}\#u{7b49}\#u{5ea7}",
       "carriageNumber": "02",
       "seatNumber": "06D",
       "price": 96.0,
-      "ticketType": "成人票",
+      "ticketType": "\#u{6210}\#u{4eba}\#u{7968}",
       "orderNumber": "E123456789"
     }
     """#
@@ -546,11 +546,11 @@ import Testing
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_meeting_event",
-            arguments: #"{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}"#
+            arguments: #"{"title":"\#u{8bbe}\#u{8ba1}\#u{8bc4}\#u{5ba1}","startDateTime":"2026-07-03T10:00:00+08:00"}"#
         ), 200),
         .response(toolCallEnvelope(
             name: "fill_meeting_event",
-            arguments: #"{"title":"设计评审","startDateTime":"2026-07-03T10:00:00+08:00"}"#
+            arguments: #"{"title":"\#u{8bbe}\#u{8ba1}\#u{8bc4}\#u{5ba1}","startDateTime":"2026-07-03T10:00:00+08:00"}"#
         ), 200)
     ])
     let provider = OpenAIRecognitionProvider(
@@ -564,21 +564,21 @@ import Testing
 
     _ = try await provider.recognize(.calendar(
         sourceIdentifier: "meeting-1",
-        title: "设计评审",
+        title: "\u{8bbe}\u{8ba1}\u{8bc4}\u{5ba1}",
         startDate: nil,
         endDate: nil,
         isAllDay: false,
-        location: "会议室 A",
-        notes: "准备交互稿"
+        location: "\u{4f1a}\u{8bae}\u{5ba4} A",
+        notes: "\u{51c6}\u{5907}\u{4ea4}\u{4e92}\u{7a3f}"
     ))
 
     let bodies = await client.recordedRequests.compactMap(\.httpBody).compactMap {
         String(data: $0, encoding: .utf8)
     }
     #expect(bodies.count == 3)
-    #expect(bodies.allSatisfy { $0.contains("设计评审") })
-    #expect(bodies.allSatisfy { $0.contains("会议室 A") })
-    #expect(bodies.allSatisfy { $0.contains("准备交互稿") })
+    #expect(bodies.allSatisfy { $0.contains("\u{8bbe}\u{8ba1}\u{8bc4}\u{5ba1}") })
+    #expect(bodies.allSatisfy { $0.contains("\u{4f1a}\u{8bae}\u{5ba4} A") })
+    #expect(bodies.allSatisfy { $0.contains("\u{51c6}\u{5907}\u{4ea4}\u{4e92}\u{7a3f}") })
 }
 
 @Test func openAIProviderPreservesVerificationServiceError() async throws {
@@ -646,7 +646,7 @@ import Testing
         Issue.record("Expected structured network failure")
     } catch let failure as RecognitionPipelineFailure {
         #expect(failure.stage == .classification)
-        #expect(failure.reason == "网络连接超时")
+        #expect(failure.reason == "\u{7f51}\u{7edc}\u{8fde}\u{63a5}\u{8d85}\u{65f6}")
         #expect(failure.technicalDetails.contains("NSURLErrorDomain"))
     }
 }

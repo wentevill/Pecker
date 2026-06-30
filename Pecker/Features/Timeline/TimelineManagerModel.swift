@@ -94,7 +94,7 @@ final class TimelineManagerModel {
         } catch is CancellationError {
             return
         } catch {
-            errorText = "时间线加载失败，请重试。"
+            errorText = "\u{65f6}\u{95f4}\u{7ebf}\u{52a0}\u{8f7d}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。"
         }
     }
 

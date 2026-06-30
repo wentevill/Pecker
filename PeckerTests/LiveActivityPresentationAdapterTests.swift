@@ -40,8 +40,8 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
             kind: .train,
             template: .trainTicket(.init(
                 trainNumber: "C5770",
-                departureStation: "成都东",
-                arrivalStation: "重庆西",
+                departureStation: "\u{6210}\u{90fd}\u{4e1c}",
+                arrivalStation: "\u{91cd}\u{5e86}\u{897f}",
                 departureTimeText: "10:30",
                 arrivalTimeText: "11:48",
                 carriageNumber: "02",
@@ -49,7 +49,7 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
                 checkInGate: "B3",
                 passengerName: "Wen",
                 ticketNumber: "E123",
-                seatClass: "二等座",
+                seatClass: "\u{4e8c}\u{7b49}\u{5ea7}",
                 priceText: "¥96"
             ))
         )
@@ -61,12 +61,12 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         )
 
         XCTAssertEqual(state.title, "C5770")
-        XCTAssertEqual(state.secondaryIdentity, "成都东 → 重庆西")
-        XCTAssertEqual(state.leadingEndpoint, "成都东")
-        XCTAssertEqual(state.trailingEndpoint, "重庆西")
+        XCTAssertEqual(state.secondaryIdentity, "\u{6210}\u{90fd}\u{4e1c} → \u{91cd}\u{5e86}\u{897f}")
+        XCTAssertEqual(state.leadingEndpoint, "\u{6210}\u{90fd}\u{4e1c}")
+        XCTAssertEqual(state.trailingEndpoint, "\u{91cd}\u{5e86}\u{897f}")
         XCTAssertEqual(
             state.metadata,
-            ["02 车", "06D 座", "B3 检票口", "二等座"]
+            ["02 \u{8f66}", "06D \u{5ea7}", "B3 \u{68c0}\u{7968}\u{53e3}", "\u{4e8c}\u{7b49}\u{5ea7}"]
         )
     }
 
@@ -76,16 +76,16 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
             template: .flightTicket(.init(
                 flightNumber: "SQ 833",
                 carrier: "Singapore Airlines",
-                departureAirport: "上海浦东",
+                departureAirport: "\u{4e0a}\u{6d77}\u{6d66}\u{4e1c}",
                 departureAirportCode: "PVG",
-                arrivalAirport: "新加坡樟宜",
+                arrivalAirport: "\u{65b0}\u{52a0}\u{5761}\u{6a1f}\u{5b9c}",
                 arrivalAirportCode: "SIN",
                 departureTimeText: "14:35",
                 arrivalTimeText: "20:25",
                 terminal: "T3",
                 gate: "B7",
                 seat: "12A",
-                travelStatus: "登机中"
+                travelStatus: "\u{767b}\u{673a}\u{4e2d}"
             ))
         )
 
@@ -97,9 +97,9 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
 
         XCTAssertEqual(state.title, "SQ 833")
         XCTAssertEqual(state.secondaryIdentity, "Singapore Airlines")
-        XCTAssertEqual(state.leadingEndpoint, "PVG · 上海浦东")
-        XCTAssertEqual(state.trailingEndpoint, "SIN · 新加坡樟宜")
-        XCTAssertEqual(state.metadata, ["T3", "Gate B7", "12A 座", "登机中"])
+        XCTAssertEqual(state.leadingEndpoint, "PVG · \u{4e0a}\u{6d77}\u{6d66}\u{4e1c}")
+        XCTAssertEqual(state.trailingEndpoint, "SIN · \u{65b0}\u{52a0}\u{5761}\u{6a1f}\u{5b9c}")
+        XCTAssertEqual(state.metadata, ["T3", "Gate B7", "12A \u{5ea7}", "\u{767b}\u{673a}\u{4e2d}"])
         XCTAssertEqual(state.statusRawValue, "pinned")
     }
 
@@ -107,14 +107,14 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         let item = makeItem(
             kind: .interview,
             location: "Zoom",
-            notes: "准备作品集",
+            notes: "\u{51c6}\u{5907}\u{4f5c}\u{54c1}\u{96c6}",
             template: .generic(.init(
                 kind: .interview,
-                title: "产品设计师终面",
+                title: "\u{4ea7}\u{54c1}\u{8bbe}\u{8ba1}\u{5e08}\u{7ec8}\u{9762}",
                 location: "Zoom",
-                notes: "准备作品集",
+                notes: "\u{51c6}\u{5907}\u{4f5c}\u{54c1}\u{96c6}",
                 fields: [
-                    "title": "产品设计师终面",
+                    "title": "\u{4ea7}\u{54c1}\u{8bbe}\u{8ba1}\u{5e08}\u{7ec8}\u{9762}",
                     "location": "Zoom",
                     "interviewer": "Design Lead"
                 ]
@@ -128,7 +128,7 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         )
 
         XCTAssertEqual(state.location, "Zoom")
-        XCTAssertEqual(state.supportingDetail, "准备作品集")
+        XCTAssertEqual(state.supportingDetail, "\u{51c6}\u{5907}\u{4f5c}\u{54c1}\u{96c6}")
         XCTAssertTrue(state.metadata.isEmpty)
         XCTAssertLessThanOrEqual(state.metadata.count, 4)
     }

@@ -23,29 +23,29 @@ final class TimelineRecordEditorTests: XCTestCase {
     func testGenericEditorUpdatesCoreFields() throws {
         let record = makeRecord()
         var editor = try TimelineRecordEditor(record: record)
-        editor.title = "夜间巡逻"
+        editor.title = "\u{591c}\u{95f4}\u{5de1}\u{903b}"
         editor.kind = .task
         editor.startDate = Date(timeIntervalSince1970: 2_000)
         editor.endDate = Date(timeIntervalSince1970: 2_600)
-        editor.location = "园区"
-        editor.notes = "巡查仓库"
+        editor.location = "\u{56ed}\u{533a}"
+        editor.notes = "\u{5de1}\u{67e5}\u{4ed3}\u{5e93}"
 
         let updated = try editor.makeRecord(
             updatedAt: Date(timeIntervalSince1970: 3_000)
         )
 
-        XCTAssertEqual(updated.rawTitle, "夜间巡逻")
+        XCTAssertEqual(updated.rawTitle, "\u{591c}\u{95f4}\u{5de1}\u{903b}")
         XCTAssertEqual(updated.startDate, editor.startDate)
         XCTAssertEqual(updated.endDate, editor.endDate)
-        XCTAssertEqual(updated.rawLocation, "园区")
-        XCTAssertEqual(updated.rawNotes, "巡查仓库")
+        XCTAssertEqual(updated.rawLocation, "\u{56ed}\u{533a}")
+        XCTAssertEqual(updated.rawNotes, "\u{5de1}\u{67e5}\u{4ed3}\u{5e93}")
         XCTAssertEqual(
             updated.template,
             .generic(.init(
                 kind: .task,
-                title: "夜间巡逻",
-                location: "园区",
-                notes: "巡查仓库"
+                title: "\u{591c}\u{95f4}\u{5de1}\u{903b}",
+                location: "\u{56ed}\u{533a}",
+                notes: "\u{5de1}\u{67e5}\u{4ed3}\u{5e93}"
             ))
         )
     }
@@ -57,7 +57,7 @@ final class TimelineRecordEditorTests: XCTestCase {
             XCTAssertEqual($0 as? TimelineRecordEditorError, .emptyTitle)
         }
 
-        editor.title = "巡逻"
+        editor.title = "\u{5de1}\u{903b}"
         editor.endDate = editor.startDate
         XCTAssertThrowsError(try editor.makeRecord(updatedAt: .now)) {
             XCTAssertEqual($0 as? TimelineRecordEditorError, .invalidDateRange)
@@ -154,7 +154,7 @@ final class TimelineRecordEditorTests: XCTestCase {
             id: "calendar:event",
             source: .calendar,
             sourceIdentifier: "event",
-            rawTitle: "会议",
+            rawTitle: "\u{4f1a}\u{8bae}",
             rawLocation: nil,
             rawNotes: nil,
             imageReference: nil,
@@ -175,17 +175,17 @@ final class TimelineRecordEditorTests: XCTestCase {
             id: "image:patrol",
             source: .importedImage,
             sourceIdentifier: "patrol",
-            rawTitle: "巡逻",
+            rawTitle: "\u{5de1}\u{903b}",
             rawLocation: nil,
-            rawNotes: "巡查楼梯口、仓库、围栏",
+            rawNotes: "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}",
             imageReference: "Images/patrol.jpg",
             startDate: Date(timeIntervalSince1970: 1_000),
             endDate: Date(timeIntervalSince1970: 1_600),
             template: .generic(.init(
                 kind: .task,
-                title: "巡逻",
+                title: "\u{5de1}\u{903b}",
                 location: nil,
-                notes: "巡查楼梯口、仓库、围栏"
+                notes: "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}"
             )),
             recognitionStatus: .recognized,
             updatedAt: Date(timeIntervalSince1970: 1_000)

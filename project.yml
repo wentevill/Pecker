@@ -23,6 +23,7 @@ targets:
       - path: Pecker/Activity
       - path: Pecker/Design
       - path: Pecker/EventKit
+      - path: Pecker/Localization
       - path: Pecker/Recognition
       - path: Pecker/Features/Onboarding
       - path: Pecker/Features/Shared

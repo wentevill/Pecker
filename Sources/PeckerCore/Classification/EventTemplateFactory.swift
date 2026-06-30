@@ -208,13 +208,13 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
 
     public var presentation: EventTemplatePresentation {
         var fields: [EventTemplatePresentation.Field] = [
-            .init(label: "类型", value: kindTitle)
+            .init(label: "\u{7c7b}\u{578b}", value: kindTitle)
         ]
         if let location {
-            fields.append(.init(label: "地点", value: location))
+            fields.append(.init(label: "\u{5730}\u{70b9}", value: location))
         }
         if let notes {
-            fields.append(.init(label: "备注", value: notes))
+            fields.append(.init(label: "\u{5907}\u{6ce8}", value: notes))
         }
         return EventTemplatePresentation(
             style: .generic,
@@ -226,14 +226,14 @@ public struct GenericEventTemplate: Sendable, Equatable, Hashable, Codable {
 
     private var kindTitle: String {
         switch kind {
-        case .meeting: "会议"
-        case .task: "任务"
-        case .flight: "航班"
-        case .train: "火车"
-        case .travel: "行程"
-        case .interview: "面试"
-        case .deadline: "截止"
-        case .unknown: "未分类"
+        case .meeting: "\u{4f1a}\u{8bae}"
+        case .task: "\u{4efb}\u{52a1}"
+        case .flight: "\u{822a}\u{73ed}"
+        case .train: "\u{706b}\u{8f66}"
+        case .travel: "\u{884c}\u{7a0b}"
+        case .interview: "\u{9762}\u{8bd5}"
+        case .deadline: "\u{622a}\u{6b62}"
+        case .unknown: "\u{672a}\u{5206}\u{7c7b}"
         }
     }
 }
@@ -290,19 +290,19 @@ public struct FlightTicketTemplate: Sendable, Equatable, Hashable, Codable {
             .compactMap(\.?.nilIfBlank)
             .joined(separator: " → ")
         var fields: [EventTemplatePresentation.Field] = []
-        append("承运方", carrier, to: &fields)
-        append("出发", departure, to: &fields)
-        append("到达", arrival, to: &fields)
-        append("出发时间", departureTimeText, to: &fields)
-        append("到达时间", arrivalTimeText, to: &fields)
-        append("航站楼", terminal, to: &fields)
-        append("登机口", gate, to: &fields)
-        append("座位", seat, to: &fields)
-        append("状态", travelStatus, to: &fields)
+        append("\u{627f}\u{8fd0}\u{65b9}", carrier, to: &fields)
+        append("\u{51fa}\u{53d1}", departure, to: &fields)
+        append("\u{5230}\u{8fbe}", arrival, to: &fields)
+        append("\u{51fa}\u{53d1}\u{65f6}\u{95f4}", departureTimeText, to: &fields)
+        append("\u{5230}\u{8fbe}\u{65f6}\u{95f4}", arrivalTimeText, to: &fields)
+        append("\u{822a}\u{7ad9}\u{697c}", terminal, to: &fields)
+        append("\u{767b}\u{673a}\u{53e3}", gate, to: &fields)
+        append("\u{5ea7}\u{4f4d}", seat, to: &fields)
+        append("\u{72b6}\u{6001}", travelStatus, to: &fields)
 
         return EventTemplatePresentation(
             style: .flightTicket,
-            title: flightNumber ?? "航班",
+            title: flightNumber ?? "\u{822a}\u{73ed}",
             subtitle: route.nilIfBlank,
             fields: fields
         )
@@ -397,19 +397,19 @@ public struct TrainTicketTemplate: Sendable, Equatable, Hashable, Codable {
         let route = [departureStation, arrivalStation]
             .compactMap(\.?.nilIfBlank)
             .joined(separator: " → ")
-        let title = trainNumber ?? "火车票"
+        let title = trainNumber ?? "\u{706b}\u{8f66}\u{7968}"
         var fields: [EventTemplatePresentation.Field] = []
-        append("出发", departureStation, to: &fields)
-        append("到达", arrivalStation, to: &fields)
-        append("出发时间", departureTimeText, to: &fields)
-        append("到达时间", arrivalTimeText, to: &fields)
-        append("车厢", carriageNumber.map { "\($0)车" }, to: &fields)
-        append("座位", seatNumber, to: &fields)
-        append("检票口", checkInGate, to: &fields)
-        append("乘车人", passengerName, to: &fields)
-        append("票号", ticketNumber, to: &fields)
-        append("席别", seatClass, to: &fields)
-        append("票价", priceText, to: &fields)
+        append("\u{51fa}\u{53d1}", departureStation, to: &fields)
+        append("\u{5230}\u{8fbe}", arrivalStation, to: &fields)
+        append("\u{51fa}\u{53d1}\u{65f6}\u{95f4}", departureTimeText, to: &fields)
+        append("\u{5230}\u{8fbe}\u{65f6}\u{95f4}", arrivalTimeText, to: &fields)
+        append("\u{8f66}\u{53a2}", carriageNumber.map { "\($0)\u{8f66}" }, to: &fields)
+        append("\u{5ea7}\u{4f4d}", seatNumber, to: &fields)
+        append("\u{68c0}\u{7968}\u{53e3}", checkInGate, to: &fields)
+        append("\u{4e58}\u{8f66}\u{4eba}", passengerName, to: &fields)
+        append("\u{7968}\u{53f7}", ticketNumber, to: &fields)
+        append("\u{5e2d}\u{522b}", seatClass, to: &fields)
+        append("\u{7968}\u{4ef7}", priceText, to: &fields)
 
         return EventTemplatePresentation(
             style: .trainTicket,
@@ -446,18 +446,18 @@ public struct EventTemplateFactory: Sendable {
         switch payload.kind {
         case .train:
             .trainTicket(.init(
-                trainNumber: payload.value(for: "trainNumber", "train_number", "车次"),
-                departureStation: payload.value(for: "departureStation", "departure_station", "from", "出发站"),
-                arrivalStation: payload.value(for: "arrivalStation", "arrival_station", "to", "到达站", "终点站"),
-                departureTimeText: payload.value(for: "departureTime", "departure_time", "出发时间"),
-                arrivalTimeText: payload.value(for: "arrivalTime", "arrival_time", "到达时间"),
-                carriageNumber: payload.value(for: "carriageNumber", "carriage_number", "coach", "车厢"),
-                seatNumber: payload.value(for: "seatNumber", "seat_number", "seat", "座位"),
-                checkInGate: payload.value(for: "checkInGate", "check_in_gate", "gate", "检票口"),
-                passengerName: payload.value(for: "passengerName", "passenger_name", "乘车人"),
-                ticketNumber: payload.value(for: "ticketNumber", "ticket_number", "orderNumber", "票号", "订单号"),
-                seatClass: payload.value(for: "seatClass", "seat_class", "class", "席别"),
-                priceText: payload.value(for: "price", "priceText", "票价")
+                trainNumber: payload.value(for: "trainNumber", "train_number", "\u{8f66}\u{6b21}"),
+                departureStation: payload.value(for: "departureStation", "departure_station", "from", "\u{51fa}\u{53d1}\u{7ad9}"),
+                arrivalStation: payload.value(for: "arrivalStation", "arrival_station", "to", "\u{5230}\u{8fbe}\u{7ad9}", "\u{7ec8}\u{70b9}\u{7ad9}"),
+                departureTimeText: payload.value(for: "departureTime", "departure_time", "\u{51fa}\u{53d1}\u{65f6}\u{95f4}"),
+                arrivalTimeText: payload.value(for: "arrivalTime", "arrival_time", "\u{5230}\u{8fbe}\u{65f6}\u{95f4}"),
+                carriageNumber: payload.value(for: "carriageNumber", "carriage_number", "coach", "\u{8f66}\u{53a2}"),
+                seatNumber: payload.value(for: "seatNumber", "seat_number", "seat", "\u{5ea7}\u{4f4d}"),
+                checkInGate: payload.value(for: "checkInGate", "check_in_gate", "gate", "\u{68c0}\u{7968}\u{53e3}"),
+                passengerName: payload.value(for: "passengerName", "passenger_name", "\u{4e58}\u{8f66}\u{4eba}"),
+                ticketNumber: payload.value(for: "ticketNumber", "ticket_number", "orderNumber", "\u{7968}\u{53f7}", "\u{8ba2}\u{5355}\u{53f7}"),
+                seatClass: payload.value(for: "seatClass", "seat_class", "class", "\u{5e2d}\u{522b}"),
+                priceText: payload.value(for: "price", "priceText", "\u{7968}\u{4ef7}")
             ))
         case .flight:
             makeFlightTemplate(from: payload)
@@ -473,47 +473,47 @@ public struct EventTemplateFactory: Sendable {
                 flightNumber: payload.value(
                     for: "flightNumber",
                     "flight_number",
-                    "航班号"
+                    "\u{822a}\u{73ed}\u{53f7}"
                 ),
-                carrier: payload.value(for: "carrier", "airline", "承运方", "航空公司"),
+                carrier: payload.value(for: "carrier", "airline", "\u{627f}\u{8fd0}\u{65b9}", "\u{822a}\u{7a7a}\u{516c}\u{53f8}"),
                 departureAirport: payload.value(
                     for: "departureAirport",
                     "departure_airport",
                     "origin",
-                    "出发机场"
+                    "\u{51fa}\u{53d1}\u{673a}\u{573a}"
                 ),
                 departureAirportCode: payload.value(
                     for: "departureAirportCode",
                     "departure_airport_code",
                     "originCode",
-                    "出发机场代码"
+                    "\u{51fa}\u{53d1}\u{673a}\u{573a}\u{4ee3}\u{7801}"
                 ),
                 arrivalAirport: payload.value(
                     for: "arrivalAirport",
                     "arrival_airport",
                     "destination",
-                    "到达机场"
+                    "\u{5230}\u{8fbe}\u{673a}\u{573a}"
                 ),
                 arrivalAirportCode: payload.value(
                     for: "arrivalAirportCode",
                     "arrival_airport_code",
                     "destinationCode",
-                    "到达机场代码"
+                    "\u{5230}\u{8fbe}\u{673a}\u{573a}\u{4ee3}\u{7801}"
                 ),
                 departureTimeText: payload.value(
                     for: "departureTime",
                     "departure_time",
-                    "出发时间"
+                    "\u{51fa}\u{53d1}\u{65f6}\u{95f4}"
                 ),
                 arrivalTimeText: payload.value(
                     for: "arrivalTime",
                     "arrival_time",
-                    "到达时间"
+                    "\u{5230}\u{8fbe}\u{65f6}\u{95f4}"
                 ),
-                terminal: payload.value(for: "terminal", "航站楼"),
-                gate: payload.value(for: "gate", "boardingGate", "登机口"),
-                seat: payload.value(for: "seat", "seatNumber", "座位"),
-                travelStatus: payload.value(for: "status", "travelStatus", "状态")
+                terminal: payload.value(for: "terminal", "\u{822a}\u{7ad9}\u{697c}"),
+                gate: payload.value(for: "gate", "boardingGate", "\u{767b}\u{673a}\u{53e3}"),
+                seat: payload.value(for: "seat", "seatNumber", "\u{5ea7}\u{4f4d}"),
+                travelStatus: payload.value(for: "status", "travelStatus", "\u{72b6}\u{6001}")
             )
         if ticket.hasStructuredContent {
             return .flightTicket(ticket)
@@ -527,11 +527,11 @@ public struct EventTemplateFactory: Sendable {
         let explicitTitle = payload.value(
             for: "title",
             "eventTitle",
-            "事件标题"
+            "\u{4e8b}\u{4ef6}\u{6807}\u{9898}"
         )
         let destinationTitle: String? = switch payload.kind {
         case .travel, .unknown:
-            payload.value(for: "destination", "目的地")
+            payload.value(for: "destination", "\u{76ee}\u{7684}\u{5730}")
         case .meeting, .task, .flight, .train, .interview, .deadline:
             nil
         }
@@ -541,8 +541,8 @@ public struct EventTemplateFactory: Sendable {
         return .generic(.init(
             kind: payload.kind,
             title: title,
-            location: payload.value(for: "location", "地点"),
-            notes: payload.value(for: "notes", "description", "details", "备注"),
+            location: payload.value(for: "location", "\u{5730}\u{70b9}"),
+            notes: payload.value(for: "notes", "description", "details", "\u{5907}\u{6ce8}"),
             fields: payload.fields
         ))
     }
@@ -557,7 +557,7 @@ public struct EventTemplateFactory: Sendable {
         )?.replacingOccurrences(of: " ", with: "").uppercased()
         let route = parseRoute(from: text)
 
-        guard trainNumber != nil || route != nil || containsToken(normalized, token: "train") || containsPhrase(text, "高铁", "火车", "动车") else {
+        guard trainNumber != nil || route != nil || containsToken(normalized, token: "train") || containsPhrase(text, "\u{9ad8}\u{94c1}", "\u{706b}\u{8f66}", "\u{52a8}\u{8f66}") else {
             return nil
         }
 
@@ -567,9 +567,9 @@ public struct EventTemplateFactory: Sendable {
             arrivalStation: route?.arrival,
             departureTimeText: nil,
             arrivalTimeText: nil,
-            carriageNumber: firstMatch(in: text, pattern: #"(?<!\d)(\d{1,2})\s?(?:车厢|车)(?!\d)"#),
+            carriageNumber: firstMatch(in: text, pattern: #"(?<!\d)(\d{1,2})\s?(?:\#u{8f66}\#u{53a2}|\#u{8f66})(?!\d)"#),
             seatNumber: firstMatch(in: text, pattern: #"(?<![A-Za-z0-9])\d{1,2}[A-F](?![A-Za-z0-9])"#),
-            checkInGate: firstMatch(in: text, pattern: #"检票口\s*([A-Z]?\d{1,3})"#, options: [.caseInsensitive])?.uppercased(),
+            checkInGate: firstMatch(in: text, pattern: #"\#u{68c0}\#u{7968}\#u{53e3}\s*([A-Z]?\d{1,3})"#, options: [.caseInsensitive])?.uppercased(),
             passengerName: nil,
             ticketNumber: nil
         )
@@ -578,7 +578,7 @@ public struct EventTemplateFactory: Sendable {
     private func parseRoute(from text: String) -> (departure: String, arrival: String)? {
         if let match = firstCapturedPair(
             in: text,
-            pattern: #"([\p{Han}A-Za-z0-9·]+(?:站|南|北|东|西|虹桥)?)\s*(?:→|->|到|至|-)\s*([\p{Han}A-Za-z0-9·]+(?:站|南|北|东|西|虹桥)?)"#
+            pattern: #"([\p{Han}A-Za-z0-9·]+(?:\#u{7ad9}|\#u{5357}|\#u{5317}|\#u{4e1c}|\#u{897f}|\#u{8679}\#u{6865})?)\s*(?:→|->|\#u{5230}|\#u{81f3}|-)\s*([\p{Han}A-Za-z0-9·]+(?:\#u{7ad9}|\#u{5357}|\#u{5317}|\#u{4e1c}|\#u{897f}|\#u{8679}\#u{6865})?)"#
         ) {
             return match
         }

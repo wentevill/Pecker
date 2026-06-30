@@ -1,0 +1,7 @@
+"language.system" = "System";
+"language.english" = "English";
+"language.simplifiedChinese" = "Simplified Chinese";
+"settings.language" = "Language";
+"settings.title" = "Settings";
+"settings.done" = "Done";
+"settings.subtitle" = "Control data sources, display preferences, AI recognition, and Live Activity status.";

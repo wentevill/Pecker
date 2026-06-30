@@ -357,11 +357,11 @@ private enum DynamicIslandPreviewSamples {
         statusRawValue: "now",
         startDate: now.addingTimeInterval(-20 * 60),
         endDate: now.addingTimeInterval(86 * 60),
-        leadingEndpoint: "PVG · 上海浦东",
-        trailingEndpoint: "SIN · 新加坡樟宜",
+        leadingEndpoint: "PVG · \u{4e0a}\u{6d77}\u{6d66}\u{4e1c}",
+        trailingEndpoint: "SIN · \u{65b0}\u{52a0}\u{5761}\u{6a1f}\u{5b9c}",
         location: nil,
         supportingDetail: nil,
-        metadata: ["T3", "Gate B7", "12A 座", "登机中"],
+        metadata: ["T3", "Gate B7", "12A \u{5ea7}", "\u{767b}\u{673a}\u{4e2d}"],
         generatedAt: now
     )
 }

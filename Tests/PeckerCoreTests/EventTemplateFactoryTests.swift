@@ -66,6 +66,45 @@ import Testing
     )))
 }
 
+@Test func externalPayloadNormalizesJSONScalarsToStrings() throws {
+    let payload = try JSONDecoder().decode(
+        ExternalEventTemplatePayload.self,
+        from: Data(
+            #"""
+            {
+              "kind": "task",
+              "fields": {
+                "title": "巡检",
+                "count": 2,
+                "ratio": 1.5,
+                "urgent": true,
+                "empty": null
+              }
+            }
+            """#.utf8
+        )
+    )
+
+    #expect(payload.fields["title"] == "巡检")
+    #expect(payload.fields["count"] == "2")
+    #expect(payload.fields["ratio"] == "1.5")
+    #expect(payload.fields["urgent"] == "true")
+    #expect(payload.fields["empty"] == nil)
+}
+
+@Test func externalPayloadRejectsNestedFieldValues() {
+    let data = Data(
+        #"{"kind":"task","fields":{"title":"巡检","metadata":{"source":"OCR"}}}"#.utf8
+    )
+
+    #expect(throws: DecodingError.self) {
+        _ = try JSONDecoder().decode(
+            ExternalEventTemplatePayload.self,
+            from: data
+        )
+    }
+}
+
 @Test func factoryCreatesGenericTaskFromExternalPayload() {
     let template = EventTemplateFactory().makeTemplate(
         from: ExternalEventTemplatePayload(

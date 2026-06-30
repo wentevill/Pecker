@@ -44,7 +44,7 @@ struct RecognizedEventValidator {
             in: payload.fields,
             keys: [
                 "startDateTime", "start_datetime", "departureDateTime",
-                "dueDateTime", "deadlineDateTime"
+                "dueDateTime", "executionDateTime", "deadlineDateTime"
             ]
         )
         let explicitStart = explicitStartText.flatMap(parseISO8601)

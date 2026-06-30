@@ -57,6 +57,25 @@ import Testing
     #expect(missing == ["车次"])
 }
 
+@Test func taskSchemaAcceptsCanonicalDueDateTime() {
+    let missing = RecognitionKindSchema.schema(for: .task).missingFields(in: [
+        "title": "巡逻仓库",
+        "dueDateTime": "2026-06-29T23:30:00+08:00"
+    ])
+
+    #expect(missing.isEmpty)
+}
+
+@Test func deadlineSchemaAcceptsCanonicalDeadlineDateTime() {
+    let missing = RecognitionKindSchema.schema(for: .deadline)
+        .missingFields(in: [
+            "title": "提交报告",
+            "deadlineDateTime": "2026-06-30T18:00:00+08:00"
+        ])
+
+    #expect(missing.isEmpty)
+}
+
 @Test func failureTechnicalDetailsNeverExposeSecrets() {
     let failure = RecognitionPipelineFailure(
         stage: .verification,

@@ -608,6 +608,48 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(items.first?.isAllDay == true)
 }
 
+@Test func taskDueDateTimeBecomesTimedRecognitionDraft() async throws {
+    let repository = RecordingEventRepository()
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: .init(kind: .task, fields: [
+                "title": "巡逻仓库",
+                "dueDateTime": "2026-06-29T23:30:00+08:00",
+                "location": "仓库"
+            ]),
+            confidence: nil
+        )
+    )
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        calendar: calendar,
+        providerFactory: { _, _ in provider }
+    )
+
+    let draft = try await coordinator.recognizeImage(
+        data: Data([1]),
+        source: .importedImage,
+        filename: "patrol.png",
+        settings: TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        ),
+        now: Date(timeIntervalSince1970: 5_000)
+    )
+
+    #expect(draft.template.presentation.title == "巡逻仓库")
+    #expect(
+        draft.startDate
+            == ISO8601DateFormatter().date(
+                from: "2026-06-29T23:30:00+08:00"
+            )
+    )
+    #expect(!draft.isAllDay)
+}
+
 @Test func validatorAcceptsMinimumFieldsForEveryRecognitionKind() throws {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = try #require(TimeZone(identifier: "Asia/Shanghai"))

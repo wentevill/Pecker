@@ -26,7 +26,7 @@ public struct TimelineClassifier: Sendable {
 
         if containsKeyword(
             in: text,
-            keywords: ["flight", "航班", "机场", "起飞", "gate", "terminal", "airport"]
+            keywords: ["flight", "\u{822a}\u{73ed}", "\u{673a}\u{573a}", "\u{8d77}\u{98de}", "gate", "terminal", "airport"]
         ) || text.range(
             of: "\\b[A-Z]{2}\\s?\\d{2,4}\\b",
             options: [.regularExpression, .caseInsensitive]
@@ -36,16 +36,16 @@ public struct TimelineClassifier: Sendable {
 
         if containsKeyword(
             in: text,
-            keywords: ["train", "railway", "station", "高铁", "火车", "动车"]
+            keywords: ["train", "railway", "station", "\u{9ad8}\u{94c1}", "\u{706b}\u{8f66}", "\u{52a8}\u{8f66}"]
         ) {
             return .train
         }
 
-        if containsKeyword(in: text, keywords: ["interview", "面试"]) {
+        if containsKeyword(in: text, keywords: ["interview", "\u{9762}\u{8bd5}"]) {
             return .interview
         }
 
-        if containsKeyword(in: text, keywords: ["deadline", "due", "截止"]) {
+        if containsKeyword(in: text, keywords: ["deadline", "due", "\u{622a}\u{6b62}"]) {
             return .deadline
         }
 

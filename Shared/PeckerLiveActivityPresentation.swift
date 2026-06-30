@@ -72,11 +72,11 @@ enum PeckerLiveActivityCopy {
     ) -> String {
         switch (status, usesChinese(locale)) {
         case (.now, true):
-            "现在"
+            "\u{73b0}\u{5728}"
         case (.next, true):
-            "下一项"
+            "\u{4e0b}\u{4e00}\u{9879}"
         case (.pinned, true):
-            "固定"
+            "\u{56fa}\u{5b9a}"
         case (.now, false):
             "Now"
         case (.next, false):
@@ -91,7 +91,7 @@ enum PeckerLiveActivityCopy {
         locale: Locale = .autoupdatingCurrent
     ) -> String {
         if usesChinese(locale) {
-            return "另有 \(count) 项进行中"
+            return "\u{53e6}\u{6709} \(count) \u{9879}\u{8fdb}\u{884c}\u{4e2d}"
         }
 
         return count == 1 ? "1 more active" : "\(count) more active"
@@ -102,7 +102,7 @@ enum PeckerLiveActivityCopy {
         locale: Locale = .autoupdatingCurrent
     ) -> String {
         if usesChinese(locale) {
-            return isRunning ? "剩余" : "开始"
+            return isRunning ? "\u{5269}\u{4f59}" : "\u{5f00}\u{59cb}"
         }
 
         return isRunning ? "left" : "starts"
@@ -111,13 +111,13 @@ enum PeckerLiveActivityCopy {
     static func progressAccessibilityLabel(
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        usesChinese(locale) ? "进度" : "Progress"
+        usesChinese(locale) ? "\u{8fdb}\u{5ea6}" : "Progress"
     }
 
     static func endedLabel(
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        usesChinese(locale) ? "已结束" : "Ended"
+        usesChinese(locale) ? "\u{5df2}\u{7ed3}\u{675f}" : "Ended"
     }
 
     private static func usesChinese(_ locale: Locale) -> Bool {

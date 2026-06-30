@@ -19,8 +19,8 @@ private struct ClassificationCase: Sendable {
             expectedKind: .flight
         ),
         ClassificationCase(
-            title: "高铁 G123",
-            location: "上海虹桥站",
+            title: "\u{9ad8}\u{94c1} G123",
+            location: "\u{4e0a}\u{6d77}\u{8679}\u{6865}\u{7ad9}",
             notes: nil,
             source: .reminder,
             expectedKind: .train
@@ -35,7 +35,7 @@ private struct ClassificationCase: Sendable {
         ClassificationCase(
             title: "Project Deadline",
             location: nil,
-            notes: "截止今天",
+            notes: "\u{622a}\u{6b62}\u{4eca}\u{5929}",
             source: .reminder,
             expectedKind: .deadline
         ),
@@ -113,21 +113,21 @@ private func classifiesLatinKeywordSubstringsAsUnknown(title: String) {
 @Test(
     arguments: [
         ClassificationCase(
-            title: "Zoom会议",
+            title: "Zoom\u{4f1a}\u{8bae}",
             location: nil,
             notes: nil,
             source: .calendar,
             expectedKind: .meeting
         ),
         ClassificationCase(
-            title: "Train行程",
+            title: "Train\u{884c}\u{7a0b}",
             location: nil,
             notes: nil,
             source: .calendar,
             expectedKind: .train
         ),
         ClassificationCase(
-            title: "Gate登机",
+            title: "Gate\u{767b}\u{673a}",
             location: nil,
             notes: nil,
             source: .calendar,

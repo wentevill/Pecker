@@ -1,5 +1,11 @@
 import Foundation
 
+public enum AppLanguage: String, Codable, CaseIterable, Sendable, Hashable {
+    case system
+    case english
+    case simplifiedChinese
+}
+
 public struct TimelineSettings: Codable, Equatable, Sendable {
     public var calendarEnabled: Bool
     public var remindersEnabled: Bool
@@ -12,6 +18,7 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
     public var openAIAPIKeyConfigured: Bool
     public var syncCalendarToStorage: Bool
     public var syncRemindersToStorage: Bool
+    public var language: AppLanguage
 
     public init(
         calendarEnabled: Bool = true,
@@ -24,7 +31,8 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         openAIModel: String = "gpt-5.4-mini",
         openAIAPIKeyConfigured: Bool = false,
         syncCalendarToStorage: Bool = false,
-        syncRemindersToStorage: Bool = false
+        syncRemindersToStorage: Bool = false,
+        language: AppLanguage = .system
     ) {
         self.calendarEnabled = calendarEnabled
         self.remindersEnabled = remindersEnabled
@@ -37,6 +45,7 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         self.openAIAPIKeyConfigured = openAIAPIKeyConfigured
         self.syncCalendarToStorage = syncCalendarToStorage
         self.syncRemindersToStorage = syncRemindersToStorage
+        self.language = language
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -51,6 +60,7 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         case openAIAPIKeyConfigured
         case syncCalendarToStorage
         case syncRemindersToStorage
+        case language
     }
 
     public init(from decoder: Decoder) throws {
@@ -66,7 +76,8 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
             openAIModel: try container.decodeIfPresent(String.self, forKey: .openAIModel) ?? "gpt-5.4-mini",
             openAIAPIKeyConfigured: try container.decodeIfPresent(Bool.self, forKey: .openAIAPIKeyConfigured) ?? false,
             syncCalendarToStorage: try container.decodeIfPresent(Bool.self, forKey: .syncCalendarToStorage) ?? false,
-            syncRemindersToStorage: try container.decodeIfPresent(Bool.self, forKey: .syncRemindersToStorage) ?? false
+            syncRemindersToStorage: try container.decodeIfPresent(Bool.self, forKey: .syncRemindersToStorage) ?? false,
+            language: try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
         )
     }
 }

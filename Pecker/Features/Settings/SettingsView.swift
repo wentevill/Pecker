@@ -17,7 +17,7 @@ final class SettingsViewModel {
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
-            "等待内容"
+            "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
         },
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
@@ -30,34 +30,34 @@ final class SettingsViewModel {
         self.openURL = openURL
     }
     var openAIAPIKeyStatusText: String {
-        settingsStore.value.openAIAPIKeyConfigured ? "已配置" : "未配置"
+        settingsStore.value.openAIAPIKeyConfigured ? "\u{5df2}\u{914d}\u{7f6e}" : "\u{672a}\u{914d}\u{7f6e}"
     }
 
     var liveActivityStatusText: String {
         guard settingsStore.value.liveActivityEnabled else {
-            return "已暂停"
+            return "\u{5df2}\u{6682}\u{505c}"
         }
 
         switch liveActivityStatusProvider() {
-        case "运行中":
-            return "运行中"
-        case "暂不可用":
-            return "暂不可用"
+        case "\u{8fd0}\u{884c}\u{4e2d}":
+            return "\u{8fd0}\u{884c}\u{4e2d}"
+        case "\u{6682}\u{4e0d}\u{53ef}\u{7528}":
+            return "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
         default:
-            return "等待内容"
+            return "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
         }
     }
 
     var liveActivityDescriptionText: String {
         switch liveActivityStatusText {
-        case "已暂停":
-            return "已暂停锁定屏幕与灵动岛显示；再次开启后会在下次刷新时恢复。"
-        case "运行中":
-            return "锁定屏幕与灵动岛会跟随时间线刷新更新。"
-        case "暂不可用":
-            return "系统暂时无法更新 Live Activity；时间线仍会正常显示。"
+        case "\u{5df2}\u{6682}\u{505c}":
+            return "\u{5df2}\u{6682}\u{505c}\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}\u{663e}\u{793a}；\u{518d}\u{6b21}\u{5f00}\u{542f}\u{540e}\u{4f1a}\u{5728}\u{4e0b}\u{6b21}\u{5237}\u{65b0}\u{65f6}\u{6062}\u{590d}。"
+        case "\u{8fd0}\u{884c}\u{4e2d}":
+            return "\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}\u{4f1a}\u{8ddf}\u{968f}\u{65f6}\u{95f4}\u{7ebf}\u{5237}\u{65b0}\u{66f4}\u{65b0}。"
+        case "\u{6682}\u{4e0d}\u{53ef}\u{7528}":
+            return "\u{7cfb}\u{7edf}\u{6682}\u{65f6}\u{65e0}\u{6cd5}\u{66f4}\u{65b0} Live Activity；\u{65f6}\u{95f4}\u{7ebf}\u{4ecd}\u{4f1a}\u{6b63}\u{5e38}\u{663e}\u{793a}。"
         default:
-            return "开启后，刷新出当前安排时会显示在锁定屏幕与灵动岛。"
+            return "\u{5f00}\u{542f}\u{540e}，\u{5237}\u{65b0}\u{51fa}\u{5f53}\u{524d}\u{5b89}\u{6392}\u{65f6}\u{4f1a}\u{663e}\u{793a}\u{5728}\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}。"
         }
     }
 
@@ -74,26 +74,26 @@ final class SettingsViewModel {
 
         switch status {
         case .fullAccess:
-            return "已授权"
+            return "\u{5df2}\u{6388}\u{6743}"
         case .notDetermined:
-            return "未请求"
+            return "\u{672a}\u{8bf7}\u{6c42}"
         case .denied:
-            return "已拒绝"
+            return "\u{5df2}\u{62d2}\u{7edd}"
         case .restricted:
-            return "受限"
+            return "\u{53d7}\u{9650}"
         case .writeOnly:
-            return "仅写入"
+            return "\u{4ec5}\u{5199}\u{5165}"
         }
     }
 
     func sourceStatusDescription(for source: TimelineSource) -> String {
         switch source {
         case .calendar:
-            return "过滤结果不会改变系统权限。"
+            return "\u{8fc7}\u{6ee4}\u{7ed3}\u{679c}\u{4e0d}\u{4f1a}\u{6539}\u{53d8}\u{7cfb}\u{7edf}\u{6743}\u{9650}。"
         case .reminder:
-            return "提醒事项权限仅影响提醒来源。"
+            return "\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{6743}\u{9650}\u{4ec5}\u{5f71}\u{54cd}\u{63d0}\u{9192}\u{6765}\u{6e90}。"
         case .external:
-            return "图片和相机识别保存在 Pecker 自建存储。"
+            return "\u{56fe}\u{7247}\u{548c}\u{76f8}\u{673a}\u{8bc6}\u{522b}\u{4fdd}\u{5b58}\u{5728} Pecker \u{81ea}\u{5efa}\u{5b58}\u{50a8}。"
         }
     }
 
@@ -114,6 +114,11 @@ final class SettingsViewModel {
 
     func setLiveActivityEnabled(_ enabled: Bool) {
         settingsStore.update { $0.liveActivityEnabled = enabled }
+        notifySettingsChanged()
+    }
+
+    func setLanguage(_ language: AppLanguage) {
+        settingsStore.update { $0.language = language }
         notifySettingsChanged()
     }
 
@@ -205,13 +210,13 @@ struct SettingsView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
             }
-            .navigationTitle("设置")
+            .navigationTitle("\u{8bbe}\u{7f6e}")
             .navigationBarTitleDisplayMode(.inline)
             .background(TimelineTheme.backgroundGradient.ignoresSafeArea())
             .foregroundStyle(TimelineTheme.textPrimary)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") {
+                    Button("\u{5b8c}\u{6210}") {
                         dismiss()
                     }
                 }
@@ -221,9 +226,9 @@ struct SettingsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("设置")
+            Text("\u{8bbe}\u{7f6e}")
                 .font(.largeTitle.weight(.bold))
-            Text("控制数据源、显示偏好、AI 识别和 Live Activity 状态。")
+            Text("\u{63a7}\u{5236}\u{6570}\u{636e}\u{6e90}、\u{663e}\u{793a}\u{504f}\u{597d}、AI \u{8bc6}\u{522b}\u{548c} Live Activity \u{72b6}\u{6001}。")
                 .font(.subheadline)
                 .foregroundStyle(TimelineTheme.textSecondary)
         }
@@ -232,17 +237,17 @@ struct SettingsView: View {
     private var dataSourcesCard: some View {
         TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("数据源")
+                Text("\u{6570}\u{636e}\u{6e90}")
                     .font(.headline.weight(.semibold))
 
                 sourceRow(
-                    title: "日历",
+                    title: "\u{65e5}\u{5386}",
                     source: .calendar,
                     toggleAction: viewModel.setCalendarEnabled(_:)
                 )
 
                 sourceRow(
-                    title: "提醒事项",
+                    title: "\u{63d0}\u{9192}\u{4e8b}\u{9879}",
                     source: .reminder,
                     toggleAction: viewModel.setRemindersEnabled(_:)
                 )
@@ -251,13 +256,28 @@ struct SettingsView: View {
     }
 
     private var timelineCard: some View {
+        let localizer = AppLocalizer(language: settingsStore.value.language)
         TimelineCard(accent: .next) {
             VStack(alignment: .leading, spacing: 14) {
-                Text("时间线")
+                Text("\u{65f6}\u{95f4}\u{7ebf}")
                     .font(.headline.weight(.semibold))
 
+                Picker(
+                    localizer.string("settings.language"),
+                    selection: Binding(
+                        get: { settingsStore.value.language },
+                        set: { viewModel.setLanguage($0) }
+                    )
+                ) {
+                    ForEach(AppLanguage.allCases, id: \.self) { language in
+                        Text(localizer.string(language.localizationKey))
+                            .tag(language)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 Toggle(
-                    "显示旅行事件",
+                    "\u{663e}\u{793a}\u{65c5}\u{884c}\u{4e8b}\u{4ef6}",
                     isOn: Binding(
                         get: { settingsStore.value.showTravelEvents },
                         set: { viewModel.setShowTravelEvents($0) }
@@ -271,16 +291,16 @@ struct SettingsView: View {
         TimelineCard(accent: .now) {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("AI 识别")
+                    Text("AI \u{8bc6}\u{522b}")
                         .font(.headline.weight(.semibold))
-                    Text("从日历、提醒事项、图片或相机内容识别结构化事件。")
+                    Text("\u{4ece}\u{65e5}\u{5386}、\u{63d0}\u{9192}\u{4e8b}\u{9879}、\u{56fe}\u{7247}\u{6216}\u{76f8}\u{673a}\u{5185}\u{5bb9}\u{8bc6}\u{522b}\u{7ed3}\u{6784}\u{5316}\u{4e8b}\u{4ef6}。")
                         .font(.subheadline)
                         .foregroundStyle(TimelineTheme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Picker(
-                    "识别模式",
+                    "\u{8bc6}\u{522b}\u{6a21}\u{5f0f}",
                     selection: Binding(
                         get: { settingsStore.value.aiRecognitionMode },
                         set: { viewModel.setAIRecognitionMode($0) }
@@ -294,13 +314,13 @@ struct SettingsView: View {
 
                 switch settingsStore.value.aiRecognitionMode {
                 case .off:
-                    Text("关闭后不会向外部模型发送内容；本地存储同步仍由下方开关控制。")
+                    Text("\u{5173}\u{95ed}\u{540e}\u{4e0d}\u{4f1a}\u{5411}\u{5916}\u{90e8}\u{6a21}\u{578b}\u{53d1}\u{9001}\u{5185}\u{5bb9}；\u{672c}\u{5730}\u{5b58}\u{50a8}\u{540c}\u{6b65}\u{4ecd}\u{7531}\u{4e0b}\u{65b9}\u{5f00}\u{5173}\u{63a7}\u{5236}。")
                         .font(.subheadline)
                         .foregroundStyle(TimelineTheme.textSecondary)
                 case .openAI:
                     openAIConfiguration
                 case .localModel:
-                    Text("内置小模型入口已预留，当前版本暂不可用。后续可以直接接入本地 Provider。")
+                    Text("\u{5185}\u{7f6e}\u{5c0f}\u{6a21}\u{578b}\u{5165}\u{53e3}\u{5df2}\u{9884}\u{7559}，\u{5f53}\u{524d}\u{7248}\u{672c}\u{6682}\u{4e0d}\u{53ef}\u{7528}。\u{540e}\u{7eed}\u{53ef}\u{4ee5}\u{76f4}\u{63a5}\u{63a5}\u{5165}\u{672c}\u{5730} Provider。")
                         .font(.subheadline)
                         .foregroundStyle(TimelineTheme.textSecondary)
                 }
@@ -309,21 +329,21 @@ struct SettingsView: View {
                     .overlay(TimelineTheme.cardStroke)
 
                 Toggle(
-                    "同步日历到本地事件存储",
+                    "\u{540c}\u{6b65}\u{65e5}\u{5386}\u{5230}\u{672c}\u{5730}\u{4e8b}\u{4ef6}\u{5b58}\u{50a8}",
                     isOn: Binding(
                         get: { settingsStore.value.syncCalendarToStorage },
                         set: { viewModel.setSyncCalendarToStorage($0) }
                     )
                 )
                 Toggle(
-                    "同步提醒事项到本地事件存储",
+                    "\u{540c}\u{6b65}\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{5230}\u{672c}\u{5730}\u{4e8b}\u{4ef6}\u{5b58}\u{50a8}",
                     isOn: Binding(
                         get: { settingsStore.value.syncRemindersToStorage },
                         set: { viewModel.setSyncRemindersToStorage($0) }
                     )
                 )
 
-                Text("同步开关只决定是否把系统来源复制进 Pecker 自建存储；不会修改原始日历或提醒事项。")
+                Text("\u{540c}\u{6b65}\u{5f00}\u{5173}\u{53ea}\u{51b3}\u{5b9a}\u{662f}\u{5426}\u{628a}\u{7cfb}\u{7edf}\u{6765}\u{6e90}\u{590d}\u{5236}\u{8fdb} Pecker \u{81ea}\u{5efa}\u{5b58}\u{50a8}；\u{4e0d}\u{4f1a}\u{4fee}\u{6539}\u{539f}\u{59cb}\u{65e5}\u{5386}\u{6216}\u{63d0}\u{9192}\u{4e8b}\u{9879}。")
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -391,7 +411,7 @@ struct SettingsView: View {
                     )
 
                 HStack(spacing: 10) {
-                    Button("保存") {
+                    Button("\u{4fdd}\u{5b58}") {
                         saveOpenAIAPIKey()
                     }
                     .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.now, filled: true))
@@ -400,7 +420,7 @@ struct SettingsView: View {
                             .isEmpty
                     )
 
-                    Button("清除") {
+                    Button("\u{6e05}\u{9664}") {
                         clearOpenAIAPIKey()
                     }
                     .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.textPrimary, filled: false))
@@ -414,7 +434,7 @@ struct SettingsView: View {
                         .foregroundStyle(TimelineTheme.now)
                 }
 
-                Text("API Key 会保存到系统 Keychain；设置文件只记录是否已配置。")
+                Text("API Key \u{4f1a}\u{4fdd}\u{5b58}\u{5230}\u{7cfb}\u{7edf} Keychain；\u{8bbe}\u{7f6e}\u{6587}\u{4ef6}\u{53ea}\u{8bb0}\u{5f55}\u{662f}\u{5426}\u{5df2}\u{914d}\u{7f6e}。")
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
             }
@@ -458,7 +478,7 @@ struct SettingsView: View {
                     .font(.headline.weight(.semibold))
 
                 Toggle(
-                    "锁定屏幕与灵动岛",
+                    "\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}",
                     isOn: Binding(
                         get: { settingsStore.value.liveActivityEnabled },
                         set: { viewModel.setLiveActivityEnabled($0) }
@@ -466,7 +486,7 @@ struct SettingsView: View {
                 )
 
                 HStack {
-                    Text("状态")
+                    Text("\u{72b6}\u{6001}")
                         .foregroundStyle(TimelineTheme.textSecondary)
                     Spacer(minLength: 8)
                     Text(viewModel.liveActivityStatusText)
@@ -487,7 +507,7 @@ struct SettingsView: View {
         toggleAction: @escaping (Bool) -> Void
     ) -> some View {
         let status = viewModel.sourceStatusText(for: source)
-        let needsSettings = status == "已拒绝" || status == "受限"
+        let needsSettings = status == "\u{5df2}\u{62d2}\u{7edd}" || status == "\u{53d7}\u{9650}"
         let isEnabledBinding: Binding<Bool>
         switch source {
         case .calendar:
@@ -535,11 +555,11 @@ struct SettingsView: View {
     private func label(for mode: AIRecognitionMode) -> String {
         switch mode {
         case .off:
-            return "关闭"
+            return "\u{5173}\u{95ed}"
         case .openAI:
             return "OpenAI"
         case .localModel:
-            return "本地"
+            return "\u{672c}\u{5730}"
         }
     }
 
@@ -549,7 +569,7 @@ struct SettingsView: View {
             apiKeyDraft = ""
             apiKeyErrorText = nil
         } catch {
-            apiKeyErrorText = "保存失败，请稍后重试。"
+            apiKeyErrorText = "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
         }
     }
 
@@ -559,7 +579,7 @@ struct SettingsView: View {
             apiKeyDraft = ""
             apiKeyErrorText = nil
         } catch {
-            apiKeyErrorText = "清除失败，请稍后重试。"
+            apiKeyErrorText = "\u{6e05}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
         }
     }
 
@@ -584,6 +604,19 @@ private struct SettingsPillButtonStyle: ButtonStyle {
                     .stroke(filled ? Color.clear : TimelineTheme.cardStroke, lineWidth: 1)
             )
             .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+private extension AppLanguage {
+    var localizationKey: String {
+        switch self {
+        case .system:
+            "language.system"
+        case .english:
+            "language.english"
+        case .simplifiedChinese:
+            "language.simplifiedChinese"
+        }
     }
 }
 

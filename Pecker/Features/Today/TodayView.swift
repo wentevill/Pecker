@@ -15,6 +15,8 @@ struct TodayView: View {
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var isCameraPresented = false
     @State private var imageRecognitionPhase: TodayScreenContent.ImageRecognitionPhase = .idle
+    @State private var pendingDelete: TimelineItem?
+    @State private var mutationError: String?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -43,6 +45,21 @@ struct TodayView: View {
                     },
                     onOpenSummary: {
                         path.append(.timeline(activeOnly: false))
+                    },
+                    canDeleteCard: { card in
+                        guard let item = model.state.snapshot?.item(
+                            resolving: card.id
+                        ) else {
+                            return false
+                        }
+                        return model.timelineManager.isEditable(item)
+                    },
+                    onDeleteCard: { card in
+                        if let item = model.state.snapshot?.item(
+                            resolving: card.id
+                        ) {
+                            pendingDelete = item
+                        }
                     },
                     onRetry: {
                         Task { await model.refresh() }
@@ -82,6 +99,40 @@ struct TodayView: View {
                         }
                     )
                 )
+            }
+            .confirmationDialog(
+                "\u{5220}\u{9664}\u{8fd9}\u{4e2a}\u{4e8b}\u{4ef6}？",
+                isPresented: Binding(
+                    get: { pendingDelete != nil },
+                    set: { if !$0 { pendingDelete = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("\u{5220}\u{9664}", role: .destructive) {
+                    guard let item = pendingDelete else { return }
+                    pendingDelete = nil
+                    Task {
+                        do {
+                            try await model.timelineManager.delete(item)
+                        } catch {
+                            mutationError = "\u{5220}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+                        }
+                    }
+                }
+                Button("\u{53d6}\u{6d88}", role: .cancel) {
+                    pendingDelete = nil
+                }
+            }
+            .alert(
+                "\u{64cd}\u{4f5c}\u{5931}\u{8d25}",
+                isPresented: Binding(
+                    get: { mutationError != nil },
+                    set: { if !$0 { mutationError = nil } }
+                )
+            ) {
+                Button("\u{597d}") { mutationError = nil }
+            } message: {
+                Text(mutationError ?? "")
             }
         }
     }
@@ -141,7 +192,7 @@ struct TodayView: View {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 imageRecognitionPhase = .failure(.init(
-                    reason: "无法读取这张图片。",
+                    reason: "\u{65e0}\u{6cd5}\u{8bfb}\u{53d6}\u{8fd9}\u{5f20}\u{56fe}\u{7247}。",
                     technicalDetails: nil
                 ))
                 return
@@ -165,7 +216,7 @@ struct TodayView: View {
         do {
             guard let data = image.jpegData(compressionQuality: 0.88) else {
                 imageRecognitionPhase = .failure(.init(
-                    reason: "无法读取相机照片。",
+                    reason: "\u{65e0}\u{6cd5}\u{8bfb}\u{53d6}\u{76f8}\u{673a}\u{7167}\u{7247}。",
                     technicalDetails: nil
                 ))
                 return
@@ -197,13 +248,13 @@ struct TodayView: View {
         imageRecognitionPhase = .saving(draft)
         do {
             _ = try await imageRecognizer.saveRecognizedImage(draft)
-            imageRecognitionPhase = .success("已保存到时间线")
+            imageRecognitionPhase = .success("\u{5df2}\u{4fdd}\u{5b58}\u{5230}\u{65f6}\u{95f4}\u{7ebf}")
             onSettingsChanged()
             await model.refresh()
         } catch {
             imageRecognitionPhase = .saveFailure(
                 draft,
-                "保存失败，请重试或取消。"
+                "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}\u{6216}\u{53d6}\u{6d88}。"
             )
         }
     }
@@ -228,30 +279,30 @@ struct TodayView: View {
         }
         guard let recognitionError = error as? RecognitionError else {
             return .init(
-                reason: "识别失败，请稍后重试。",
+                reason: "\u{8bc6}\u{522b}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。",
                 technicalDetails: error.localizedDescription
             )
         }
 
         let reason = switch recognitionError {
         case .invalidConfiguration:
-            "API 配置无效，请检查 Host、Model 和 API Key。"
+            "API \u{914d}\u{7f6e}\u{65e0}\u{6548}，\u{8bf7}\u{68c0}\u{67e5} Host、Model \u{548c} API Key。"
         case .requestFailed:
-            "API 请求失败，请检查 Host、Model 或网络。"
+            "API \u{8bf7}\u{6c42}\u{5931}\u{8d25}，\u{8bf7}\u{68c0}\u{67e5} Host、Model \u{6216}\u{7f51}\u{7edc}。"
         case .imageInputUnsupported:
-            "当前模型不支持图片识别，请在设置中改用视觉模型。"
+            "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{4e0d}\u{652f}\u{6301}\u{56fe}\u{7247}\u{8bc6}\u{522b}，\u{8bf7}\u{5728}\u{8bbe}\u{7f6e}\u{4e2d}\u{6539}\u{7528}\u{89c6}\u{89c9}\u{6a21}\u{578b}。"
         case .invalidResponse:
-            "识别结果格式异常，请稍后重试。"
+            "\u{8bc6}\u{522b}\u{7ed3}\u{679c}\u{683c}\u{5f0f}\u{5f02}\u{5e38}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
         case .networkExecutionNotImplemented:
-            "当前识别服务尚未完成网络执行。"
+            "\u{5f53}\u{524d}\u{8bc6}\u{522b}\u{670d}\u{52a1}\u{5c1a}\u{672a}\u{5b8c}\u{6210}\u{7f51}\u{7edc}\u{6267}\u{884c}。"
         case .localModelUnavailable:
-            "内置小模型暂不可用，请改用 OpenAI。"
+            "\u{5185}\u{7f6e}\u{5c0f}\u{6a21}\u{578b}\u{6682}\u{4e0d}\u{53ef}\u{7528}，\u{8bf7}\u{6539}\u{7528} OpenAI。"
         case .unsupportedInput:
-            "未识别到可添加的事件，请换一张包含票据、日程或任务信息的图片。"
+            "\u{672a}\u{8bc6}\u{522b}\u{5230}\u{53ef}\u{6dfb}\u{52a0}\u{7684}\u{4e8b}\u{4ef6}，\u{8bf7}\u{6362}\u{4e00}\u{5f20}\u{5305}\u{542b}\u{7968}\u{636e}、\u{65e5}\u{7a0b}\u{6216}\u{4efb}\u{52a1}\u{4fe1}\u{606f}\u{7684}\u{56fe}\u{7247}。"
         }
         return .init(
             reason: reason,
-            technicalDetails: "错误类型：\(recognitionError)"
+            technicalDetails: "\u{9519}\u{8bef}\u{7c7b}\u{578b}：\(recognitionError)"
         )
     }
 
@@ -288,6 +339,8 @@ struct TodayScreen: View {
     let onOpenCard: (TodayScreenContent.Card) -> Void
     let onOpenConcurrentItems: () -> Void
     let onOpenSummary: () -> Void
+    let canDeleteCard: (TodayScreenContent.Card) -> Bool
+    let onDeleteCard: (TodayScreenContent.Card) -> Void
     let onRetry: () -> Void
     let onRecognizePhoto: (PhotosPickerItem) async -> Void
     let onRecognizeCameraImage: (UIImage) async -> Void
@@ -304,6 +357,8 @@ struct TodayScreen: View {
         onOpenCard: @escaping (TodayScreenContent.Card) -> Void,
         onOpenConcurrentItems: @escaping () -> Void,
         onOpenSummary: @escaping () -> Void,
+        canDeleteCard: @escaping (TodayScreenContent.Card) -> Bool = { _ in false },
+        onDeleteCard: @escaping (TodayScreenContent.Card) -> Void = { _ in },
         onRetry: @escaping () -> Void,
         onRecognizePhoto: @escaping (PhotosPickerItem) async -> Void = { _ in },
         onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in },
@@ -319,6 +374,8 @@ struct TodayScreen: View {
         self.onOpenCard = onOpenCard
         self.onOpenConcurrentItems = onOpenConcurrentItems
         self.onOpenSummary = onOpenSummary
+        self.canDeleteCard = canDeleteCard
+        self.onDeleteCard = onDeleteCard
         self.onRetry = onRetry
         self.onRecognizePhoto = onRecognizePhoto
         self.onRecognizeCameraImage = onRecognizeCameraImage
@@ -415,7 +472,7 @@ struct TodayScreen: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("识别事件")
+                        Text("\u{8bc6}\u{522b}\u{4e8b}\u{4ef6}")
                             .font(.headline.weight(.semibold))
                         Text(actions.statusText)
                             .font(.caption.weight(.medium))
@@ -429,7 +486,7 @@ struct TodayScreen: View {
                     } else if actions.isLoading {
                         ProgressView()
                             .tint(TimelineTheme.now)
-                            .accessibilityLabel("正在保存识别结果")
+                            .accessibilityLabel("\u{6b63}\u{5728}\u{4fdd}\u{5b58}\u{8bc6}\u{522b}\u{7ed3}\u{679c}")
                     }
                 }
 
@@ -439,8 +496,8 @@ struct TodayScreen: View {
                         matching: .images
                     ) {
                         RecognitionActionLabel(
-                            title: "选择图片",
-                            subtitle: "从相册识别",
+                            title: "\u{9009}\u{62e9}\u{56fe}\u{7247}",
+                            subtitle: "\u{4ece}\u{76f8}\u{518c}\u{8bc6}\u{522b}",
                             symbol: "photo.on.rectangle.angled",
                             accent: TimelineTheme.now
                         )
@@ -453,8 +510,8 @@ struct TodayScreen: View {
                         isCameraPresented = true
                     } label: {
                         RecognitionActionLabel(
-                            title: "拍照识别",
-                            subtitle: "现场扫描",
+                            title: "\u{62cd}\u{7167}\u{8bc6}\u{522b}",
+                            subtitle: "\u{73b0}\u{573a}\u{626b}\u{63cf}",
                             symbol: "camera.viewfinder",
                             accent: TimelineTheme.pinned
                         )
@@ -481,7 +538,7 @@ struct TodayScreen: View {
 
                 if let details = actions.errorTechnicalDetails,
                    !details.isEmpty {
-                    DisclosureGroup("技术详情") {
+                    DisclosureGroup("\u{6280}\u{672f}\u{8be6}\u{60c5}") {
                         Text(details)
                             .font(.caption.monospaced())
                             .foregroundStyle(TimelineTheme.textSecondary)
@@ -490,7 +547,7 @@ struct TodayScreen: View {
                             .padding(.top, 4)
                     }
                     .font(.caption.weight(.medium))
-                    .accessibilityLabel("识别失败技术详情")
+                    .accessibilityLabel("\u{8bc6}\u{522b}\u{5931}\u{8d25}\u{6280}\u{672f}\u{8be6}\u{60c5}")
                 }
 
                 if let preview = actions.preview {
@@ -508,7 +565,7 @@ struct TodayScreen: View {
                 .overlay(TimelineTheme.cardStroke)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("识别结果")
+                Text("\u{8bc6}\u{522b}\u{7ed3}\u{679c}")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(TimelineTheme.now)
 
@@ -599,7 +656,7 @@ struct TodayScreen: View {
         centeredState(
             icon: "clock.arrow.circlepath",
             title: TodayStateCopy.loadingTitle,
-            message: "正在整理今天的日程。"
+            message: "\u{6b63}\u{5728}\u{6574}\u{7406}\u{4eca}\u{5929}\u{7684}\u{65e5}\u{7a0b}。"
         ) {
             ProgressView()
                 .tint(TimelineTheme.now)
@@ -615,7 +672,7 @@ struct TodayScreen: View {
             centeredState(
                 icon: "calendar.badge.clock",
                 title: TodayStateCopy.emptyTitle,
-                message: "下拉即可刷新。"
+                message: "\u{4e0b}\u{62c9}\u{5373}\u{53ef}\u{5237}\u{65b0}。"
             ) {
                 Button(TodayStateCopy.staleRetry) {
                     onRetry()
@@ -623,6 +680,10 @@ struct TodayScreen: View {
                 .buttonStyle(.plain)
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(TimelineTheme.now)
+            }
+
+            if let summary = content.summary {
+                summaryRow(summary)
             }
         }
     }
@@ -640,7 +701,7 @@ struct TodayScreen: View {
                 }
                 .labelStyle(.titleAndIcon)
 
-                Text(permission?.bodyText ?? "允许访问后，Today 才能显示你的日程。")
+                Text(permission?.bodyText ?? "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\u{540e}，Today \u{624d}\u{80fd}\u{663e}\u{793a}\u{4f60}\u{7684}\u{65e5}\u{7a0b}。")
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -670,7 +731,7 @@ struct TodayScreen: View {
                 }
                 .labelStyle(.titleAndIcon)
 
-                Text(failure?.bodyText ?? "请稍后再试。")
+                Text(failure?.bodyText ?? "\u{8bf7}\u{7a0d}\u{540e}\u{518d}\u{8bd5}。")
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -797,22 +858,27 @@ struct TodayScreen: View {
         topLine: Bool,
         bottomLine: Bool
     ) -> some View {
-        Button {
-            onOpenCard(card)
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                TimelineRailMarker(
-                    accent: card.accent,
-                    topLine: topLine,
-                    bottomLine: bottomLine
-                )
+        SwipeDeleteAction(
+            isEnabled: canDeleteCard(card),
+            onDelete: { onDeleteCard(card) }
+        ) {
+            Button {
+                onOpenCard(card)
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    TimelineRailMarker(
+                        accent: card.accent,
+                        topLine: topLine,
+                        bottomLine: bottomLine
+                    )
 
-                TimelineCard(accent: card.accent) {
-                    cardBody(card)
+                    TimelineCard(accent: card.accent) {
+                        cardBody(card)
+                    }
                 }
             }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
         .accessibilityLabel(card.accessibilityLabel)
     }
 
@@ -1173,7 +1239,7 @@ private struct RecognitionTypingIndicator: View {
         }
         .frame(width: 34, height: 20)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("正在识别图片")
+        .accessibilityLabel("\u{6b63}\u{5728}\u{8bc6}\u{522b}\u{56fe}\u{7247}")
     }
 }
 
@@ -1217,7 +1283,7 @@ private struct TimelineProgressBar: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityLabel("进度 \(Int((progress * 100).rounded()))%")
+        .accessibilityLabel("\u{8fdb}\u{5ea6} \(Int((progress * 100).rounded()))%")
     }
 
     private func segmentFill(for index: Int) -> Color {
@@ -1256,18 +1322,18 @@ private struct TodayRoutePlaceholder: View {
     private var title: String {
         switch route {
         case .timeline:
-            "完整时间线"
+            "\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}"
         case .detail:
-            "日程详情"
+            "\u{65e5}\u{7a0b}\u{8be6}\u{60c5}"
         }
     }
 
     private var message: String {
         switch route {
         case .timeline:
-            "没有可用的快照来显示此页面。"
+            "\u{6ca1}\u{6709}\u{53ef}\u{7528}\u{7684}\u{5feb}\u{7167}\u{6765}\u{663e}\u{793a}\u{6b64}\u{9875}\u{9762}。"
         case .detail:
-            "没有可用的项目来显示详情。"
+            "\u{6ca1}\u{6709}\u{53ef}\u{7528}\u{7684}\u{9879}\u{76ee}\u{6765}\u{663e}\u{793a}\u{8be6}\u{60c5}。"
         }
     }
 }

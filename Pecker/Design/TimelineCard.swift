@@ -66,6 +66,94 @@ struct TimelineCard<Content: View>: View {
     }
 }
 
+struct SwipeDeleteAction<Content: View>: View {
+    private let isEnabled: Bool
+    private let onDelete: () -> Void
+    private let content: Content
+    @State private var dragOffset: CGFloat = 0
+    @State private var isOpen = false
+
+    private let actionWidth: CGFloat = 82
+
+    init(
+        isEnabled: Bool,
+        onDelete: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.isEnabled = isEnabled
+        self.onDelete = onDelete
+        self.content = content()
+    }
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            if isEnabled {
+                Button(role: .destructive) {
+                    close()
+                    onDelete()
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: actionWidth, height: 48)
+                        .frame(maxHeight: .infinity)
+                        .background(
+                            RoundedRectangle(
+                                cornerRadius: TimelineTheme.cardCornerRadius,
+                                style: .continuous
+                            )
+                            .fill(Color.red)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\u{5220}\u{9664}")
+            }
+
+            content
+                .offset(x: currentOffset)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 18)
+                        .onChanged { value in
+                            guard isEnabled,
+                                  abs(value.translation.width)
+                                    > abs(value.translation.height)
+                            else {
+                                return
+                            }
+                            let base = isOpen ? -actionWidth : 0
+                            dragOffset = min(0, max(-actionWidth, base + value.translation.width))
+                        }
+                        .onEnded { value in
+                            guard isEnabled else {
+                                return
+                            }
+                            let projected = currentOffset + value.predictedEndTranslation.width * 0.08
+                            withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+                                isOpen = projected < -actionWidth * 0.42
+                                dragOffset = 0
+                            }
+                        }
+                )
+        }
+        .clipped()
+    }
+
+    private var currentOffset: CGFloat {
+        guard isEnabled else {
+            return 0
+        }
+        return dragOffset != 0 ? dragOffset : (isOpen ? -actionWidth : 0)
+    }
+
+    private func close() {
+        withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
+            isOpen = false
+            dragOffset = 0
+        }
+    }
+}
+
 private struct TimelineReduceTransparencyOverrideKey: EnvironmentKey {
     static let defaultValue = false
 }

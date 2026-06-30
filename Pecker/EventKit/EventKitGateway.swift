@@ -234,7 +234,7 @@ actor EventKitGateway: EventKitGatewayProtocol {
 
             return EventRecord(
                 identifier: identifier,
-                title: event.title ?? "无标题",
+                title: event.title ?? "\u{65e0}\u{6807}\u{9898}",
                 startDate: event.startDate,
                 endDate: event.endDate,
                 isAllDay: event.isAllDay,
@@ -288,7 +288,7 @@ actor EventKitGateway: EventKitGatewayProtocol {
 
                                 return ReminderRecord(
                                     identifier: identifier,
-                                    title: reminder.title ?? "无标题",
+                                    title: reminder.title ?? "\u{65e0}\u{6807}\u{9898}",
                                     dueDate: dueDate,
                                     notes: reminder.notes,
                                     isCompleted: reminder.isCompleted

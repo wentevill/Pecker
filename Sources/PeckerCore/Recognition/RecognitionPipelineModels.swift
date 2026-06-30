@@ -8,10 +8,10 @@ public enum RecognitionPipelineStage: String, Codable, Sendable, Equatable {
 
     public var displayName: String {
         switch self {
-        case .classification: "类型识别"
-        case .extraction: "字段提取"
-        case .verification: "结果核对"
-        case .validation: "必要字段检查"
+        case .classification: "\u{7c7b}\u{578b}\u{8bc6}\u{522b}"
+        case .extraction: "\u{5b57}\u{6bb5}\u{63d0}\u{53d6}"
+        case .verification: "\u{7ed3}\u{679c}\u{6838}\u{5bf9}"
+        case .validation: "\u{5fc5}\u{8981}\u{5b57}\u{6bb5}\u{68c0}\u{67e5}"
         }
     }
 }
@@ -49,24 +49,24 @@ public struct RecognitionPipelineFailure: Error, Sendable, Equatable {
     }
 
     public var technicalDetails: String {
-        var lines = ["阶段：\(stage.displayName)"]
+        var lines = ["\u{9636}\u{6bb5}：\(stage.displayName)"]
         if let httpStatus {
             lines.append("HTTP \(httpStatus)")
         }
         if let serviceCode, !serviceCode.isEmpty {
-            lines.append("错误码：\(serviceCode)")
+            lines.append("\u{9519}\u{8bef}\u{7801}：\(serviceCode)")
         }
         if let serviceMessage, !serviceMessage.isEmpty {
-            lines.append("服务信息：\(serviceMessage)")
+            lines.append("\u{670d}\u{52a1}\u{4fe1}\u{606f}：\(serviceMessage)")
         }
         if let technicalSummary, !technicalSummary.isEmpty {
-            lines.append("详情：\(technicalSummary)")
+            lines.append("\u{8be6}\u{60c5}：\(technicalSummary)")
         }
         if !missingFields.isEmpty {
-            lines.append("缺少字段：\(missingFields.joined(separator: "、"))")
+            lines.append("\u{7f3a}\u{5c11}\u{5b57}\u{6bb5}：\(missingFields.joined(separator: "、"))")
         }
         if let responseExcerpt, !responseExcerpt.isEmpty {
-            lines.append("响应：\(responseExcerpt)")
+            lines.append("\u{54cd}\u{5e94}：\(responseExcerpt)")
         }
         return Self.redact(lines.joined(separator: "\n"))
     }
@@ -149,10 +149,10 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             return .init(
                 kind: kind,
                 requirements: [
-                    .init(label: "车次", alternatives: [["trainNumber"]]),
-                    .init(label: "出发站", alternatives: [["departureStation"]]),
-                    .init(label: "到达站", alternatives: [["arrivalStation"]]),
-                    .init(label: "出发日期时间", alternatives: preciseStart)
+                    .init(label: "\u{8f66}\u{6b21}", alternatives: [["trainNumber"]]),
+                    .init(label: "\u{51fa}\u{53d1}\u{7ad9}", alternatives: [["departureStation"]]),
+                    .init(label: "\u{5230}\u{8fbe}\u{7ad9}", alternatives: [["arrivalStation"]]),
+                    .init(label: "\u{51fa}\u{53d1}\u{65e5}\u{671f}\u{65f6}\u{95f4}", alternatives: preciseStart)
                 ],
                 optionalFields: [
                     "arrivalDateTime", "arrivalDate", "arrivalTime",
@@ -160,35 +160,35 @@ public struct RecognitionKindSchema: Sendable, Equatable {
                     "passengerName", "ticketNumber", "orderNumber",
                     "seatClass", "price"
                 ],
-                extractionGuidance: "按中国铁路票面识别车次、发站、到站、开车时间；保留可见站名后缀。"
+                extractionGuidance: "\u{6309}\u{4e2d}\u{56fd}\u{94c1}\u{8def}\u{7968}\u{9762}\u{8bc6}\u{522b}\u{8f66}\u{6b21}、\u{53d1}\u{7ad9}、\u{5230}\u{7ad9}、\u{5f00}\u{8f66}\u{65f6}\u{95f4}；\u{4fdd}\u{7559}\u{53ef}\u{89c1}\u{7ad9}\u{540d}\u{540e}\u{7f00}。"
             )
         case .flight:
             return .init(
                 kind: kind,
                 requirements: [
-                    .init(label: "航班号", alternatives: [["flightNumber"]]),
+                    .init(label: "\u{822a}\u{73ed}\u{53f7}", alternatives: [["flightNumber"]]),
                     .init(
-                        label: "出发地",
+                        label: "\u{51fa}\u{53d1}\u{5730}",
                         alternatives: [["departureAirport"], ["departureAirportCode"]]
                     ),
                     .init(
-                        label: "到达地",
+                        label: "\u{5230}\u{8fbe}\u{5730}",
                         alternatives: [["arrivalAirport"], ["arrivalAirportCode"]]
                     ),
-                    .init(label: "出发日期时间", alternatives: preciseStart)
+                    .init(label: "\u{51fa}\u{53d1}\u{65e5}\u{671f}\u{65f6}\u{95f4}", alternatives: preciseStart)
                 ],
                 optionalFields: [
                     "carrier", "arrivalDateTime", "terminal", "gate", "seat",
                     "bookingReference", "passengerName", "cabin", "status"
                 ],
-                extractionGuidance: "区分航班号、机场、航站楼、登机口和座位，不把订单号当作航班号。"
+                extractionGuidance: "\u{533a}\u{5206}\u{822a}\u{73ed}\u{53f7}、\u{673a}\u{573a}、\u{822a}\u{7ad9}\u{697c}、\u{767b}\u{673a}\u{53e3}\u{548c}\u{5ea7}\u{4f4d}，\u{4e0d}\u{628a}\u{8ba2}\u{5355}\u{53f7}\u{5f53}\u{4f5c}\u{822a}\u{73ed}\u{53f7}。"
             )
         case .meeting:
             return genericSchema(
                 kind: kind,
                 requirements: [
-                    .init(label: "标题", alternatives: title),
-                    .init(label: "开始日期时间", alternatives: preciseStart)
+                    .init(label: "\u{6807}\u{9898}", alternatives: title),
+                    .init(label: "\u{5f00}\u{59cb}\u{65e5}\u{671f}\u{65f6}\u{95f4}", alternatives: preciseStart)
                 ],
                 optionalFields: [
                     "endDateTime", "location", "participants", "organizer",
@@ -199,8 +199,8 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             return genericSchema(
                 kind: kind,
                 requirements: [
-                    .init(label: "标题", alternatives: title),
-                    .init(label: "开始日期时间", alternatives: preciseStart)
+                    .init(label: "\u{6807}\u{9898}", alternatives: title),
+                    .init(label: "\u{5f00}\u{59cb}\u{65e5}\u{671f}\u{65f6}\u{95f4}", alternatives: preciseStart)
                 ],
                 optionalFields: [
                     "endDateTime", "company", "role", "interviewer", "location",
@@ -211,9 +211,9 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             return genericSchema(
                 kind: kind,
                 requirements: [
-                    .init(label: "标题", alternatives: title),
+                    .init(label: "\u{6807}\u{9898}", alternatives: title),
                     .init(
-                        label: "执行日期",
+                        label: "\u{6267}\u{884c}\u{65e5}\u{671f}",
                         alternatives: taskDateOrTime
                     )
                 ],
@@ -225,9 +225,9 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             return genericSchema(
                 kind: kind,
                 requirements: [
-                    .init(label: "标题", alternatives: title),
+                    .init(label: "\u{6807}\u{9898}", alternatives: title),
                     .init(
-                        label: "截止日期",
+                        label: "\u{622a}\u{6b62}\u{65e5}\u{671f}",
                         alternatives: deadlineDateOrTime
                     )
                 ],
@@ -240,10 +240,10 @@ public struct RecognitionKindSchema: Sendable, Equatable {
                 kind: kind,
                 requirements: [
                     .init(
-                        label: "标题或目的地",
+                        label: "\u{6807}\u{9898}\u{6216}\u{76ee}\u{7684}\u{5730}",
                         alternatives: title + [["destination"]]
                     ),
-                    .init(label: "开始日期", alternatives: dateOrTime)
+                    .init(label: "\u{5f00}\u{59cb}\u{65e5}\u{671f}", alternatives: dateOrTime)
                 ],
                 optionalFields: [
                     "endDateTime", "origin", "location", "bookingReference",
@@ -255,10 +255,10 @@ public struct RecognitionKindSchema: Sendable, Equatable {
                 kind: kind,
                 requirements: [
                     .init(
-                        label: "事件内容",
+                        label: "\u{4e8b}\u{4ef6}\u{5185}\u{5bb9}",
                         alternatives: title + [["destination"]]
                     ),
-                    .init(label: "日期或时间", alternatives: dateOrTime)
+                    .init(label: "\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}", alternatives: dateOrTime)
                 ],
                 optionalFields: ["location", "notes"]
             )
@@ -274,7 +274,7 @@ public struct RecognitionKindSchema: Sendable, Equatable {
             kind: kind,
             requirements: requirements,
             optionalFields: optionalFields,
-            extractionGuidance: "只保留用户可执行的事件信息；备注精炼且不包含识别依据。"
+            extractionGuidance: "\u{53ea}\u{4fdd}\u{7559}\u{7528}\u{6237}\u{53ef}\u{6267}\u{884c}\u{7684}\u{4e8b}\u{4ef6}\u{4fe1}\u{606f}；\u{5907}\u{6ce8}\u{7cbe}\u{70bc}\u{4e14}\u{4e0d}\u{5305}\u{542b}\u{8bc6}\u{522b}\u{4f9d}\u{636e}。"
         )
     }
 

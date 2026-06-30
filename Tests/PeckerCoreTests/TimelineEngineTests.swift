@@ -161,14 +161,14 @@ import Testing
         let train = TimelineItem(
             id: "calendar:train",
             sourceIdentifier: "train",
-            title: "G123 上海虹桥 → 北京南",
+            title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
             startDate: Date(timeIntervalSince1970: 1_200),
             endDate: Date(timeIntervalSince1970: 1_400),
             isAllDay: false,
             source: .calendar,
             kind: .unknown,
-            location: "检票口 B7",
-            notes: "08车 03A"
+            location: "\u{68c0}\u{7968}\u{53e3} B7",
+            notes: "08\u{8f66} 03A"
         )
 
         let snapshot = TimelineEngine().makeSnapshot(
@@ -185,8 +185,8 @@ import Testing
             return
         }
         #expect(ticket.trainNumber == "G123")
-        #expect(ticket.departureStation == "上海虹桥")
-        #expect(ticket.arrivalStation == "北京南")
+        #expect(ticket.departureStation == "\u{4e0a}\u{6d77}\u{8679}\u{6865}")
+        #expect(ticket.arrivalStation == "\u{5317}\u{4eac}\u{5357}")
         #expect(ticket.carriageNumber == "08")
         #expect(ticket.seatNumber == "03A")
         #expect(ticket.checkInGate == "B7")
@@ -197,7 +197,7 @@ import Testing
         let train = TimelineItem(
             id: "calendar:train",
             sourceIdentifier: "train",
-            title: "G123 上海虹桥 → 北京南",
+            title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
             startDate: Date(timeIntervalSince1970: 1_200),
             endDate: Date(timeIntervalSince1970: 1_400),
             isAllDay: false,

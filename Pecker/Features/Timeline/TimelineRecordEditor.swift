@@ -59,7 +59,7 @@ struct TimelineRecordEditor: Equatable {
             priceText = ""
             ticketNumber = ""
         case let .trainTicket(ticket):
-            title = ticket.trainNumber ?? record.rawTitle ?? "火车票"
+            title = ticket.trainNumber ?? record.rawTitle ?? "\u{706b}\u{8f66}\u{7968}"
             kind = .train
             trainNumber = ticket.trainNumber ?? ""
             departureStation = ticket.departureStation ?? ""
@@ -71,7 +71,7 @@ struct TimelineRecordEditor: Equatable {
             priceText = ticket.priceText ?? ""
             ticketNumber = ticket.ticketNumber ?? ""
         case let .flightTicket(ticket):
-            title = ticket.flightNumber ?? record.rawTitle ?? "航班"
+            title = ticket.flightNumber ?? record.rawTitle ?? "\u{822a}\u{73ed}"
             kind = .flight
             trainNumber = ""
             departureStation = ""
@@ -209,18 +209,18 @@ struct TimelineRecordEditorView: View {
             ZStack {
                 TimelineTheme.backgroundGradient.ignoresSafeArea()
                 Form {
-                    Section("事件") {
-                        TextField("标题", text: $editor.title)
-                        Picker("类型", selection: $editor.kind) {
+                    Section("\u{4e8b}\u{4ef6}") {
+                        TextField("\u{6807}\u{9898}", text: $editor.title)
+                        Picker("\u{7c7b}\u{578b}", selection: $editor.kind) {
                             ForEach(TimelineKind.allCases, id: \.self) {
                                 Text(kindTitle($0)).tag($0)
                             }
                         }
-                        DatePicker("开始", selection: $editor.startDate)
-                        Toggle("设置结束时间", isOn: $hasEndDate)
+                        DatePicker("\u{5f00}\u{59cb}", selection: $editor.startDate)
+                        Toggle("\u{8bbe}\u{7f6e}\u{7ed3}\u{675f}\u{65f6}\u{95f4}", isOn: $hasEndDate)
                         if hasEndDate {
                             DatePicker(
-                                "结束",
+                                "\u{7ed3}\u{675f}",
                                 selection: Binding(
                                     get: {
                                         editor.endDate
@@ -230,21 +230,21 @@ struct TimelineRecordEditorView: View {
                                 )
                             )
                         }
-                        TextField("地点", text: $editor.location)
-                        TextField("备注", text: $editor.notes, axis: .vertical)
+                        TextField("\u{5730}\u{70b9}", text: $editor.location)
+                        TextField("\u{5907}\u{6ce8}", text: $editor.notes, axis: .vertical)
                     }
 
                     if editor.kind == .train {
-                        Section("车票") {
-                            TextField("车次", text: $editor.trainNumber)
-                            TextField("出发站", text: $editor.departureStation)
-                            TextField("到达站", text: $editor.arrivalStation)
-                            TextField("车厢", text: $editor.carriageNumber)
-                            TextField("座位", text: $editor.seatNumber)
-                            TextField("检票口", text: $editor.checkInGate)
-                            TextField("席别", text: $editor.seatClass)
-                            TextField("票价", text: $editor.priceText)
-                            TextField("票号 / 订单号", text: $editor.ticketNumber)
+                        Section("\u{8f66}\u{7968}") {
+                            TextField("\u{8f66}\u{6b21}", text: $editor.trainNumber)
+                            TextField("\u{51fa}\u{53d1}\u{7ad9}", text: $editor.departureStation)
+                            TextField("\u{5230}\u{8fbe}\u{7ad9}", text: $editor.arrivalStation)
+                            TextField("\u{8f66}\u{53a2}", text: $editor.carriageNumber)
+                            TextField("\u{5ea7}\u{4f4d}", text: $editor.seatNumber)
+                            TextField("\u{68c0}\u{7968}\u{53e3}", text: $editor.checkInGate)
+                            TextField("\u{5e2d}\u{522b}", text: $editor.seatClass)
+                            TextField("\u{7968}\u{4ef7}", text: $editor.priceText)
+                            TextField("\u{7968}\u{53f7} / \u{8ba2}\u{5355}\u{53f7}", text: $editor.ticketNumber)
                         }
                     }
 
@@ -255,13 +255,13 @@ struct TimelineRecordEditorView: View {
                 }
                 .scrollContentBackground(.hidden)
             }
-            .navigationTitle("编辑事件")
+            .navigationTitle("\u{7f16}\u{8f91}\u{4e8b}\u{4ef6}")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
+                    Button("\u{53d6}\u{6d88}") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button("\u{4fdd}\u{5b58}") {
                         if !hasEndDate {
                             editor.endDate = nil
                         }
@@ -272,7 +272,7 @@ struct TimelineRecordEditorView: View {
                                 try await onSave(editor)
                                 dismiss()
                             } catch {
-                                errorText = "保存失败，请检查标题和时间。"
+                                errorText = "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{68c0}\u{67e5}\u{6807}\u{9898}\u{548c}\u{65f6}\u{95f4}。"
                             }
                         }
                     }
@@ -284,14 +284,14 @@ struct TimelineRecordEditorView: View {
 
     private func kindTitle(_ kind: TimelineKind) -> String {
         switch kind {
-        case .meeting: "会议"
-        case .task: "任务"
-        case .flight: "航班"
-        case .train: "火车"
-        case .travel: "行程"
-        case .interview: "面试"
-        case .deadline: "截止"
-        case .unknown: "未分类"
+        case .meeting: "\u{4f1a}\u{8bae}"
+        case .task: "\u{4efb}\u{52a1}"
+        case .flight: "\u{822a}\u{73ed}"
+        case .train: "\u{706b}\u{8f66}"
+        case .travel: "\u{884c}\u{7a0b}"
+        case .interview: "\u{9762}\u{8bd5}"
+        case .deadline: "\u{622a}\u{6b62}"
+        case .unknown: "\u{672a}\u{5206}\u{7c7b}"
         }
     }
 }

@@ -33,7 +33,8 @@ final class SettingsStoreTests: XCTestCase {
             remindersEnabled: false,
             showTravelEvents: false,
             manualPinnedSourceIdentifier: "calendar:event-1",
-            liveActivityEnabled: true
+            liveActivityEnabled: true,
+            language: .simplifiedChinese
         )
         let store = SettingsStore(defaults: defaults)
 
@@ -41,6 +42,27 @@ final class SettingsStoreTests: XCTestCase {
 
         XCTAssertEqual(store.value, expected)
         XCTAssertEqual(SettingsStore(defaults: defaults).value, expected)
+    }
+
+    @MainActor
+    func testLanguageDefaultsToSystemForLegacyPayloads() throws {
+        let defaults = makeDefaults()
+        let legacyJSON = """
+        {
+          "calendarEnabled": false,
+          "remindersEnabled": true,
+          "showTravelEvents": true
+        }
+        """
+        defaults.set(
+            Data(legacyJSON.utf8),
+            forKey: "timeline.settings.v1"
+        )
+
+        let store = SettingsStore(defaults: defaults)
+
+        XCTAssertEqual(store.value.language, .system)
+        XCTAssertFalse(store.value.calendarEnabled)
     }
 
     @MainActor

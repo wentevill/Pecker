@@ -112,8 +112,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         ) else {
             throw functionCallFailure(
                 stage: .verification,
-                reason: "模型调用了当前阶段不允许的函数",
-                summary: "函数：\(verificationCall.name)"
+                reason: "\u{6a21}\u{578b}\u{8c03}\u{7528}\u{4e86}\u{5f53}\u{524d}\u{9636}\u{6bb5}\u{4e0d}\u{5141}\u{8bb8}\u{7684}\u{51fd}\u{6570}",
+                summary: "\u{51fd}\u{6570}：\(verificationCall.name)"
             )
         }
         let payload = try decodePayload(
@@ -279,7 +279,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
 
         If the input image or text does not clearly contain an actionable event, ticket, pass, travel plan, deadline, reminder, or task, return {"kind":"unknown","fields":{}}.
 
-        Prefer concrete visible fields over guesses. Every actionable event must include title and startDateTime using ISO-8601 with an explicit UTC offset, and include endDateTime when an end is visible. Resolve relative words such as 今天、今晚、明天 against recognitionNow in the supplied timeZone. If only a local date and times are visible, also return eventDate as YYYY-MM-DD plus startTime and endTime as HH:mm. Put ordinary event location and details in location and notes. For train tickets, extract trainNumber, departureStation, arrivalStation, departureTime, arrivalTime, carriageNumber, seatNumber, checkInGate, passengerName, ticketNumber, seatClass, and price when visible.
+        Prefer concrete visible fields over guesses. Every actionable event must include title and startDateTime using ISO-8601 with an explicit UTC offset, and include endDateTime when an end is visible. Resolve relative words such as \u{4eca}\u{5929}、\u{4eca}\u{665a}、\u{660e}\u{5929} against recognitionNow in the supplied timeZone. If only a local date and times are visible, also return eventDate as YYYY-MM-DD plus startTime and endTime as HH:mm. Put ordinary event location and details in location and notes. For train tickets, extract trainNumber, departureStation, arrivalStation, departureTime, arrivalTime, carriageNumber, seatNumber, checkInGate, passengerName, ticketNumber, seatClass, and price when visible.
 
         Return only one JSON object in this exact shape: {"kind":"train","fields":{"trainNumber":"G123"}}. "kind" must be one of meeting, task, flight, train, travel, interview, deadline, or unknown. Every value in "fields" must be a string.
         """
@@ -287,25 +287,25 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
 
     private var classificationPrompt: String {
         """
-        你是 Pecker 的事件类型识别器。只判断图片或输入的基本类型，不提取字段。
-        kind 必须是 meeting、task、flight、train、travel、interview、deadline 或 unknown。
-        必须调用 classify_event 函数提交类型，不要输出普通内容、推理、依据或 Markdown。
+        \u{4f60}\u{662f} Pecker \u{7684}\u{4e8b}\u{4ef6}\u{7c7b}\u{578b}\u{8bc6}\u{522b}\u{5668}。\u{53ea}\u{5224}\u{65ad}\u{56fe}\u{7247}\u{6216}\u{8f93}\u{5165}\u{7684}\u{57fa}\u{672c}\u{7c7b}\u{578b}，\u{4e0d}\u{63d0}\u{53d6}\u{5b57}\u{6bb5}。
+        kind \u{5fc5}\u{987b}\u{662f} meeting、task、flight、train、travel、interview、deadline \u{6216} unknown。
+        \u{5fc5}\u{987b}\u{8c03}\u{7528} classify_event \u{51fd}\u{6570}\u{63d0}\u{4ea4}\u{7c7b}\u{578b}，\u{4e0d}\u{8981}\u{8f93}\u{51fa}\u{666e}\u{901a}\u{5185}\u{5bb9}、\u{63a8}\u{7406}、\u{4f9d}\u{636e}\u{6216} Markdown。
         """
     }
 
     private var extractionPrompt: String {
         """
-        你是 Pecker 的精确字段提取器。根据指定类型尽可能扫描有效内容。
-        缺少可选字段时直接省略，绝不猜测。备注只保留用户需要准备、执行或查看的内容，
-        不写 OCR 过程、识别依据、置信度或无关文字。必须调用提供的字段函数提交结果。
+        \u{4f60}\u{662f} Pecker \u{7684}\u{7cbe}\u{786e}\u{5b57}\u{6bb5}\u{63d0}\u{53d6}\u{5668}。\u{6839}\u{636e}\u{6307}\u{5b9a}\u{7c7b}\u{578b}\u{5c3d}\u{53ef}\u{80fd}\u{626b}\u{63cf}\u{6709}\u{6548}\u{5185}\u{5bb9}。
+        \u{7f3a}\u{5c11}\u{53ef}\u{9009}\u{5b57}\u{6bb5}\u{65f6}\u{76f4}\u{63a5}\u{7701}\u{7565}，\u{7edd}\u{4e0d}\u{731c}\u{6d4b}。\u{5907}\u{6ce8}\u{53ea}\u{4fdd}\u{7559}\u{7528}\u{6237}\u{9700}\u{8981}\u{51c6}\u{5907}、\u{6267}\u{884c}\u{6216}\u{67e5}\u{770b}\u{7684}\u{5185}\u{5bb9}，
+        \u{4e0d}\u{5199} OCR \u{8fc7}\u{7a0b}、\u{8bc6}\u{522b}\u{4f9d}\u{636e}、\u{7f6e}\u{4fe1}\u{5ea6}\u{6216}\u{65e0}\u{5173}\u{6587}\u{5b57}。\u{5fc5}\u{987b}\u{8c03}\u{7528}\u{63d0}\u{4f9b}\u{7684}\u{5b57}\u{6bb5}\u{51fd}\u{6570}\u{63d0}\u{4ea4}\u{7ed3}\u{679c}。
         """
     }
 
     private var verificationPrompt: String {
         """
-        你是 Pecker 的最终结果核对器。重新查看原图，核对并直接修正候选 JSON。
-        可纠正事件类型、字段、日期、时区和先后顺序。不得虚构不可见信息。
-        必须调用一个提供的字段函数提交最终结果，不输出评论、推理、依据或 Markdown。
+        \u{4f60}\u{662f} Pecker \u{7684}\u{6700}\u{7ec8}\u{7ed3}\u{679c}\u{6838}\u{5bf9}\u{5668}。\u{91cd}\u{65b0}\u{67e5}\u{770b}\u{539f}\u{56fe}，\u{6838}\u{5bf9}\u{5e76}\u{76f4}\u{63a5}\u{4fee}\u{6b63}\u{5019}\u{9009} JSON。
+        \u{53ef}\u{7ea0}\u{6b63}\u{4e8b}\u{4ef6}\u{7c7b}\u{578b}、\u{5b57}\u{6bb5}、\u{65e5}\u{671f}、\u{65f6}\u{533a}\u{548c}\u{5148}\u{540e}\u{987a}\u{5e8f}。\u{4e0d}\u{5f97}\u{865a}\u{6784}\u{4e0d}\u{53ef}\u{89c1}\u{4fe1}\u{606f}。
+        \u{5fc5}\u{987b}\u{8c03}\u{7528}\u{4e00}\u{4e2a}\u{63d0}\u{4f9b}\u{7684}\u{5b57}\u{6bb5}\u{51fd}\u{6570}\u{63d0}\u{4ea4}\u{6700}\u{7ec8}\u{7ed3}\u{679c}，\u{4e0d}\u{8f93}\u{51fa}\u{8bc4}\u{8bba}、\u{63a8}\u{7406}、\u{4f9d}\u{636e}\u{6216} Markdown。
         """
     }
 
@@ -314,16 +314,16 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         context: PromptContext
     ) -> String {
         """
-        阶段：类型识别
+        \u{9636}\u{6bb5}：\u{7c7b}\u{578b}\u{8bc6}\u{522b}
         \(context.description)
-        输入信息：
+        \u{8f93}\u{5165}\u{4fe1}\u{606f}：
         \(inputDescription(for: input))
 
         Tasks:
-        - [ ] 查看全部图片内容。
-        - [ ] 判断一个最符合的基本类型。
-        - [ ] 无法归入专用类型时返回 unknown，后续仍会尝试通用模板。
-        - [ ] 必须调用 classify_event 提交唯一类型。
+        - [ ] \u{67e5}\u{770b}\u{5168}\u{90e8}\u{56fe}\u{7247}\u{5185}\u{5bb9}。
+        - [ ] \u{5224}\u{65ad}\u{4e00}\u{4e2a}\u{6700}\u{7b26}\u{5408}\u{7684}\u{57fa}\u{672c}\u{7c7b}\u{578b}。
+        - [ ] \u{65e0}\u{6cd5}\u{5f52}\u{5165}\u{4e13}\u{7528}\u{7c7b}\u{578b}\u{65f6}\u{8fd4}\u{56de} unknown，\u{540e}\u{7eed}\u{4ecd}\u{4f1a}\u{5c1d}\u{8bd5}\u{901a}\u{7528}\u{6a21}\u{677f}。
+        - [ ] \u{5fc5}\u{987b}\u{8c03}\u{7528} classify_event \u{63d0}\u{4ea4}\u{552f}\u{4e00}\u{7c7b}\u{578b}。
         """
     }
 
@@ -337,22 +337,22 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             .map(\.label)
             .joined(separator: "、")
         return """
-        阶段：字段提取
+        \u{9636}\u{6bb5}：\u{5b57}\u{6bb5}\u{63d0}\u{53d6}
         \(context.description)
-        输入信息：
+        \u{8f93}\u{5165}\u{4fe1}\u{606f}：
         \(inputDescription(for: input))
-        已识别类型：\(kind.rawValue)
-        最小必要元素：\(requirements)
-        可选字段：\(schema.optionalFields.joined(separator: "、"))
-        类型说明：\(schema.extractionGuidance)
+        \u{5df2}\u{8bc6}\u{522b}\u{7c7b}\u{578b}：\(kind.rawValue)
+        \u{6700}\u{5c0f}\u{5fc5}\u{8981}\u{5143}\u{7d20}：\(requirements)
+        \u{53ef}\u{9009}\u{5b57}\u{6bb5}：\(schema.optionalFields.joined(separator: "、"))
+        \u{7c7b}\u{578b}\u{8bf4}\u{660e}：\(schema.extractionGuidance)
 
         Tasks:
-        - [ ] 扫描图片全部区域，但只保留与事件有关的信息。
-        - [ ] 优先提取最小必要元素。
-        - [ ] 尽可能提取清晰可见的可选字段；缺失字段省略。
-        - [ ] 相对日期必须依据 deviceNow 和 deviceTimeZone 转成标准日期。
-        - [ ] 精确时间使用带 UTC 偏移的 ISO-8601；仅日期使用 eventDate=YYYY-MM-DD。
-        - [ ] 必须调用提供的 \(RecognitionFunctionContract.fieldContract(for: kind).name) 函数。
+        - [ ] \u{626b}\u{63cf}\u{56fe}\u{7247}\u{5168}\u{90e8}\u{533a}\u{57df}，\u{4f46}\u{53ea}\u{4fdd}\u{7559}\u{4e0e}\u{4e8b}\u{4ef6}\u{6709}\u{5173}\u{7684}\u{4fe1}\u{606f}。
+        - [ ] \u{4f18}\u{5148}\u{63d0}\u{53d6}\u{6700}\u{5c0f}\u{5fc5}\u{8981}\u{5143}\u{7d20}。
+        - [ ] \u{5c3d}\u{53ef}\u{80fd}\u{63d0}\u{53d6}\u{6e05}\u{6670}\u{53ef}\u{89c1}\u{7684}\u{53ef}\u{9009}\u{5b57}\u{6bb5}；\u{7f3a}\u{5931}\u{5b57}\u{6bb5}\u{7701}\u{7565}。
+        - [ ] \u{76f8}\u{5bf9}\u{65e5}\u{671f}\u{5fc5}\u{987b}\u{4f9d}\u{636e} deviceNow \u{548c} deviceTimeZone \u{8f6c}\u{6210}\u{6807}\u{51c6}\u{65e5}\u{671f}。
+        - [ ] \u{7cbe}\u{786e}\u{65f6}\u{95f4}\u{4f7f}\u{7528}\u{5e26} UTC \u{504f}\u{79fb}\u{7684} ISO-8601；\u{4ec5}\u{65e5}\u{671f}\u{4f7f}\u{7528} eventDate=YYYY-MM-DD。
+        - [ ] \u{5fc5}\u{987b}\u{8c03}\u{7528}\u{63d0}\u{4f9b}\u{7684} \(RecognitionFunctionContract.fieldContract(for: kind).name) \u{51fd}\u{6570}。
         """
     }
 
@@ -365,20 +365,20 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
         let schema = RecognitionKindSchema.schema(for: candidate.kind)
         return """
-        阶段：结果核对
+        \u{9636}\u{6bb5}：\u{7ed3}\u{679c}\u{6838}\u{5bf9}
         \(context.description)
-        输入信息：
+        \u{8f93}\u{5165}\u{4fe1}\u{606f}：
         \(inputDescription(for: input))
-        候选结果：\(candidateText)
-        当前类型最小必要元素：\(schema.requirements.map(\.label).joined(separator: "、"))
+        \u{5019}\u{9009}\u{7ed3}\u{679c}：\(candidateText)
+        \u{5f53}\u{524d}\u{7c7b}\u{578b}\u{6700}\u{5c0f}\u{5fc5}\u{8981}\u{5143}\u{7d20}：\(schema.requirements.map(\.label).joined(separator: "、"))
 
         Tasks:
-        - [ ] 对照原图逐项核对类型和字段。
-        - [ ] 修正错字、字段错位、日期、UTC 偏移与跨日关系。
-        - [ ] 类型错误时直接更正 kind，并按新类型字段返回。
-        - [ ] 删除识别依据、重复内容和无关备注。
-        - [ ] 缺失可选字段可以省略，不得猜测。
-        - [ ] 必须调用且只调用一个最匹配类型的字段函数。
+        - [ ] \u{5bf9}\u{7167}\u{539f}\u{56fe}\u{9010}\u{9879}\u{6838}\u{5bf9}\u{7c7b}\u{578b}\u{548c}\u{5b57}\u{6bb5}。
+        - [ ] \u{4fee}\u{6b63}\u{9519}\u{5b57}、\u{5b57}\u{6bb5}\u{9519}\u{4f4d}、\u{65e5}\u{671f}、UTC \u{504f}\u{79fb}\u{4e0e}\u{8de8}\u{65e5}\u{5173}\u{7cfb}。
+        - [ ] \u{7c7b}\u{578b}\u{9519}\u{8bef}\u{65f6}\u{76f4}\u{63a5}\u{66f4}\u{6b63} kind，\u{5e76}\u{6309}\u{65b0}\u{7c7b}\u{578b}\u{5b57}\u{6bb5}\u{8fd4}\u{56de}。
+        - [ ] \u{5220}\u{9664}\u{8bc6}\u{522b}\u{4f9d}\u{636e}、\u{91cd}\u{590d}\u{5185}\u{5bb9}\u{548c}\u{65e0}\u{5173}\u{5907}\u{6ce8}。
+        - [ ] \u{7f3a}\u{5931}\u{53ef}\u{9009}\u{5b57}\u{6bb5}\u{53ef}\u{4ee5}\u{7701}\u{7565}，\u{4e0d}\u{5f97}\u{731c}\u{6d4b}。
+        - [ ] \u{5fc5}\u{987b}\u{8c03}\u{7528}\u{4e14}\u{53ea}\u{8c03}\u{7528}\u{4e00}\u{4e2a}\u{6700}\u{5339}\u{914d}\u{7c7b}\u{578b}\u{7684}\u{5b57}\u{6bb5}\u{51fd}\u{6570}。
         """
     }
 
@@ -474,8 +474,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         ) else {
             throw functionCallFailure(
                 stage: stage,
-                reason: "函数调用响应格式异常",
-                summary: "服务响应无法按 Chat Completions 格式解码",
+                reason: "\u{51fd}\u{6570}\u{8c03}\u{7528}\u{54cd}\u{5e94}\u{683c}\u{5f0f}\u{5f02}\u{5e38}",
+                summary: "\u{670d}\u{52a1}\u{54cd}\u{5e94}\u{65e0}\u{6cd5}\u{6309} Chat Completions \u{683c}\u{5f0f}\u{89e3}\u{7801}",
                 excerpt: String(data: data, encoding: .utf8)
             )
         }
@@ -490,8 +490,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         } else {
             throw functionCallFailure(
                 stage: stage,
-                reason: "模型未调用要求的函数",
-                summary: "当前阶段要求函数调用，但响应只包含普通内容",
+                reason: "\u{6a21}\u{578b}\u{672a}\u{8c03}\u{7528}\u{8981}\u{6c42}\u{7684}\u{51fd}\u{6570}",
+                summary: "\u{5f53}\u{524d}\u{9636}\u{6bb5}\u{8981}\u{6c42}\u{51fd}\u{6570}\u{8c03}\u{7528}，\u{4f46}\u{54cd}\u{5e94}\u{53ea}\u{5305}\u{542b}\u{666e}\u{901a}\u{5185}\u{5bb9}",
                 excerpt: message?.content ?? String(data: data, encoding: .utf8)
             )
         }
@@ -499,8 +499,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         guard calls.count == 1 else {
             throw functionCallFailure(
                 stage: stage,
-                reason: "模型返回了多个函数调用",
-                summary: "函数：\(calls.map(\.name).joined(separator: "、"))"
+                reason: "\u{6a21}\u{578b}\u{8fd4}\u{56de}\u{4e86}\u{591a}\u{4e2a}\u{51fd}\u{6570}\u{8c03}\u{7528}",
+                summary: "\u{51fd}\u{6570}：\(calls.map(\.name).joined(separator: "、"))"
             )
         }
         let call = calls[0]
@@ -511,8 +511,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         else {
             throw functionCallFailure(
                 stage: stage,
-                reason: "模型调用了当前阶段不允许的函数",
-                summary: "函数：\(call.name)"
+                reason: "\u{6a21}\u{578b}\u{8c03}\u{7528}\u{4e86}\u{5f53}\u{524d}\u{9636}\u{6bb5}\u{4e0d}\u{5141}\u{8bb8}\u{7684}\u{51fd}\u{6570}",
+                summary: "\u{51fd}\u{6570}：\(call.name)"
             )
         }
         return call
@@ -524,8 +524,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     ) -> RecognitionPipelineFailure {
         functionCallFailure(
             stage: stage,
-            reason: "函数参数格式异常",
-            summary: "函数 \(call.name) 的 arguments 不是有效的标量 JSON 对象",
+            reason: "\u{51fd}\u{6570}\u{53c2}\u{6570}\u{683c}\u{5f0f}\u{5f02}\u{5e38}",
+            summary: "\u{51fd}\u{6570} \(call.name) \u{7684} arguments \u{4e0d}\u{662f}\u{6709}\u{6548}\u{7684}\u{6807}\u{91cf} JSON \u{5bf9}\u{8c61}",
             excerpt: call.arguments
         )
     }
@@ -556,13 +556,13 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         let reason: String
         switch urlError?.code {
         case .timedOut:
-            reason = "网络连接超时"
+            reason = "\u{7f51}\u{7edc}\u{8fde}\u{63a5}\u{8d85}\u{65f6}"
         case .notConnectedToInternet:
-            reason = "设备未连接网络"
+            reason = "\u{8bbe}\u{5907}\u{672a}\u{8fde}\u{63a5}\u{7f51}\u{7edc}"
         case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
-            reason = "无法连接识别服务"
+            reason = "\u{65e0}\u{6cd5}\u{8fde}\u{63a5}\u{8bc6}\u{522b}\u{670d}\u{52a1}"
         default:
-            reason = "网络请求失败"
+            reason = "\u{7f51}\u{7edc}\u{8bf7}\u{6c42}\u{5931}\u{8d25}"
         }
         let summary: String
         if let urlError {
@@ -611,15 +611,15 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             )
         let reason: String
         if imageUnsupported {
-            reason = "当前模型不支持图片识别"
+            reason = "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{4e0d}\u{652f}\u{6301}\u{56fe}\u{7247}\u{8bc6}\u{522b}"
         } else if functionCallingUnsupported {
-            reason = "当前模型或服务不支持函数调用"
+            reason = "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{6216}\u{670d}\u{52a1}\u{4e0d}\u{652f}\u{6301}\u{51fd}\u{6570}\u{8c03}\u{7528}"
         } else if statusCode == 401 || statusCode == 403 {
-            reason = "API 鉴权失败（HTTP \(statusCode)）"
+            reason = "API \u{9274}\u{6743}\u{5931}\u{8d25}（HTTP \(statusCode)）"
         } else if statusCode == 429 {
-            reason = "服务返回 429：请求过于频繁"
+            reason = "\u{670d}\u{52a1}\u{8fd4}\u{56de} 429：\u{8bf7}\u{6c42}\u{8fc7}\u{4e8e}\u{9891}\u{7e41}"
         } else {
-            reason = "识别服务返回 HTTP \(statusCode)"
+            reason = "\u{8bc6}\u{522b}\u{670d}\u{52a1}\u{8fd4}\u{56de} HTTP \(statusCode)"
         }
         return RecognitionPipelineFailure(
             stage: stage,

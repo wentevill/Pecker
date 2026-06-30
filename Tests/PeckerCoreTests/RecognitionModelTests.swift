@@ -18,16 +18,16 @@ import Testing
     let endDate = Date(timeIntervalSince1970: 2_000)
     let calendar = RecognitionInput.calendar(
         sourceIdentifier: "calendar-1",
-        title: "G123 上海虹桥 → 北京南",
+        title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
         startDate: startDate,
         endDate: endDate,
         isAllDay: false,
-        location: "检票口 B7",
-        notes: "08车 03A"
+        location: "\u{68c0}\u{7968}\u{53e3} B7",
+        notes: "08\u{8f66} 03A"
     )
     let reminder = RecognitionInput.reminder(
         sourceIdentifier: "reminder-1",
-        title: "买票",
+        title: "\u{4e70}\u{7968}",
         dueDate: startDate,
         endDate: endDate,
         notes: nil

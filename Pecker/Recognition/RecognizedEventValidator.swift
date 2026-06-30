@@ -19,8 +19,8 @@ struct RecognizedEventValidator {
         guard missing.isEmpty else {
             throw RecognitionPipelineFailure(
                 stage: .validation,
-                reason: "核对后仍缺少：\(missing.joined(separator: "、"))",
-                technicalSummary: "最终结构化结果未满足 \(payload.kind.rawValue) 的最小成功条件",
+                reason: "\u{6838}\u{5bf9}\u{540e}\u{4ecd}\u{7f3a}\u{5c11}：\(missing.joined(separator: "、"))",
+                technicalSummary: "\u{6700}\u{7ec8}\u{7ed3}\u{6784}\u{5316}\u{7ed3}\u{679c}\u{672a}\u{6ee1}\u{8db3} \(payload.kind.rawValue) \u{7684}\u{6700}\u{5c0f}\u{6210}\u{529f}\u{6761}\u{4ef6}",
                 httpStatus: nil,
                 serviceCode: nil,
                 serviceMessage: nil,
@@ -55,8 +55,8 @@ struct RecognizedEventValidator {
 
         guard let startDate = explicitStart ?? localStart ?? dateOnlyStart else {
             throw invalidTiming(
-                reason: "无法解析事件日期或时间",
-                fields: ["日期或时间"]
+                reason: "\u{65e0}\u{6cd5}\u{89e3}\u{6790}\u{4e8b}\u{4ef6}\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}",
+                fields: ["\u{65e5}\u{671f}\u{6216}\u{65f6}\u{95f4}"]
             )
         }
         let isAllDay = explicitStartText == nil
@@ -91,8 +91,8 @@ struct RecognizedEventValidator {
 
         if let endDate, endDate <= startDate {
             throw invalidTiming(
-                reason: "结束时间必须晚于开始时间",
-                fields: ["结束时间"]
+                reason: "\u{7ed3}\u{675f}\u{65f6}\u{95f4}\u{5fc5}\u{987b}\u{665a}\u{4e8e}\u{5f00}\u{59cb}\u{65f6}\u{95f4}",
+                fields: ["\u{7ed3}\u{675f}\u{65f6}\u{95f4}"]
             )
         }
 
@@ -157,7 +157,7 @@ struct RecognizedEventValidator {
         RecognitionPipelineFailure(
             stage: .validation,
             reason: reason,
-            technicalSummary: "最终结构化结果中的时间字段无法形成有效事件区间",
+            technicalSummary: "\u{6700}\u{7ec8}\u{7ed3}\u{6784}\u{5316}\u{7ed3}\u{679c}\u{4e2d}\u{7684}\u{65f6}\u{95f4}\u{5b57}\u{6bb5}\u{65e0}\u{6cd5}\u{5f62}\u{6210}\u{6709}\u{6548}\u{4e8b}\u{4ef6}\u{533a}\u{95f4}",
             httpStatus: nil,
             serviceCode: nil,
             serviceMessage: nil,

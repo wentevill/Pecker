@@ -7,9 +7,9 @@ import Testing
 
     let template = factory.makeTemplate(
         from: ClassificationInput(
-            title: "G123 上海虹桥 → 北京南",
-            location: "检票口 B7",
-            notes: "08车 03A"
+            title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
+            location: "\u{68c0}\u{7968}\u{53e3} B7",
+            notes: "08\u{8f66} 03A"
         )
     )
 
@@ -18,8 +18,8 @@ import Testing
         return
     }
     #expect(ticket.trainNumber == "G123")
-    #expect(ticket.departureStation == "上海虹桥")
-    #expect(ticket.arrivalStation == "北京南")
+    #expect(ticket.departureStation == "\u{4e0a}\u{6d77}\u{8679}\u{6865}")
+    #expect(ticket.arrivalStation == "\u{5317}\u{4eac}\u{5357}")
     #expect(ticket.carriageNumber == "08")
     #expect(ticket.seatNumber == "03A")
     #expect(ticket.checkInGate == "B7")
@@ -35,8 +35,8 @@ import Testing
             kind: .train,
             fields: [
                 "trainNumber": "D2281",
-                "departureStation": "南京南",
-                "arrivalStation": "杭州东",
+                "departureStation": "\u{5357}\u{4eac}\u{5357}",
+                "arrivalStation": "\u{676d}\u{5dde}\u{4e1c}",
                 "departureTime": "09:24",
                 "arrivalTime": "11:06",
                 "carriageNumber": "05",
@@ -44,7 +44,7 @@ import Testing
                 "checkInGate": "A12",
                 "passengerName": "Wen",
                 "ticketNumber": "ETK-001",
-                "seatClass": "二等座",
+                "seatClass": "\u{4e8c}\u{7b49}\u{5ea7}",
                 "price": "¥96"
             ]
         )
@@ -52,8 +52,8 @@ import Testing
 
     #expect(template == .trainTicket(.init(
         trainNumber: "D2281",
-        departureStation: "南京南",
-        arrivalStation: "杭州东",
+        departureStation: "\u{5357}\u{4eac}\u{5357}",
+        arrivalStation: "\u{676d}\u{5dde}\u{4e1c}",
         departureTimeText: "09:24",
         arrivalTimeText: "11:06",
         carriageNumber: "05",
@@ -61,7 +61,7 @@ import Testing
         checkInGate: "A12",
         passengerName: "Wen",
         ticketNumber: "ETK-001",
-        seatClass: "二等座",
+        seatClass: "\u{4e8c}\u{7b49}\u{5ea7}",
         priceText: "¥96"
     )))
 }
@@ -74,7 +74,7 @@ import Testing
             {
               "kind": "task",
               "fields": {
-                "title": "巡检",
+                "title": "\#u{5de1}\#u{68c0}",
                 "count": 2,
                 "ratio": 1.5,
                 "urgent": true,
@@ -85,7 +85,7 @@ import Testing
         )
     )
 
-    #expect(payload.fields["title"] == "巡检")
+    #expect(payload.fields["title"] == "\u{5de1}\u{68c0}")
     #expect(payload.fields["count"] == "2")
     #expect(payload.fields["ratio"] == "1.5")
     #expect(payload.fields["urgent"] == "true")
@@ -94,7 +94,7 @@ import Testing
 
 @Test func externalPayloadRejectsNestedFieldValues() {
     let data = Data(
-        #"{"kind":"task","fields":{"title":"巡检","metadata":{"source":"OCR"}}}"#.utf8
+        #"{"kind":"task","fields":{"title":"\#u{5de1}\#u{68c0}","metadata":{"source":"OCR"}}}"#.utf8
     )
 
     #expect(throws: DecodingError.self) {
@@ -110,33 +110,33 @@ import Testing
         from: ExternalEventTemplatePayload(
             kind: .task,
             fields: [
-                "title": "巡逻",
+                "title": "\u{5de1}\u{903b}",
                 "location": "",
-                "notes": "巡查楼梯口、仓库、围栏"
+                "notes": "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}"
             ]
         )
     )
 
     #expect(template == .generic(.init(
         kind: .task,
-        title: "巡逻",
+        title: "\u{5de1}\u{903b}",
         location: nil,
-        notes: "巡查楼梯口、仓库、围栏",
+        notes: "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}",
         fields: [
-            "title": "巡逻",
+            "title": "\u{5de1}\u{903b}",
             "location": "",
-            "notes": "巡查楼梯口、仓库、围栏"
+            "notes": "\u{5de1}\u{67e5}\u{697c}\u{68af}\u{53e3}、\u{4ed3}\u{5e93}、\u{56f4}\u{680f}"
         ]
     )))
-    #expect(template?.presentation.fields.first?.label == "类型")
+    #expect(template?.presentation.fields.first?.label == "\u{7c7b}\u{578b}")
 }
 
 @Test func unknownPayloadWithDestinationBuildsGenericTemplate() {
     let fields = [
-        "destination": "苏州",
+        "destination": "\u{82cf}\u{5dde}",
         "eventDate": "2026-07-03",
-        "location": "苏州文化中心",
-        "notes": "携带报名二维码"
+        "location": "\u{82cf}\u{5dde}\u{6587}\u{5316}\u{4e2d}\u{5fc3}",
+        "notes": "\u{643a}\u{5e26}\u{62a5}\u{540d}\u{4e8c}\u{7ef4}\u{7801}"
     ]
 
     let template = EventTemplateFactory().makeTemplate(
@@ -145,9 +145,9 @@ import Testing
 
     #expect(template == .generic(.init(
         kind: .unknown,
-        title: "苏州",
-        location: "苏州文化中心",
-        notes: "携带报名二维码",
+        title: "\u{82cf}\u{5dde}",
+        location: "\u{82cf}\u{5dde}\u{6587}\u{5316}\u{4e2d}\u{5fc3}",
+        notes: "\u{643a}\u{5e26}\u{62a5}\u{540d}\u{4e8c}\u{7ef4}\u{7801}",
         fields: fields
     )))
 }
@@ -235,7 +235,7 @@ import Testing
     let classifier = TimelineClassifier()
 
     #expect(classifier.classify(
-        title: "G123 上海虹桥 → 北京南",
+        title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
         location: nil,
         notes: nil,
         source: .calendar

@@ -1,0 +1,7 @@
+"language.system" = "系统";
+"language.english" = "英文";
+"language.simplifiedChinese" = "简体中文";
+"settings.language" = "语言";
+"settings.title" = "设置";
+"settings.done" = "完成";
+"settings.subtitle" = "控制数据源、显示偏好、AI 识别和 Live Activity 状态。";

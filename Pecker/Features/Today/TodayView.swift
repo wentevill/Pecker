@@ -295,8 +295,6 @@ struct TodayView: View {
             "\u{8bc6}\u{522b}\u{7ed3}\u{679c}\u{683c}\u{5f0f}\u{5f02}\u{5e38}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
         case .networkExecutionNotImplemented:
             "\u{5f53}\u{524d}\u{8bc6}\u{522b}\u{670d}\u{52a1}\u{5c1a}\u{672a}\u{5b8c}\u{6210}\u{7f51}\u{7edc}\u{6267}\u{884c}。"
-        case .localModelUnavailable:
-            "\u{5185}\u{7f6e}\u{5c0f}\u{6a21}\u{578b}\u{6682}\u{4e0d}\u{53ef}\u{7528}，\u{8bf7}\u{6539}\u{7528} OpenAI。"
         case .unsupportedInput:
             "\u{672a}\u{8bc6}\u{522b}\u{5230}\u{53ef}\u{6dfb}\u{52a0}\u{7684}\u{4e8b}\u{4ef6}，\u{8bf7}\u{6362}\u{4e00}\u{5f20}\u{5305}\u{542b}\u{7968}\u{636e}、\u{65e5}\u{7a0b}\u{6216}\u{4efb}\u{52a1}\u{4fe1}\u{606f}\u{7684}\u{56fe}\u{7247}。"
         }

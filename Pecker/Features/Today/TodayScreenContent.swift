@@ -249,8 +249,6 @@ struct TodayScreenContent: Equatable {
             return false
         case .openAI:
             return settings.openAIAPIKeyConfigured
-        case .localModel:
-            return true
         }
     }
 

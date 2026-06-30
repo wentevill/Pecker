@@ -319,10 +319,6 @@ struct SettingsView: View {
                         .foregroundStyle(TimelineTheme.textSecondary)
                 case .openAI:
                     openAIConfiguration
-                case .localModel:
-                    Text("\u{5185}\u{7f6e}\u{5c0f}\u{6a21}\u{578b}\u{5165}\u{53e3}\u{5df2}\u{9884}\u{7559}，\u{5f53}\u{524d}\u{7248}\u{672c}\u{6682}\u{4e0d}\u{53ef}\u{7528}。\u{540e}\u{7eed}\u{53ef}\u{4ee5}\u{76f4}\u{63a5}\u{63a5}\u{5165}\u{672c}\u{5730} Provider。")
-                        .font(.subheadline)
-                        .foregroundStyle(TimelineTheme.textSecondary)
                 }
 
                 Divider()
@@ -558,8 +554,6 @@ struct SettingsView: View {
             return "\u{5173}\u{95ed}"
         case .openAI:
             return "OpenAI"
-        case .localModel:
-            return "\u{672c}\u{5730}"
         }
     }
 

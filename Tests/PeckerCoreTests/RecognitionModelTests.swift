@@ -55,21 +55,3 @@ import Testing
     #expect(image.imageData == Data([1, 2, 3]))
     #expect(camera.filename == nil)
 }
-
-@Test func localModelProviderIsExplicitlyUnavailable() async {
-    let provider = LocalModelRecognitionProvider()
-
-    await #expect(throws: RecognitionError.self) {
-        _ = try await provider.recognize(
-            .calendar(
-                sourceIdentifier: "calendar-1",
-                title: "Daily standup",
-                startDate: nil,
-                endDate: nil,
-                isAllDay: false,
-                location: nil,
-                notes: nil
-            )
-        )
-    }
-}

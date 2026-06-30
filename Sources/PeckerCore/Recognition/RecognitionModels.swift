@@ -3,7 +3,6 @@ import Foundation
 public enum AIRecognitionMode: String, Codable, Sendable, Equatable, CaseIterable {
     case off
     case openAI
-    case localModel
 }
 
 public enum RecognitionSource: String, Codable, Sendable, Equatable, Hashable, CaseIterable {
@@ -170,7 +169,6 @@ public enum RecognitionStatus: String, Codable, Sendable, Equatable, Hashable {
 }
 
 public enum RecognitionError: Error, Sendable, Equatable {
-    case localModelUnavailable
     case invalidConfiguration
     case unsupportedInput
     case networkExecutionNotImplemented

@@ -103,20 +103,13 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         templateFactory: EventTemplateFactory = EventTemplateFactory(),
         calendar: Calendar = .current,
         providerFactory: @escaping ProviderFactory = { settings, apiKey in
-            switch settings.aiRecognitionMode {
-            case .openAI:
-                OpenAIRecognitionProvider(
-                    configuration: .init(
-                        host: settings.openAIHost,
-                        apiKey: apiKey,
-                        model: settings.openAIModel
-                    )
+            OpenAIRecognitionProvider(
+                configuration: .init(
+                    host: settings.openAIHost,
+                    apiKey: apiKey,
+                    model: settings.openAIModel
                 )
-            case .localModel:
-                LocalModelRecognitionProvider()
-            case .off:
-                LocalModelRecognitionProvider()
-            }
+            )
         }
     ) {
         self.repository = repository
@@ -349,8 +342,6 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 return nil
             }
             return providerFactory(settings, apiKey)
-        case .localModel:
-            return providerFactory(settings, "")
         case .off:
             return nil
         }

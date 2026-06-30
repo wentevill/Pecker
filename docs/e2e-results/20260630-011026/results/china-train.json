@@ -1,0 +1,33 @@
+{
+  "actualKind" : "train",
+  "durationSeconds" : 17.987205982208252,
+  "expectedKind" : "train",
+  "fields" : {
+    "arrivalDateTime" : "2026-07-03T12:28:00+08:00",
+    "arrivalStation" : "北京南站",
+    "carriageNumber" : "08车",
+    "checkInGate" : "B7",
+    "departureDateTime" : "2026-07-03T08:00:00+08:00",
+    "departureStation" : "上海虹桥站",
+    "orderNumber" : "E123456789",
+    "passengerName" : "王小明",
+    "price" : "¥553.00",
+    "seatNumber" : "03A",
+    "title" : "中国铁路电子客票",
+    "trainNumber" : "G123"
+  },
+  "id" : "china-train",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-train.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "trainNumber",
+    "departureStation",
+    "arrivalStation",
+    "departureDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-train.json"
+}

@@ -1,0 +1,26 @@
+{
+  "actualKind" : "deadline",
+  "durationSeconds" : 10.76797902584076,
+  "expectedKind" : "deadline",
+  "fields" : {
+    "deadlineDateTime" : "2026-07-15T18:00:00+08:00",
+    "eventDate" : "2026-07-15",
+    "notes" : "逾期会影响本月结账",
+    "owner" : "财务部",
+    "project" : "财务月结",
+    "submissionChannel" : "电子税务局",
+    "title" : "提交增值税申报材料"
+  },
+  "id" : "china-deadline",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-deadline.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "title",
+    "deadlineDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-deadline.json"
+}

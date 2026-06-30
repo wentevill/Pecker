@@ -1,0 +1,30 @@
+{
+  "actualKind" : "travel",
+  "durationSeconds" : 17.330322980880737,
+  "expectedKind" : "travel",
+  "fields" : {
+    "accommodation" : "Superior double",
+    "address" : "Gran Via 38, Madrid",
+    "bookingReference" : "ES-MAD-5512",
+    "destination" : "Madrid",
+    "endDateTime" : "2026-07-10T11:00:00+02:00",
+    "eventDate" : "2026-07-08",
+    "location" : "Hotel Atlantico Madrid",
+    "notes" : "Check-in at 15:00 on 2026-07-08. Check-out by 11:00 on 2026-07-10.",
+    "origin" : "Madrid",
+    "startDateTime" : "2026-07-08T15:00:00+02:00",
+    "title" : "Hotel Atlantico Madrid"
+  },
+  "id" : "europe-travel",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-travel.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "title",
+    "startDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-travel.json"
+}

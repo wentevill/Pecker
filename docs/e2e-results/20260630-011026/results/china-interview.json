@@ -1,0 +1,28 @@
+{
+  "actualKind" : "interview",
+  "durationSeconds" : 15.645112991333008,
+  "expectedKind" : "interview",
+  "fields" : {
+    "company" : "字节跳动",
+    "contact" : "hr-cn@example.com",
+    "endDateTime" : "2026-07-09T11:00:00+08:00",
+    "interviewer" : "刘娜",
+    "location" : "飞书会议",
+    "notes" : "请提前 5 分钟进入会议",
+    "role" : "iOS 工程师",
+    "startDateTime" : "2026-07-09T10:00:00+08:00",
+    "title" : "字节跳动 iOS 工程师"
+  },
+  "id" : "china-interview",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-interview.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "title",
+    "startDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-interview.json"
+}

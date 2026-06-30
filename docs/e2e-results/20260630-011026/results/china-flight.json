@@ -1,0 +1,36 @@
+{
+  "actualKind" : "flight",
+  "durationSeconds" : 22.623326897621155,
+  "expectedKind" : "flight",
+  "fields" : {
+    "arrivalAirport" : "北京首都",
+    "arrivalAirportCode" : "PEK",
+    "arrivalDateTime" : "2026-07-04T11:45:00+08:00",
+    "cabin" : "经济舱",
+    "carrier" : "东方航空",
+    "departureAirport" : "上海虹桥",
+    "departureAirportCode" : "SHA",
+    "departureDateTime" : "2026-07-04T09:30:00+08:00",
+    "flightNumber" : "MU5101",
+    "gate" : "28",
+    "notes" : "请于 08:50 前完成登机",
+    "passengerName" : "李华",
+    "seat" : "12A",
+    "terminal" : "T2",
+    "title" : "MU5101 上海虹桥 SHA -> 京首都 PEK"
+  },
+  "id" : "china-flight",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-flight.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "flightNumber",
+    "departureAirportCode",
+    "arrivalAirportCode",
+    "departureDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-flight.json"
+}

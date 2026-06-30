@@ -1,0 +1,33 @@
+{
+  "actualKind" : "train",
+  "durationSeconds" : 22.524388074874878,
+  "expectedKind" : "train",
+  "fields" : {
+    "arrivalDateTime" : "2026-07-03T10:56:00+02:00",
+    "arrivalStation" : "Lyon Part-Dieu",
+    "carriageNumber" : "12",
+    "departureDateTime" : "2026-07-03T08:42:00+02:00",
+    "departureStation" : "Paris Gare de Lyon",
+    "orderNumber" : "FR78391",
+    "passengerName" : "Marie Dubois",
+    "price" : "EUR 64.00",
+    "seatClass" : "2nd",
+    "seatNumber" : "45A",
+    "title" : "TGV 6173 Paris Gare de Lyon -> Lyon Part-Dieu",
+    "trainNumber" : "TGV 6173"
+  },
+  "id" : "europe-train",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-train.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "trainNumber",
+    "departureStation",
+    "arrivalStation",
+    "departureDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-train.json"
+}

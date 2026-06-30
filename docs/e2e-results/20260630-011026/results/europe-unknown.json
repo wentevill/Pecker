@@ -1,0 +1,20 @@
+{
+  "actualKind" : "unknown",
+  "durationSeconds" : 13.639634013175964,
+  "expectedKind" : "unknown",
+  "fields" : {
+    "notes" : "No appointment, trip, task, or deadline. Customer service: +33 1 00 00 00 00",
+    "title" : "Museum Membership Card"
+  },
+  "id" : "europe-unknown",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-unknown.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-unknown.json"
+}

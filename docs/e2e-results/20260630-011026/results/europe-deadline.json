@@ -1,0 +1,26 @@
+{
+  "actualKind" : "deadline",
+  "durationSeconds" : 14.961593985557556,
+  "expectedKind" : "deadline",
+  "fields" : {
+    "deadlineDateTime" : "2026-07-15T17:00:00+02:00",
+    "eventDate" : "2026-07-15",
+    "notes" : "Late submission is not accepted",
+    "owner" : "Research Office",
+    "project" : "Horizon Pilot",
+    "submissionChannel" : "Funding portal",
+    "title" : "EU grant progress report"
+  },
+  "id" : "europe-deadline",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-deadline.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "title",
+    "deadlineDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-deadline.json"
+}

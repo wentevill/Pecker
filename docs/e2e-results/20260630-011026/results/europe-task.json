@@ -1,0 +1,26 @@
+{
+  "actualKind" : "task",
+  "durationSeconds" : 10.648924946784973,
+  "expectedKind" : "task",
+  "fields" : {
+    "assignee" : "Marco Rossi",
+    "dueDateTime" : "2026-07-06T18:00:00+02:00",
+    "eventDate" : "2026-07-06",
+    "location" : "Milan Warehouse B",
+    "notes" : "Upload temperature log after inspection",
+    "priority" : "High",
+    "title" : "Inspect refrigeration unit"
+  },
+  "id" : "europe-task",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-task.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "title",
+    "dueDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-task.json"
+}

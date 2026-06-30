@@ -1,0 +1,36 @@
+{
+  "actualKind" : "flight",
+  "durationSeconds" : 22.662974953651428,
+  "expectedKind" : "flight",
+  "fields" : {
+    "arrivalAirport" : "Berlin",
+    "arrivalAirportCode" : "BER",
+    "arrivalDateTime" : "2026-07-04T17:30:00+02:00",
+    "bookingReference" : "EU4F8K",
+    "carrier" : "Lufthansa",
+    "departureAirport" : "Munich",
+    "departureAirportCode" : "MUC",
+    "departureDateTime" : "2026-07-04T16:20:00+02:00",
+    "flightNumber" : "LH2030",
+    "gate" : "G18",
+    "notes" : "Boarding closes at 16:00",
+    "passengerName" : "Anna Keller",
+    "seat" : "21C",
+    "terminal" : "2",
+    "title" : "LH2030 Munich MUC -> Berlin BER"
+  },
+  "id" : "europe-flight",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-flight.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "flightNumber",
+    "departureAirportCode",
+    "arrivalAirportCode",
+    "departureDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-flight.json"
+}

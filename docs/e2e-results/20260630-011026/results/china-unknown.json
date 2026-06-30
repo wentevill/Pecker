@@ -1,0 +1,20 @@
+{
+  "actualKind" : "unknown",
+  "durationSeconds" : 9.935594081878662,
+  "expectedKind" : "unknown",
+  "fields" : {
+    "notes" : "余额: ¥120.00，等级: 金卡。无预约、任务或日期安排。",
+    "title" : "咖啡店会员卡"
+  },
+  "id" : "china-unknown",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-unknown.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-unknown.json"
+}

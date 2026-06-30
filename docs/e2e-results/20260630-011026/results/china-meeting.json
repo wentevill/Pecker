@@ -1,0 +1,27 @@
+{
+  "actualKind" : "meeting",
+  "durationSeconds" : 18.169252038002014,
+  "expectedKind" : "meeting",
+  "fields" : {
+    "agenda" : "Q3 优先级与发布节奏",
+    "endDateTime" : "2026-07-05T15:30:00+08:00",
+    "location" : "上海办公室 12F 会议室 A",
+    "notes" : "参会人需准备Q3优先级与发布节奏相关材料。",
+    "organizer" : "陈雨",
+    "participants" : "产品、设计、工程",
+    "startDateTime" : "2026-07-05T14:00:00+08:00",
+    "title" : "产品路线图评审"
+  },
+  "id" : "china-meeting",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-meeting.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "title",
+    "startDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-meeting.json"
+}

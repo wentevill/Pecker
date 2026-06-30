@@ -1,0 +1,26 @@
+{
+  "actualKind" : "task",
+  "durationSeconds" : 9.337131977081299,
+  "expectedKind" : "task",
+  "fields" : {
+    "assignee" : "赵磊",
+    "dueDateTime" : "2026-07-06T23:30:00+08:00",
+    "eventDate" : "2026-07-06",
+    "location" : "苏州一号仓库",
+    "notes" : "记录温度并拍照上传",
+    "priority" : "高",
+    "title" : "巡检仓库冷链设备"
+  },
+  "id" : "china-task",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/china-task.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "China",
+  "requiredFields" : [
+    "title",
+    "dueDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/china-task.json"
+}

@@ -1,0 +1,29 @@
+{
+  "actualKind" : "interview",
+  "durationSeconds" : 15.539973020553589,
+  "expectedKind" : "interview",
+  "fields" : {
+    "company" : "Booking.com",
+    "contact" : "recruiting-eu@example.com",
+    "endDateTime" : "2026-07-09T14:00:00+02:00",
+    "interviewer" : "Sofia Janssen",
+    "location" : "Google Meet",
+    "meetingLink" : "https://meet.google.com/xxx-xxxx-xxx",
+    "notes" : "Please join 5 minutes early",
+    "role" : "iOS Engineer",
+    "startDateTime" : "2026-07-09T13:00:00+02:00",
+    "title" : "Booking.com iOS Engineer"
+  },
+  "id" : "europe-interview",
+  "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-interview.png",
+  "missingFields" : [
+
+  ],
+  "passed" : true,
+  "region" : "Europe",
+  "requiredFields" : [
+    "title",
+    "startDateTime"
+  ],
+  "resultPath" : "docs/e2e-results/20260630-011026/results/europe-interview.json"
+}

@@ -1,0 +1,455 @@
+[
+  {
+    "actualKind" : "train",
+    "durationSeconds" : 17.987205982208252,
+    "expectedKind" : "train",
+    "fields" : {
+      "arrivalDateTime" : "2026-07-03T12:28:00+08:00",
+      "arrivalStation" : "北京南站",
+      "carriageNumber" : "08车",
+      "checkInGate" : "B7",
+      "departureDateTime" : "2026-07-03T08:00:00+08:00",
+      "departureStation" : "上海虹桥站",
+      "orderNumber" : "E123456789",
+      "passengerName" : "王小明",
+      "price" : "¥553.00",
+      "seatNumber" : "03A",
+      "title" : "中国铁路电子客票",
+      "trainNumber" : "G123"
+    },
+    "id" : "china-train",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-train.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "trainNumber",
+      "departureStation",
+      "arrivalStation",
+      "departureDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-train.json"
+  },
+  {
+    "actualKind" : "flight",
+    "durationSeconds" : 22.623326897621155,
+    "expectedKind" : "flight",
+    "fields" : {
+      "arrivalAirport" : "北京首都",
+      "arrivalAirportCode" : "PEK",
+      "arrivalDateTime" : "2026-07-04T11:45:00+08:00",
+      "cabin" : "经济舱",
+      "carrier" : "东方航空",
+      "departureAirport" : "上海虹桥",
+      "departureAirportCode" : "SHA",
+      "departureDateTime" : "2026-07-04T09:30:00+08:00",
+      "flightNumber" : "MU5101",
+      "gate" : "28",
+      "notes" : "请于 08:50 前完成登机",
+      "passengerName" : "李华",
+      "seat" : "12A",
+      "terminal" : "T2",
+      "title" : "MU5101 上海虹桥 SHA -> 京首都 PEK"
+    },
+    "id" : "china-flight",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-flight.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "flightNumber",
+      "departureAirportCode",
+      "arrivalAirportCode",
+      "departureDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-flight.json"
+  },
+  {
+    "actualKind" : "meeting",
+    "durationSeconds" : 18.169252038002014,
+    "expectedKind" : "meeting",
+    "fields" : {
+      "agenda" : "Q3 优先级与发布节奏",
+      "endDateTime" : "2026-07-05T15:30:00+08:00",
+      "location" : "上海办公室 12F 会议室 A",
+      "notes" : "参会人需准备Q3优先级与发布节奏相关材料。",
+      "organizer" : "陈雨",
+      "participants" : "产品、设计、工程",
+      "startDateTime" : "2026-07-05T14:00:00+08:00",
+      "title" : "产品路线图评审"
+    },
+    "id" : "china-meeting",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-meeting.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-meeting.json"
+  },
+  {
+    "actualKind" : "task",
+    "durationSeconds" : 9.337131977081299,
+    "expectedKind" : "task",
+    "fields" : {
+      "assignee" : "赵磊",
+      "dueDateTime" : "2026-07-06T23:30:00+08:00",
+      "eventDate" : "2026-07-06",
+      "location" : "苏州一号仓库",
+      "notes" : "记录温度并拍照上传",
+      "priority" : "高",
+      "title" : "巡检仓库冷链设备"
+    },
+    "id" : "china-task",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-task.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "title",
+      "dueDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-task.json"
+  },
+  {
+    "actualKind" : "travel",
+    "durationSeconds" : 24.893803000450134,
+    "expectedKind" : "travel",
+    "fields" : {
+      "accommodation" : "湖景大床房",
+      "address" : "杭州市西湖区杨公堤18号",
+      "bookingReference" : "CNHZ8891",
+      "destination" : "杭州西湖国宾馆",
+      "endDateTime" : "2026-07-10T12:00:00+08:00",
+      "eventDate" : "2026-07-08",
+      "location" : "杭州西湖国宾馆",
+      "notes" : "入住时间：2026-07-08 15:00；退房时间：2026-07-10 12:00",
+      "origin" : "杭州西湖国宾馆",
+      "startDateTime" : "2026-07-08T15:00:00+08:00",
+      "title" : "杭州西湖国宾馆"
+    },
+    "id" : "china-travel",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-travel.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-travel.json"
+  },
+  {
+    "actualKind" : "interview",
+    "durationSeconds" : 15.645112991333008,
+    "expectedKind" : "interview",
+    "fields" : {
+      "company" : "字节跳动",
+      "contact" : "hr-cn@example.com",
+      "endDateTime" : "2026-07-09T11:00:00+08:00",
+      "interviewer" : "刘娜",
+      "location" : "飞书会议",
+      "notes" : "请提前 5 分钟进入会议",
+      "role" : "iOS 工程师",
+      "startDateTime" : "2026-07-09T10:00:00+08:00",
+      "title" : "字节跳动 iOS 工程师"
+    },
+    "id" : "china-interview",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-interview.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-interview.json"
+  },
+  {
+    "actualKind" : "deadline",
+    "durationSeconds" : 10.76797902584076,
+    "expectedKind" : "deadline",
+    "fields" : {
+      "deadlineDateTime" : "2026-07-15T18:00:00+08:00",
+      "eventDate" : "2026-07-15",
+      "notes" : "逾期会影响本月结账",
+      "owner" : "财务部",
+      "project" : "财务月结",
+      "submissionChannel" : "电子税务局",
+      "title" : "提交增值税申报材料"
+    },
+    "id" : "china-deadline",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-deadline.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+      "title",
+      "deadlineDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-deadline.json"
+  },
+  {
+    "actualKind" : "unknown",
+    "durationSeconds" : 9.935594081878662,
+    "expectedKind" : "unknown",
+    "fields" : {
+      "notes" : "余额: ¥120.00，等级: 金卡。无预约、任务或日期安排。",
+      "title" : "咖啡店会员卡"
+    },
+    "id" : "china-unknown",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/china-unknown.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "China",
+    "requiredFields" : [
+
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/china-unknown.json"
+  },
+  {
+    "actualKind" : "train",
+    "durationSeconds" : 22.524388074874878,
+    "expectedKind" : "train",
+    "fields" : {
+      "arrivalDateTime" : "2026-07-03T10:56:00+02:00",
+      "arrivalStation" : "Lyon Part-Dieu",
+      "carriageNumber" : "12",
+      "departureDateTime" : "2026-07-03T08:42:00+02:00",
+      "departureStation" : "Paris Gare de Lyon",
+      "orderNumber" : "FR78391",
+      "passengerName" : "Marie Dubois",
+      "price" : "EUR 64.00",
+      "seatClass" : "2nd",
+      "seatNumber" : "45A",
+      "title" : "TGV 6173 Paris Gare de Lyon -> Lyon Part-Dieu",
+      "trainNumber" : "TGV 6173"
+    },
+    "id" : "europe-train",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-train.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "trainNumber",
+      "departureStation",
+      "arrivalStation",
+      "departureDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-train.json"
+  },
+  {
+    "actualKind" : "flight",
+    "durationSeconds" : 22.662974953651428,
+    "expectedKind" : "flight",
+    "fields" : {
+      "arrivalAirport" : "Berlin",
+      "arrivalAirportCode" : "BER",
+      "arrivalDateTime" : "2026-07-04T17:30:00+02:00",
+      "bookingReference" : "EU4F8K",
+      "carrier" : "Lufthansa",
+      "departureAirport" : "Munich",
+      "departureAirportCode" : "MUC",
+      "departureDateTime" : "2026-07-04T16:20:00+02:00",
+      "flightNumber" : "LH2030",
+      "gate" : "G18",
+      "notes" : "Boarding closes at 16:00",
+      "passengerName" : "Anna Keller",
+      "seat" : "21C",
+      "terminal" : "2",
+      "title" : "LH2030 Munich MUC -> Berlin BER"
+    },
+    "id" : "europe-flight",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-flight.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "flightNumber",
+      "departureAirportCode",
+      "arrivalAirportCode",
+      "departureDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-flight.json"
+  },
+  {
+    "actualKind" : "meeting",
+    "durationSeconds" : 15.04693591594696,
+    "expectedKind" : "meeting",
+    "fields" : {
+      "agenda" : "Prototype review and next steps",
+      "endDateTime" : "2026-07-05T10:30:00+01:00",
+      "location" : "London Studio, Room 3B",
+      "notes" : "Prepare prototype for review.",
+      "organizer" : "Olivia Smith",
+      "participants" : "Product, Design, Engineering",
+      "startDateTime" : "2026-07-05T09:30:00+01:00",
+      "title" : "Design Critique"
+    },
+    "id" : "europe-meeting",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-meeting.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-meeting.json"
+  },
+  {
+    "actualKind" : "task",
+    "durationSeconds" : 10.648924946784973,
+    "expectedKind" : "task",
+    "fields" : {
+      "assignee" : "Marco Rossi",
+      "dueDateTime" : "2026-07-06T18:00:00+02:00",
+      "eventDate" : "2026-07-06",
+      "location" : "Milan Warehouse B",
+      "notes" : "Upload temperature log after inspection",
+      "priority" : "High",
+      "title" : "Inspect refrigeration unit"
+    },
+    "id" : "europe-task",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-task.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "title",
+      "dueDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-task.json"
+  },
+  {
+    "actualKind" : "travel",
+    "durationSeconds" : 17.330322980880737,
+    "expectedKind" : "travel",
+    "fields" : {
+      "accommodation" : "Superior double",
+      "address" : "Gran Via 38, Madrid",
+      "bookingReference" : "ES-MAD-5512",
+      "destination" : "Madrid",
+      "endDateTime" : "2026-07-10T11:00:00+02:00",
+      "eventDate" : "2026-07-08",
+      "location" : "Hotel Atlantico Madrid",
+      "notes" : "Check-in at 15:00 on 2026-07-08. Check-out by 11:00 on 2026-07-10.",
+      "origin" : "Madrid",
+      "startDateTime" : "2026-07-08T15:00:00+02:00",
+      "title" : "Hotel Atlantico Madrid"
+    },
+    "id" : "europe-travel",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-travel.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-travel.json"
+  },
+  {
+    "actualKind" : "interview",
+    "durationSeconds" : 15.539973020553589,
+    "expectedKind" : "interview",
+    "fields" : {
+      "company" : "Booking.com",
+      "contact" : "recruiting-eu@example.com",
+      "endDateTime" : "2026-07-09T14:00:00+02:00",
+      "interviewer" : "Sofia Janssen",
+      "location" : "Google Meet",
+      "meetingLink" : "https://meet.google.com/xxx-xxxx-xxx",
+      "notes" : "Please join 5 minutes early",
+      "role" : "iOS Engineer",
+      "startDateTime" : "2026-07-09T13:00:00+02:00",
+      "title" : "Booking.com iOS Engineer"
+    },
+    "id" : "europe-interview",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-interview.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "title",
+      "startDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-interview.json"
+  },
+  {
+    "actualKind" : "deadline",
+    "durationSeconds" : 14.961593985557556,
+    "expectedKind" : "deadline",
+    "fields" : {
+      "deadlineDateTime" : "2026-07-15T17:00:00+02:00",
+      "eventDate" : "2026-07-15",
+      "notes" : "Late submission is not accepted",
+      "owner" : "Research Office",
+      "project" : "Horizon Pilot",
+      "submissionChannel" : "Funding portal",
+      "title" : "EU grant progress report"
+    },
+    "id" : "europe-deadline",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-deadline.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+      "title",
+      "deadlineDateTime"
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-deadline.json"
+  },
+  {
+    "actualKind" : "unknown",
+    "durationSeconds" : 13.639634013175964,
+    "expectedKind" : "unknown",
+    "fields" : {
+      "notes" : "No appointment, trip, task, or deadline. Customer service: +33 1 00 00 00 00",
+      "title" : "Museum Membership Card"
+    },
+    "id" : "europe-unknown",
+    "imagePath" : "docs/e2e-results/20260630-011026/samples/europe-unknown.png",
+    "missingFields" : [
+
+    ],
+    "passed" : true,
+    "region" : "Europe",
+    "requiredFields" : [
+
+    ],
+    "resultPath" : "docs/e2e-results/20260630-011026/results/europe-unknown.json"
+  }
+]

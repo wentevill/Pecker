@@ -35,12 +35,39 @@ import Testing
     #expect(json["model"] as? String == "gpt-test")
     #expect(json["messages"] != nil)
     #expect(json["response_format"] == nil)
+    #expect(json["enable_thinking"] == nil)
     #expect(String(data: body, encoding: .utf8)?.contains("G123 \u{4e0a}\u{6d77}\u{8679}\u{6865}") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:16:40.000Z") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("1970-01-01T00:33:20.000Z") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("isAllDay: false") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("event recognition skill") == true)
     #expect(String(data: body, encoding: .utf8)?.contains("unknown") == true)
+}
+
+@Test func openAIProviderDisablesThinkingForAlibabaModelStudioHosts() throws {
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            apiKey: "sk-test",
+            model: "qwen3.7-plus"
+        )
+    )
+
+    let request = try provider.makeRequest(
+        for: .reminder(
+            sourceIdentifier: "reminder-1",
+            title: "\u{63d0}\u{4ea4}\u{62a5}\u{544a}",
+            dueDate: nil,
+            endDate: nil,
+            notes: nil
+        )
+    )
+
+    let body = try #require(request.httpBody)
+    let json = try #require(
+        JSONSerialization.jsonObject(with: body) as? [String: Any]
+    )
+    #expect(json["enable_thinking"] as? Bool == false)
 }
 
 @Test func openAIProviderDoesNotDuplicateV1InHost() throws {

@@ -204,7 +204,26 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             body["tool_choice"] = choice.jsonValue
             body["parallel_tool_calls"] = false
         }
+        if usesAlibabaModelStudio {
+            body["enable_thinking"] = false
+        }
         return body
+    }
+
+    private var usesAlibabaModelStudio: Bool {
+        let trimmed = configuration.host.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        guard let host = URLComponents(string: trimmed)?.host?.lowercased()
+        else {
+            return false
+        }
+        return [
+            "maas.aliyuncs.com",
+            "dashscope.aliyuncs.com"
+        ].contains { domain in
+            host == domain || host.hasSuffix(".\(domain)")
+        }
     }
 
     private func userContent(

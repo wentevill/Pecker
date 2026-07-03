@@ -4,11 +4,12 @@ import PeckerCore
 enum ItemDetailAction {
     static func primaryButtonTitle(
         for item: TimelineItem,
-        settings: TimelineSettings
+        settings: TimelineSettings,
+        localizer: AppLocalizer = AppLocalizer(language: .simplifiedChinese)
     ) -> String {
         settings.manualPinnedSourceIdentifier == item.sourceIdentifier
-            ? "\u{53d6}\u{6d88}\u{56fa}\u{5b9a}"
-            : "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}"
+            ? localizer.string("pin.action.unpin")
+            : localizer.string("pin.action.pin")
     }
 
     static func updatedSettings(
@@ -23,54 +24,136 @@ enum ItemDetailAction {
         }
         return updated
     }
+
+    static func visibleCustomFields(
+        _ fields: [EventCustomField]
+    ) -> [EventCustomField] {
+        fields.filter {
+            !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
 }
 
 struct ItemDetailView: View {
-    let item: TimelineItem
+    static let navigationTitle = "详情"
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var displayedItem: TimelineItem
+    @State private var editingRecord: TimelineRecordEditor?
+    @State private var pendingDelete = false
+    @State private var mutationError: String?
+    @State private var isDeleting = false
+
     let now: Date
     @Bindable var settingsStore: SettingsStore
+    let localizer: AppLocalizer
+    let timelineManager: TimelineManagerModel?
     let onSettingsChanged: () -> Void
+
+    init(
+        item: TimelineItem,
+        now: Date,
+        settingsStore: SettingsStore,
+        localizer: AppLocalizer = AppLocalizer(language: .system),
+        timelineManager: TimelineManagerModel? = nil,
+        onSettingsChanged: @escaping () -> Void
+    ) {
+        _displayedItem = State(initialValue: item)
+        self.now = now
+        self.settingsStore = settingsStore
+        self.localizer = localizer
+        self.timelineManager = timelineManager
+        self.onSettingsChanged = onSettingsChanged
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 header
 
-                if case let .trainTicket(ticket) = item.template {
+                if case let .trainTicket(ticket) = displayedItem.template {
                     TrainTicketTemplateView(
                         ticket: ticket,
-                        fallbackDepartureTime: item.startDate,
-                        fallbackArrivalTime: item.endDate
+                        fallbackDepartureTime: displayedItem.startDate,
+                        fallbackArrivalTime: displayedItem.endDate,
+                        localizer: localizer
                     )
                 }
 
                 TimelineCard(accent: .neutral) {
                     VStack(alignment: .leading, spacing: 12) {
-                        detailRow(title: "\u{6765}\u{6e90}", value: sourceText)
-                        detailRow(title: "\u{7c7b}\u{578b}", value: kindText)
-                        detailRow(title: "\u{65f6}\u{95f4}", value: timingText(now: now))
-                        detailRow(title: "\u{5730}\u{70b9}", value: item.location.nilIfEmpty ?? "—")
-                        detailRow(title: "\u{5907}\u{6ce8}", value: item.notes.nilIfEmpty ?? "—")
+                        detailRow(title: localizer.string("detail.source"), value: sourceText)
+                        detailRow(title: localizer.string("detail.kind"), value: kindText)
+                        detailRow(title: localizer.string("common.time"), value: timingText(now: now))
+                        detailRow(title: localizer.string("detail.location"), value: displayedItem.location.nilIfEmpty ?? "—")
+                        detailRow(title: localizer.string("detail.notes"), value: displayedItem.notes.nilIfEmpty ?? "—")
+                        ForEach(
+                            ItemDetailAction.visibleCustomFields(
+                                displayedItem.customFields
+                            )
+                        ) { field in
+                            detailRow(title: field.name, value: field.value)
+                        }
                     }
                 }
-
-                actionButton
             }
             .frame(maxWidth: 760, alignment: .leading)
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 82)
         }
         .background(TimelineTheme.backgroundGradient.ignoresSafeArea())
         .foregroundStyle(TimelineTheme.textPrimary)
-        .navigationTitle(Self.navigationTitle)
+        .navigationTitle(localizer.string("detail.title"))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isEditable {
+                ToolbarItem(placement: .topBarTrailing) {
+                    detailActionsMenu
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            pinActionInset
+        }
+        .sheet(item: $editingRecord) { editor in
+            TimelineRecordEditorView(
+                editor: editor,
+                localizer: localizer
+            ) { editor in
+                try await save(editor)
+            }
+        }
+        .alert(
+            localizer.string("delete.confirmation.title"),
+            isPresented: $pendingDelete
+        ) {
+            Button(localizer.string("common.delete"), role: .destructive) {
+                Task { await deleteDisplayedItem() }
+            }
+            Button(localizer.string("common.cancel"), role: .cancel) {
+                pendingDelete = false
+            }
+        } message: {
+            Text(localizer.string("delete.confirmation.message"))
+        }
+        .alert(
+            localizer.string("operation.failed"),
+            isPresented: Binding(
+                get: { mutationError != nil },
+                set: { if !$0 { mutationError = nil } }
+            )
+        ) {
+            Button(localizer.string("common.ok")) { mutationError = nil }
+        } message: {
+            Text(mutationError ?? "")
+        }
     }
-
-    static let navigationTitle = "\u{8be6}\u{60c5}"
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(item.title)
+            Text(displayedItem.title)
                 .font(.largeTitle.weight(.bold))
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -80,21 +163,83 @@ struct ItemDetailView: View {
         }
     }
 
-    private var actionButton: some View {
-        Button {
-            togglePin()
+    private var detailActionsMenu: some View {
+        Menu {
+            Button(action: openEditor) {
+                Label(localizer.string("common.edit"), systemImage: "pencil")
+            }
+
+            Button(role: .destructive) {
+                pendingDelete = true
+            } label: {
+                Label(localizer.string("common.delete"), systemImage: "trash")
+            }
+            .disabled(isDeleting)
         } label: {
-            TimelineCard(accent: settingsStore.value.manualPinnedSourceIdentifier == item.sourceIdentifier ? .pinned : .neutral) {
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: settingsStore.value.manualPinnedSourceIdentifier == item.sourceIdentifier ? "pin.fill" : "pin")
-                        .foregroundStyle(settingsStore.value.manualPinnedSourceIdentifier == item.sourceIdentifier ? TimelineTheme.color(for: .pinned) : TimelineTheme.textPrimary)
-                    Text(ItemDetailAction.primaryButtonTitle(for: item, settings: settingsStore.value))
-                        .font(.headline.weight(.semibold))
-                    Spacer(minLength: 8)
-                }
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(TimelineTheme.textPrimary)
+        }
+        .accessibilityLabel(localizer.string("common.moreActions"))
+    }
+
+    private var pinActionInset: some View {
+        HStack {
+            Spacer(minLength: 0)
+            pinButton
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
+        .background {
+            LinearGradient(
+                colors: [
+                    TimelineTheme.cardFallbackFill.opacity(0),
+                    TimelineTheme.cardFallbackFill.opacity(0.74)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    private var pinButton: some View {
+        Button(action: togglePin) {
+            Label {
+                Text(
+                    ItemDetailAction.primaryButtonTitle(
+                        for: displayedItem,
+                        settings: settingsStore.value,
+                        localizer: localizer
+                    )
+                )
+            } icon: {
+                Image(systemName: isPinned ? "pin.fill" : "pin")
+            }
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.86)
+            .padding(.horizontal, 18)
+            .frame(height: 46)
+            .background {
+                Capsule()
+                    .fill(.regularMaterial)
+                    .shadow(
+                        color: TimelineTheme.cardShadow.opacity(0.72),
+                        radius: 18,
+                        x: 0,
+                        y: 10
+                    )
+            }
+            .overlay {
+                Capsule()
+                    .stroke(TimelineTheme.cardStroke, lineWidth: 1)
             }
         }
         .buttonStyle(.plain)
+        .foregroundStyle(TimelineTheme.textPrimary)
     }
 
     private var summaryText: String {
@@ -102,61 +247,65 @@ struct ItemDetailView: View {
         return [
             sourceText,
             kindText,
-            item.isAllDay ? "\u{5168}\u{5929}" : "\u{5b9a}\u{65f6}",
-            ItemDetailAction.primaryButtonTitle(for: item, settings: settings)
+            displayedItem.isAllDay ? localizer.string("timeline.section.allDay") : localizer.string("detail.timed"),
+            ItemDetailAction.primaryButtonTitle(
+                for: displayedItem,
+                settings: settings,
+                localizer: localizer
+            )
         ]
         .joined(separator: " · ")
     }
 
     private var sourceText: String {
-        switch item.source {
-        case .calendar: "\u{65e5}\u{5386}"
-        case .reminder: "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
+        switch displayedItem.source {
+        case .calendar: localizer.string("source.calendar")
+        case .reminder: localizer.string("source.reminders")
         case .external: "Pecker"
         }
     }
 
     private var kindText: String {
-        switch item.kind {
+        switch displayedItem.kind {
         case .meeting:
-            "\u{4f1a}\u{8bae}"
+            localizer.string("timeline.kind.meeting")
         case .task:
-            "\u{5f85}\u{529e}"
+            localizer.string("timeline.kind.task")
         case .flight:
-            "\u{822a}\u{73ed}"
+            localizer.string("timeline.kind.flight")
         case .train:
-            "\u{706b}\u{8f66}"
+            localizer.string("timeline.kind.train")
         case .travel:
-            "\u{884c}\u{7a0b}"
+            localizer.string("timeline.kind.travel")
         case .interview:
-            "\u{9762}\u{8bd5}"
+            localizer.string("timeline.kind.interview")
         case .deadline:
-            "\u{622a}\u{6b62}"
+            localizer.string("timeline.kind.deadline")
         case .unknown:
-            "\u{672a}\u{5206}\u{7c7b}"
+            localizer.string("timeline.kind.unknown")
         }
     }
 
     private func timingText(now: Date) -> String {
         let formatter = Date.FormatStyle()
-            .locale(Locale(identifier: "zh_CN"))
+            .locale(localizer.locale)
             .hour(.defaultDigits(amPM: .omitted))
             .minute()
 
-        if item.isAllDay {
-            return "\u{5168}\u{5929}"
+        if displayedItem.isAllDay {
+            return localizer.string("timeline.section.allDay")
         }
 
-        guard let endDate = item.endDate else {
-            return item.startDate.formatted(formatter)
+        guard let endDate = displayedItem.endDate else {
+            return displayedItem.startDate.formatted(formatter)
         }
 
-        let range = "\(item.startDate.formatted(formatter)) – \(endDate.formatted(formatter))"
-        if item.startDate <= now, endDate > now {
-            return "\(range) · \u{8fdb}\u{884c}\u{4e2d}"
+        let range = "\(displayedItem.startDate.formatted(formatter)) – \(endDate.formatted(formatter))"
+        if displayedItem.startDate <= now, endDate > now {
+            return "\(range) · \(localizer.string("timeline.section.active"))"
         }
         if endDate <= now {
-            return "\(range) · \u{5df2}\u{7ed3}\u{675f}"
+            return "\(range) · \(localizer.string("timeline.section.elapsed"))"
         }
         return range
     }
@@ -180,11 +329,53 @@ struct ItemDetailView: View {
         let current = settingsStore.value
         settingsStore.update {
             $0 = ItemDetailAction.updatedSettings(
-                byTogglingPinFor: item,
+                byTogglingPinFor: displayedItem,
                 settings: current
             )
         }
         onSettingsChanged()
+    }
+
+    private var isPinned: Bool {
+        settingsStore.value.manualPinnedSourceIdentifier == displayedItem.sourceIdentifier
+    }
+
+    private var isEditable: Bool {
+        timelineManager?.isEditable(displayedItem) == true
+    }
+
+    private func openEditor() {
+        guard let timelineManager else {
+            return
+        }
+        do {
+            editingRecord = try timelineManager.editor(for: displayedItem)
+        } catch {
+            mutationError = localizer.string("editor.open.error")
+        }
+    }
+
+    private func save(_ editor: TimelineRecordEditor) async throws {
+        guard let timelineManager else {
+            return
+        }
+        if let updated = try await timelineManager.save(editor) {
+            displayedItem = updated
+        }
+    }
+
+    private func deleteDisplayedItem() async {
+        guard let timelineManager else {
+            return
+        }
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            try await timelineManager.delete(displayedItem)
+            dismiss()
+        } catch {
+            mutationError = localizer.string("delete.error")
+        }
     }
 }
 
@@ -192,6 +383,7 @@ private struct TrainTicketTemplateView: View {
     let ticket: TrainTicketTemplate
     let fallbackDepartureTime: Date
     let fallbackArrivalTime: Date?
+    let localizer: AppLocalizer
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -237,7 +429,7 @@ private struct TrainTicketTemplateView: View {
     private var ticketHeader: some View {
         HStack(alignment: .center, spacing: 12) {
             Label {
-                Text("\u{706b}\u{8f66}\u{7968}")
+                Text(localizer.string("train.ticket.title"))
                     .font(.subheadline.weight(.bold))
             } icon: {
                 Image(systemName: "train.side.front.car")
@@ -247,7 +439,7 @@ private struct TrainTicketTemplateView: View {
 
             Spacer(minLength: 8)
 
-            Text(ticket.trainNumber ?? "\u{5f85}\u{8bc6}\u{522b}\u{8f66}\u{6b21}")
+            Text(ticket.trainNumber ?? localizer.string("train.ticket.unknownTrain"))
                 .font(.title2.weight(.black))
                 .monospacedDigit()
                 .foregroundStyle(
@@ -266,7 +458,7 @@ private struct TrainTicketTemplateView: View {
     private var routeRow: some View {
         HStack(alignment: .center, spacing: 12) {
             stationBlock(
-                title: ticket.departureStation ?? "\u{51fa}\u{53d1}\u{7ad9}",
+                title: ticket.departureStation ?? localizer.string("train.ticket.departureStation"),
                 alignment: .leading
             )
 
@@ -281,7 +473,7 @@ private struct TrainTicketTemplateView: View {
             .frame(maxWidth: 90)
 
             stationBlock(
-                title: ticket.arrivalStation ?? "\u{5230}\u{8fbe}\u{7ad9}",
+                title: ticket.arrivalStation ?? localizer.string("train.ticket.arrivalStation"),
                 alignment: .trailing
             )
         }
@@ -307,9 +499,9 @@ private struct TrainTicketTemplateView: View {
 
     private var timeRow: some View {
         HStack(alignment: .top, spacing: 12) {
-            timeBlock(label: "\u{51fa}\u{53d1}", value: departureTimeText)
+            timeBlock(label: localizer.string("train.ticket.departure"), value: departureTimeText)
             Spacer(minLength: 12)
-            timeBlock(label: "\u{5230}\u{8fbe}", value: arrivalTimeText)
+            timeBlock(label: localizer.string("train.ticket.arrival"), value: arrivalTimeText)
         }
     }
 
@@ -327,17 +519,17 @@ private struct TrainTicketTemplateView: View {
 
     private var chips: [String] {
         [
-            ticket.carriageNumber.map { "\($0)\u{8f66}\u{53a2}" },
-            ticket.seatNumber.map { "\($0)\u{5ea7}" },
-            ticket.checkInGate.map { "\u{68c0}\u{7968}\u{53e3} \($0)" },
-            ticket.passengerName.map { "\u{4e58}\u{8f66}\u{4eba} \($0)" },
-            ticket.ticketNumber.map { "\u{7968}\u{53f7} \($0)" }
+            ticket.carriageNumber.map { localizer.string("train.ticket.carriageValue", $0) },
+            ticket.seatNumber.map { localizer.string("train.ticket.seatValue", $0) },
+            ticket.checkInGate.map { localizer.string("train.ticket.gateValue", $0) },
+            ticket.passengerName.map { localizer.string("train.ticket.passengerValue", $0) },
+            ticket.ticketNumber.map { localizer.string("train.ticket.numberValue", $0) }
         ]
         .compactMap(\.self)
     }
 
     private var departureTimeText: String {
-        ticket.departureTimeText ?? Self.timeText(fallbackDepartureTime)
+        ticket.departureTimeText ?? timeText(fallbackDepartureTime)
     }
 
     private var arrivalTimeText: String {
@@ -347,7 +539,7 @@ private struct TrainTicketTemplateView: View {
         guard let fallbackArrivalTime else {
             return "—"
         }
-        return Self.timeText(fallbackArrivalTime)
+        return timeText(fallbackArrivalTime)
     }
 
     private var ticketBackground: some ShapeStyle {
@@ -363,26 +555,26 @@ private struct TrainTicketTemplateView: View {
 
     private var accessibilityLabel: String {
         [
-            "\u{706b}\u{8f66}\u{7968}",
+            localizer.string("train.ticket.title"),
             ticket.trainNumber,
             ticket.departureStation,
             ticket.arrivalStation,
-            "\u{51fa}\u{53d1} \(departureTimeText)",
-            "\u{5230}\u{8fbe} \(arrivalTimeText)",
-            ticket.carriageNumber.map { "\($0)\u{8f66}\u{53a2}" },
-            ticket.seatNumber.map { "\($0)\u{5ea7}" },
-            ticket.checkInGate.map { "\u{68c0}\u{7968}\u{53e3} \($0)" }
+            localizer.string("train.ticket.departureValue", departureTimeText),
+            localizer.string("train.ticket.arrivalValue", arrivalTimeText),
+            ticket.carriageNumber.map { localizer.string("train.ticket.carriageValue", $0) },
+            ticket.seatNumber.map { localizer.string("train.ticket.seatValue", $0) },
+            ticket.checkInGate.map { localizer.string("train.ticket.gateValue", $0) }
         ]
         .compactMap(\.self)
-        .joined(separator: "，")
+        .joined(separator: ", ")
     }
 
-    private static func timeText(_ date: Date) -> String {
+    private func timeText(_ date: Date) -> String {
         date.formatted(
             Date.FormatStyle()
                 .hour(.defaultDigits(amPM: .omitted))
                 .minute()
-                .locale(Locale(identifier: "zh_CN"))
+                .locale(localizer.locale)
         )
     }
 }
@@ -484,6 +676,7 @@ private struct ItemDetailPreviewHost: View {
                 item: TodayPreviewFixtures.flightItem(),
                 now: TodayPreviewFixtures.makeSampleNow(),
                 settingsStore: settingsStore,
+                localizer: AppLocalizer(language: .english),
                 onSettingsChanged: {}
             )
         }
@@ -511,6 +704,7 @@ private struct ItemDetailPreviewHost: View {
             ),
             now: TodayPreviewFixtures.makeSampleNow(),
             settingsStore: SettingsStore(defaults: UserDefaults(suiteName: "preview.detail.notes") ?? .standard),
+            localizer: AppLocalizer(language: .english),
             onSettingsChanged: {}
         )
         .dynamicTypeSize(.xxLarge)
@@ -523,18 +717,18 @@ private struct ItemDetailPreviewHost: View {
             item: TimelineItem(
                 id: "train-ticket",
                 sourceIdentifier: "train-ticket",
-                title: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865} → \u{5317}\u{4eac}\u{5357}",
+                title: "G123 Shanghai Hongqiao to Beijing South",
                 startDate: TodayPreviewFixtures.makeSampleNow(),
                 endDate: TodayPreviewFixtures.makeSampleNow().addingTimeInterval(4 * 3_600),
                 isAllDay: false,
                 source: .calendar,
                 kind: .train,
-                location: "\u{68c0}\u{7968}\u{53e3} B7",
-                notes: "08\u{8f66} 03A",
+                location: "Gate B7",
+                notes: "Carriage 08, seat 03A",
                 template: .trainTicket(.init(
                     trainNumber: "G123",
-                    departureStation: "\u{4e0a}\u{6d77}\u{8679}\u{6865}",
-                    arrivalStation: "\u{5317}\u{4eac}\u{5357}",
+                    departureStation: "Shanghai Hongqiao",
+                    arrivalStation: "Beijing South",
                     departureTimeText: "08:30",
                     arrivalTimeText: "13:12",
                     carriageNumber: "08",
@@ -546,6 +740,7 @@ private struct ItemDetailPreviewHost: View {
             ),
             now: TodayPreviewFixtures.makeSampleNow(),
             settingsStore: SettingsStore(defaults: UserDefaults(suiteName: "preview.detail.train") ?? .standard),
+            localizer: AppLocalizer(language: .english),
             onSettingsChanged: {}
         )
     }

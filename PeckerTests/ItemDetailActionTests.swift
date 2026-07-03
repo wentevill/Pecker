@@ -49,6 +49,19 @@ final class ItemDetailActionTests: XCTestCase {
         XCTAssertEqual(item, originalItem)
     }
 
+    func testVisibleCustomFieldsDropsBlankRowsWithoutReordering() {
+        let fields = [
+            EventCustomField(id: "one", name: "Booking", value: "K8X2"),
+            EventCustomField(id: "blank", name: " ", value: " "),
+            EventCustomField(id: "two", name: "Seat", value: "18A")
+        ]
+
+        XCTAssertEqual(
+            ItemDetailAction.visibleCustomFields(fields),
+            [fields[0], fields[2]]
+        )
+    }
+
     private func makeItem() -> TimelineItem {
         TimelineItem(
             id: "calendar:event-1",

@@ -1,8 +1,4 @@
 <p align="center">
-<a href="https://github.com/wentevill/Pecker"><img src="demo.png" alt="Pecker Demo" width="300px"></a>
-</p>
-
-<p align="center">
 <b>A smart timeline app for capturing and organizing your important moments</b>
 </p>
 
@@ -16,9 +12,9 @@
 
 ## English
 
-### What is Pecker
-
 [English](#english) | [中文](#中文)
+
+### What is Pecker
 
 Pecker is a native iOS application designed to help you manage and organize your timeline of important events and activities. The app features a beautiful dark theme interface and leverages Apple's latest technologies including Live Activities and Dynamic Island support to keep you informed about your current priorities.
 
@@ -35,19 +31,6 @@ With Pecker, you can:
 - **Dark Theme UI** - Beautiful, modern interface with a dark color scheme
 - **Smart Notifications** - Stay informed about your current priorities
 - **Seamless Integration** - Native iOS 16+ support with latest Apple frameworks
-
-### Screenshots
-
-<table>
-  <tr>
-      <td width="50%" align="center"><b>Now Timeline</b></td>
-      <td width="50%" align="center"><b>Dark Theme Design</b></td>
-  </tr>
-  <tr>
-     <td><img src="demo.png" width="100%"/></td>
-     <td><img src="demo.png" width="100%"/></td>
-  </tr>
-</table>
 
 ### System Requirements
 
@@ -105,19 +88,6 @@ Pecker 是一个原生 iOS 应用，旨在帮助您管理和组织您的重要�
 - **深色主题 UI** - 美观、现代的深色主题界面
 - **智能通知** - 随时了解您的当前优先事项
 - **无缝集成** - 原生 iOS 16+ 支持，集成最新 Apple 框架
-
-### 截图
-
-<table>
-  <tr>
-      <td width="50%" align="center"><b>Now 时间线</b></td>
-      <td width="50%" align="center"><b>深色主题设计</b></td>
-  </tr>
-  <tr>
-     <td><img src="demo.png" width="100%"/></td>
-     <td><img src="demo.png" width="100%"/></td>
-  </tr>
-</table>
 
 ### 系统要求
 

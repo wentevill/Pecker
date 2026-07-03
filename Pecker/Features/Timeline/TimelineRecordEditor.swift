@@ -11,6 +11,14 @@ enum TimelineRecordEditorError: Error, Equatable {
     case duplicateCustomField(ids: [String])
 }
 
+enum EditorSectionKind: Equatable {
+    case common
+    case flight
+    case train
+    case travel
+    case custom
+}
+
 struct TimelineRecordEditor: Equatable, Identifiable {
     private let original: StoredEventRecord
 
@@ -72,10 +80,18 @@ struct TimelineRecordEditor: Equatable, Identifiable {
             location = event.location ?? location
             notes = event.notes ?? notes
             trainNumber = ""
-            departureStation = ""
-            arrivalStation = ""
-            departureTimeText = ""
-            arrivalTimeText = ""
+            departureStation = event.kind == .travel
+                ? event.fields["origin"] ?? ""
+                : ""
+            arrivalStation = event.kind == .travel
+                ? event.fields["destination"] ?? ""
+                : ""
+            departureTimeText = event.kind == .travel
+                ? event.fields["departureTime"] ?? ""
+                : ""
+            arrivalTimeText = event.kind == .travel
+                ? event.fields["arrivalTime"] ?? ""
+                : ""
             carriageNumber = ""
             seatNumber = ""
             checkInGate = ""
@@ -95,7 +111,9 @@ struct TimelineRecordEditor: Equatable, Identifiable {
             travelStatus = ""
             customFields = Self.initialCustomFields(
                 record: record,
-                legacyFields: event.fields
+                legacyFields: event.kind == .travel
+                    ? event.fields.filter { !Self.travelFieldKeys.contains($0.key) }
+                    : event.fields
             )
         case let .trainTicket(ticket):
             title = ticket.trainNumber ?? record.rawTitle ?? "Train ticket"
@@ -215,6 +233,30 @@ struct TimelineRecordEditor: Equatable, Identifiable {
         return nil
     }
 
+    static func sections(for kind: TimelineKind) -> [EditorSectionKind] {
+        switch kind {
+        case .flight:
+            [.common, .flight, .custom]
+        case .train:
+            [.common, .train, .custom]
+        case .travel:
+            [.common, .travel, .custom]
+        case .meeting, .task, .interview, .deadline, .unknown:
+            [.common, .custom]
+        }
+    }
+
+    static func updatedEndDate(
+        hasEndDate: Bool,
+        current: Date?,
+        start: Date
+    ) -> Date? {
+        guard hasEndDate else {
+            return nil
+        }
+        return current ?? start.addingTimeInterval(1_800)
+    }
+
     func makeRecord(updatedAt: Date) throws -> StoredEventRecord {
         if let validationError {
             throw validationError
@@ -267,7 +309,7 @@ struct TimelineRecordEditor: Equatable, Identifiable {
                 title: cleanTitle,
                 location: cleanLocation,
                 notes: cleanNotes,
-                fields: [:]
+                fields: structuredGenericFields
             ))
         }
 
@@ -285,7 +327,7 @@ struct TimelineRecordEditor: Equatable, Identifiable {
             template: template,
             recognitionStatus: .recognized,
             updatedAt: updatedAt,
-            customFields: normalizedCustomFields
+            customFields: customFieldsForSave
         )
     }
 
@@ -299,6 +341,84 @@ struct TimelineRecordEditor: Equatable, Identifiable {
             return EventCustomField(id: field.id, name: name, value: value)
         }
     }
+
+    private var customFieldsForSave: [EventCustomField] {
+        var result = normalizedCustomFields
+        let preserved: [(id: String, name: String, value: String)]
+        switch original.template {
+        case .flightTicket where kind != .flight:
+            preserved = [
+                ("flightNumber", "Flight number", flightNumber),
+                ("carrier", "Carrier", carrier),
+                ("departureAirport", "Departure airport", departureAirport),
+                ("departureAirportCode", "Departure code", departureAirportCode),
+                ("arrivalAirport", "Arrival airport", arrivalAirport),
+                ("arrivalAirportCode", "Arrival code", arrivalAirportCode),
+                ("departureTime", "Departure time", departureTimeText),
+                ("arrivalTime", "Arrival time", arrivalTimeText),
+                ("terminal", "Terminal", terminal),
+                ("gate", "Gate", gate),
+                ("seat", "Seat", seat),
+                ("travelStatus", "Status", travelStatus)
+            ]
+        case .trainTicket where kind != .train:
+            preserved = [
+                ("trainNumber", "Train number", trainNumber),
+                ("departureStation", "Departure station", departureStation),
+                ("arrivalStation", "Arrival station", arrivalStation),
+                ("departureTime", "Departure time", departureTimeText),
+                ("arrivalTime", "Arrival time", arrivalTimeText),
+                ("carriage", "Carriage", carriageNumber),
+                ("seat", "Seat", seatNumber),
+                ("checkInGate", "Gate", checkInGate),
+                ("passenger", "Passenger", passengerName),
+                ("seatClass", "Seat class", seatClass),
+                ("price", "Price", priceText),
+                ("ticketNumber", "Ticket number", ticketNumber)
+            ]
+        case .generic, .flightTicket, .trainTicket, nil:
+            preserved = []
+        }
+
+        for field in preserved {
+            guard let value = field.value.nilIfBlank else {
+                continue
+            }
+            let duplicate = result.contains {
+                $0.name.compare(
+                    field.name,
+                    options: [.caseInsensitive, .diacriticInsensitive]
+                ) == .orderedSame
+            }
+            if !duplicate {
+                result.append(.init(
+                    id: "preserved:\(field.id)",
+                    name: field.name,
+                    value: value
+                ))
+            }
+        }
+        return result
+    }
+
+    private var structuredGenericFields: [String: String] {
+        guard kind == .travel else {
+            return [:]
+        }
+        return [
+            "origin": departureStation,
+            "destination": arrivalStation,
+            "departureTime": departureTimeText,
+            "arrivalTime": arrivalTimeText
+        ].compactMapValues(\.nilIfBlank)
+    }
+
+    private static let travelFieldKeys: Set<String> = [
+        "origin",
+        "destination",
+        "departureTime",
+        "arrivalTime"
+    ]
 
     private static func initialCustomFields(
         record: StoredEventRecord,
@@ -358,12 +478,24 @@ private extension String {
 
 struct TimelineRecordEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editor: TimelineRecordEditor
     @State private var hasEndDate: Bool
     @State private var isSaving = false
     @State private var errorText: String?
+    @State private var showsDiscardConfirmation = false
+    @FocusState private var focusedField: FocusedField?
+    private let initialEditor: TimelineRecordEditor
     let localizer: AppLocalizer
     let onSave: (TimelineRecordEditor) async throws -> Void
+
+    private enum FocusedField: Hashable {
+        case title
+        case location
+        case notes
+        case customName(String)
+        case customValue(String)
+    }
 
     init(
         editor: TimelineRecordEditor,
@@ -372,121 +504,523 @@ struct TimelineRecordEditorView: View {
     ) {
         _editor = State(initialValue: editor)
         _hasEndDate = State(initialValue: editor.endDate != nil)
+        initialEditor = editor
         self.localizer = localizer
         self.onSave = onSave
     }
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                TimelineTheme.backgroundGradient.ignoresSafeArea()
-                Form {
-                    Section(localizer.string("editor.section.event")) {
-                        TextField(localizer.string("editor.title"), text: $editor.title)
-                        Picker(localizer.string("editor.kind"), selection: $editor.kind) {
-                            ForEach(TimelineKind.allCases, id: \.self) {
-                                Text(kindTitle($0)).tag($0)
-                            }
-                        }
-                        Toggle(localizer.string("editor.allDay"), isOn: $editor.isAllDay)
-                        DatePicker(localizer.string("editor.start"), selection: $editor.startDate)
-                        Toggle(localizer.string("editor.hasEndDate"), isOn: $hasEndDate)
-                        if hasEndDate {
-                            DatePicker(
-                                localizer.string("editor.end"),
-                                selection: Binding(
-                                    get: {
-                                        editor.endDate
-                                            ?? editor.startDate.addingTimeInterval(1_800)
-                                    },
-                                    set: { editor.endDate = $0 }
-                                )
-                            )
-                        }
-                        TextField(localizer.string("detail.location"), text: $editor.location)
-                        TextField(localizer.string("detail.notes"), text: $editor.notes, axis: .vertical)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 20) {
+                    hero
+                    kindPicker
+                    commonSection
+                    typeSpecificSection
+                        .id(editor.kind)
+                        .transition(
+                            reduceMotion
+                                ? .identity
+                                : .opacity.combined(with: .move(edge: .top))
+                        )
+                    customFieldsSection
+                    if let validationMessage {
+                        errorBanner(validationMessage)
                     }
-
-                    if editor.kind == .train {
-                        Section(localizer.string("editor.section.ticket")) {
-                            TextField(localizer.string("editor.trainNumber"), text: $editor.trainNumber)
-                            TextField(localizer.string("train.ticket.departureStation"), text: $editor.departureStation)
-                            TextField(localizer.string("train.ticket.arrivalStation"), text: $editor.arrivalStation)
-                            TextField(localizer.string("editor.departureTimeText"), text: $editor.departureTimeText)
-                            TextField(localizer.string("editor.arrivalTimeText"), text: $editor.arrivalTimeText)
-                            TextField(localizer.string("editor.carriage"), text: $editor.carriageNumber)
-                            TextField(localizer.string("editor.seat"), text: $editor.seatNumber)
-                            TextField(localizer.string("editor.gate"), text: $editor.checkInGate)
-                            TextField(localizer.string("editor.passengerName"), text: $editor.passengerName)
-                            TextField(localizer.string("editor.seatClass"), text: $editor.seatClass)
-                            TextField(localizer.string("editor.price"), text: $editor.priceText)
-                            TextField(localizer.string("editor.ticketNumber"), text: $editor.ticketNumber)
-                        }
-                    }
-
-                    if editor.kind == .flight {
-                        Section(localizer.string("editor.section.flight")) {
-                            TextField(localizer.string("editor.flightNumber"), text: $editor.flightNumber)
-                            TextField(localizer.string("editor.carrier"), text: $editor.carrier)
-                            TextField(localizer.string("editor.departureAirport"), text: $editor.departureAirport)
-                            TextField(localizer.string("editor.departureAirportCode"), text: $editor.departureAirportCode)
-                            TextField(localizer.string("editor.arrivalAirport"), text: $editor.arrivalAirport)
-                            TextField(localizer.string("editor.arrivalAirportCode"), text: $editor.arrivalAirportCode)
-                            TextField(localizer.string("editor.departureTimeText"), text: $editor.departureTimeText)
-                            TextField(localizer.string("editor.arrivalTimeText"), text: $editor.arrivalTimeText)
-                            TextField(localizer.string("editor.terminal"), text: $editor.terminal)
-                            TextField(localizer.string("editor.gate"), text: $editor.gate)
-                            TextField(localizer.string("editor.seat"), text: $editor.seat)
-                            TextField(localizer.string("editor.travelStatus"), text: $editor.travelStatus)
-                        }
-                    }
-
-                    if editor.kind != .train && editor.kind != .flight {
-                        Section(localizer.string("editor.section.fields")) {
-                            ForEach($editor.customFields) { $field in
-                                HStack(spacing: 10) {
-                                    TextField(localizer.string("editor.fieldName"), text: $field.name)
-                                    TextField(localizer.string("editor.fieldValue"), text: $field.value)
-                                }
-                            }
-                            Button {
-                                editor.customFields.append(.init(name: "", value: ""))
-                            } label: {
-                                Label(localizer.string("editor.addField"), systemImage: "plus")
-                            }
-                        }
-                    }
-
                     if let errorText {
-                        Text(errorText)
-                            .foregroundStyle(.red)
+                        errorBanner(errorText)
                     }
                 }
-                .scrollContentBackground(.hidden)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+                .padding(.bottom, 110)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(localizer.string("editor.title.navigation"))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(localizer.string("common.cancel")) { dismiss() }
+                    Button(localizer.string("common.cancel")) {
+                        cancel()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(localizer.string("common.save")) {
-                        if !hasEndDate {
-                            editor.endDate = nil
-                        }
-                        Task {
-                            isSaving = true
-                            defer { isSaving = false }
-                            do {
-                                try await onSave(editor)
-                                dismiss()
-                            } catch {
-                                errorText = localizer.string("editor.save.error")
-                            }
+                    Button {
+                        save()
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .controlSize(.small)
+                                .accessibilityLabel(
+                                    localizer.string("editor.save.progress")
+                                )
+                        } else {
+                            Text(localizer.string("common.save"))
                         }
                     }
                     .disabled(isSaving || editor.validationError != nil)
                 }
+            }
+            .safeAreaInset(edge: .bottom) {
+                if focusedField == nil {
+                    Button {
+                        save()
+                    } label: {
+                        Text(localizer.string("common.save"))
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.roundedRectangle(radius: 15))
+                    .tint(kindColor(editor.kind))
+                    .disabled(isSaving || editor.validationError != nil)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.bar)
+                }
+            }
+            .confirmationDialog(
+                localizer.string("editor.discard.title"),
+                isPresented: $showsDiscardConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(
+                    localizer.string("editor.discard.action"),
+                    role: .destructive
+                ) {
+                    dismiss()
+                }
+                Button(
+                    localizer.string("editor.continueEditing"),
+                    role: .cancel
+                ) {}
+            } message: {
+                Text(localizer.string("editor.discard.message"))
+            }
+        }
+        .interactiveDismissDisabled(editor != initialEditor)
+        .onChange(of: hasEndDate) { _, enabled in
+            editor.endDate = TimelineRecordEditor.updatedEndDate(
+                hasEndDate: enabled,
+                current: editor.endDate,
+                start: editor.startDate
+            )
+        }
+    }
+
+    private var hero: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: kindSymbol(editor.kind))
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(kindColor(editor.kind), in: RoundedRectangle(
+                    cornerRadius: 13,
+                    style: .continuous
+                ))
+
+            VStack(alignment: .leading, spacing: 5) {
+                TextField(
+                    localizer.string("editor.title"),
+                    text: $editor.title,
+                    axis: .vertical
+                )
+                .font(.title2.weight(.bold))
+                .textInputAutocapitalization(.sentences)
+                .focused($focusedField, equals: .title)
+
+                Text(editorSummary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    private var kindPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(TimelineKind.allCases, id: \.self) { kind in
+                    Button {
+                        withAnimation(
+                            reduceMotion
+                                ? nil
+                                : .snappy(duration: 0.24)
+                        ) {
+                            editor.kind = kind
+                        }
+                    } label: {
+                        Label(kindTitle(kind), systemImage: kindSymbol(kind))
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .frame(height: 36)
+                            .foregroundStyle(
+                                editor.kind == kind ? .white : .primary
+                            )
+                            .background(
+                                editor.kind == kind
+                                    ? kindColor(kind)
+                                    : Color(uiColor: .secondarySystemGroupedBackground),
+                                in: Capsule()
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(
+                        editor.kind == kind ? .isSelected : []
+                    )
+                }
+            }
+        }
+    }
+
+    private var commonSection: some View {
+        EditorSectionCard(
+            title: localizer.string("editor.section.common"),
+            systemImage: "calendar"
+        ) {
+            Toggle(
+                localizer.string("editor.allDay"),
+                isOn: $editor.isAllDay
+            )
+            EditorDivider()
+            DatePicker(
+                localizer.string("editor.start"),
+                selection: $editor.startDate
+            )
+            EditorDivider()
+            Toggle(
+                localizer.string("editor.hasEndDate"),
+                isOn: $hasEndDate
+            )
+            if hasEndDate {
+                EditorDivider()
+                DatePicker(
+                    localizer.string("editor.end"),
+                    selection: endDateBinding
+                )
+            }
+            EditorDivider()
+            EditorTextRow(
+                title: localizer.string("detail.location"),
+                text: $editor.location,
+                prompt: localizer.string("editor.location.prompt")
+            )
+            .focused($focusedField, equals: .location)
+            EditorDivider()
+            VStack(alignment: .leading, spacing: 8) {
+                Text(localizer.string("detail.notes"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextField(
+                    localizer.string("editor.notes.prompt"),
+                    text: $editor.notes,
+                    axis: .vertical
+                )
+                .lineLimit(2...6)
+                .focused($focusedField, equals: .notes)
+            }
+            .padding(.vertical, 11)
+        }
+    }
+
+    @ViewBuilder
+    private var typeSpecificSection: some View {
+        switch editor.kind {
+        case .flight:
+            flightSection
+        case .train:
+            trainSection
+        case .travel:
+            travelSection
+        case .meeting, .task, .interview, .deadline, .unknown:
+            EmptyView()
+        }
+    }
+
+    private var flightSection: some View {
+        EditorSectionCard(
+            title: localizer.string("editor.section.flight"),
+            systemImage: "airplane"
+        ) {
+            editorTextRows([
+                (localizer.string("editor.flightNumber"), $editor.flightNumber),
+                (localizer.string("editor.carrier"), $editor.carrier),
+                (localizer.string("editor.departureAirport"), $editor.departureAirport),
+                (localizer.string("editor.departureAirportCode"), $editor.departureAirportCode),
+                (localizer.string("editor.arrivalAirport"), $editor.arrivalAirport),
+                (localizer.string("editor.arrivalAirportCode"), $editor.arrivalAirportCode),
+                (localizer.string("editor.departureTimeText"), $editor.departureTimeText),
+                (localizer.string("editor.arrivalTimeText"), $editor.arrivalTimeText),
+                (localizer.string("editor.terminal"), $editor.terminal),
+                (localizer.string("editor.gate"), $editor.gate),
+                (localizer.string("editor.seat"), $editor.seat),
+                (localizer.string("editor.travelStatus"), $editor.travelStatus)
+            ])
+        }
+    }
+
+    private var trainSection: some View {
+        EditorSectionCard(
+            title: localizer.string("editor.section.ticket"),
+            systemImage: "tram.fill"
+        ) {
+            editorTextRows([
+                (localizer.string("editor.trainNumber"), $editor.trainNumber),
+                (localizer.string("train.ticket.departureStation"), $editor.departureStation),
+                (localizer.string("train.ticket.arrivalStation"), $editor.arrivalStation),
+                (localizer.string("editor.departureTimeText"), $editor.departureTimeText),
+                (localizer.string("editor.arrivalTimeText"), $editor.arrivalTimeText),
+                (localizer.string("editor.carriage"), $editor.carriageNumber),
+                (localizer.string("editor.seat"), $editor.seatNumber),
+                (localizer.string("editor.gate"), $editor.checkInGate),
+                (localizer.string("editor.passengerName"), $editor.passengerName),
+                (localizer.string("editor.seatClass"), $editor.seatClass),
+                (localizer.string("editor.price"), $editor.priceText),
+                (localizer.string("editor.ticketNumber"), $editor.ticketNumber)
+            ])
+        }
+    }
+
+    private var travelSection: some View {
+        EditorSectionCard(
+            title: localizer.string("editor.section.travel"),
+            systemImage: "suitcase.rolling.fill"
+        ) {
+            editorTextRows([
+                (localizer.string("editor.travel.origin"), $editor.departureStation),
+                (localizer.string("editor.travel.destination"), $editor.arrivalStation),
+                (localizer.string("editor.departureTimeText"), $editor.departureTimeText),
+                (localizer.string("editor.arrivalTimeText"), $editor.arrivalTimeText)
+            ])
+        }
+    }
+
+    private var customFieldsSection: some View {
+        EditorSectionCard(
+            title: localizer.string("editor.section.custom"),
+            systemImage: "list.bullet.rectangle.portrait"
+        ) {
+            if editor.customFields.isEmpty {
+                Text(localizer.string("editor.customField.empty"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 11)
+            } else {
+                ForEach($editor.customFields) { $field in
+                    customFieldRow($field)
+                    if field.id != editor.customFields.last?.id {
+                        EditorDivider()
+                    }
+                }
+            }
+
+            if !editor.customFields.isEmpty {
+                EditorDivider()
+            }
+
+            Button {
+                addCustomField()
+            } label: {
+                Label(
+                    localizer.string("editor.addField"),
+                    systemImage: "plus.circle.fill"
+                )
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(kindColor(editor.kind))
+        }
+    }
+
+    private func customFieldRow(
+        _ field: Binding<EventCustomField>
+    ) -> some View {
+        HStack(alignment: .center, spacing: 10) {
+            VStack(spacing: 8) {
+                TextField(
+                    localizer.string("editor.fieldName"),
+                    text: field.name
+                )
+                .font(.subheadline.weight(.semibold))
+                .focused(
+                    $focusedField,
+                    equals: .customName(field.wrappedValue.id)
+                )
+                .submitLabel(.next)
+                .onSubmit {
+                    focusedField = .customValue(field.wrappedValue.id)
+                }
+
+                TextField(
+                    localizer.string("editor.fieldValue"),
+                    text: field.value
+                )
+                .font(.body)
+                .focused(
+                    $focusedField,
+                    equals: .customValue(field.wrappedValue.id)
+                )
+                .submitLabel(.done)
+            }
+            .padding(.vertical, 10)
+
+            Button(role: .destructive) {
+                deleteCustomField(id: field.wrappedValue.id)
+            } label: {
+                Image(systemName: "minus.circle.fill")
+                    .font(.title3)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                localizer.string("editor.customField.delete.accessibility")
+            )
+
+            Image(systemName: "line.3.horizontal")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .frame(width: 30, height: 44)
+                .contentShape(Rectangle())
+                .draggable(field.wrappedValue.id)
+                .accessibilityLabel(
+                    localizer.string("editor.customField.reorder.accessibility")
+                )
+        }
+        .dropDestination(for: String.self) { ids, _ in
+            guard let draggedID = ids.first else {
+                return false
+            }
+            return moveCustomField(
+                id: draggedID,
+                before: field.wrappedValue.id
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func editorTextRows(
+        _ rows: [(String, Binding<String>)]
+    ) -> some View {
+        ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+            EditorTextRow(
+                title: row.0,
+                text: row.1,
+                prompt: localizer.string("editor.optional.prompt")
+            )
+            if index < rows.count - 1 {
+                EditorDivider()
+            }
+        }
+    }
+
+    private var endDateBinding: Binding<Date> {
+        Binding(
+            get: {
+                editor.endDate
+                    ?? editor.startDate.addingTimeInterval(1_800)
+            },
+            set: { editor.endDate = $0 }
+        )
+    }
+
+    private var editorSummary: String {
+        let style = Date.FormatStyle(date: .abbreviated, time: .shortened)
+            .locale(localizer.locale)
+        if let endDate = editor.endDate, hasEndDate {
+            return "\(editor.startDate.formatted(style)) – \(endDate.formatted(style))"
+        }
+        return editor.startDate.formatted(style)
+    }
+
+    private var validationMessage: String? {
+        switch editor.validationError {
+        case .emptyTitle:
+            localizer.string("editor.validation.title")
+        case .invalidDateRange:
+            localizer.string("editor.validation.dateRange")
+        case .incompleteCustomField:
+            localizer.string("editor.customField.incomplete")
+        case .duplicateCustomField:
+            localizer.string("editor.customField.duplicate")
+        case .readOnlySource, .missingStartDate, nil:
+            nil
+        }
+    }
+
+    private func errorBanner(_ text: String) -> some View {
+        Label(text, systemImage: "exclamationmark.circle.fill")
+            .font(.subheadline)
+            .foregroundStyle(.red)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.red.opacity(0.1), in: RoundedRectangle(
+                cornerRadius: 14,
+                style: .continuous
+            ))
+    }
+
+    private func addCustomField() {
+        let field = EventCustomField(name: "", value: "")
+        editor.customFields.append(field)
+        focusedField = .customName(field.id)
+    }
+
+    private func deleteCustomField(id: String) {
+        editor.customFields.removeAll { $0.id == id }
+        if focusedField == .customName(id)
+            || focusedField == .customValue(id)
+        {
+            focusedField = nil
+        }
+    }
+
+    private func moveCustomField(id: String, before targetID: String) -> Bool {
+        guard id != targetID,
+              let source = editor.customFields.firstIndex(
+                where: { $0.id == id }
+              ),
+              let target = editor.customFields.firstIndex(
+                where: { $0.id == targetID }
+              )
+        else {
+            return false
+        }
+        let field = editor.customFields.remove(at: source)
+        let insertion = source < target ? target - 1 : target
+        editor.customFields.insert(field, at: insertion)
+        return true
+    }
+
+    private func cancel() {
+        if editor == initialEditor {
+            dismiss()
+        } else {
+            showsDiscardConfirmation = true
+        }
+    }
+
+    private func save() {
+        guard !isSaving, editor.validationError == nil else {
+            return
+        }
+        if !hasEndDate {
+            editor.endDate = nil
+        }
+        focusedField = nil
+        errorText = nil
+        Task {
+            isSaving = true
+            defer { isSaving = false }
+            do {
+                try await onSave(editor)
+                dismiss()
+            } catch {
+                errorText = localizer.string("editor.save.error")
             }
         }
     }
@@ -502,5 +1036,98 @@ struct TimelineRecordEditorView: View {
         case .deadline: localizer.string("timeline.kind.deadline")
         case .unknown: localizer.string("timeline.kind.unknown")
         }
+    }
+
+    private func kindSymbol(_ kind: TimelineKind) -> String {
+        switch kind {
+        case .meeting: "person.2.fill"
+        case .task: "checkmark.circle.fill"
+        case .flight: "airplane"
+        case .train: "tram.fill"
+        case .travel: "suitcase.rolling.fill"
+        case .interview: "person.crop.rectangle.stack.fill"
+        case .deadline: "flag.checkered"
+        case .unknown: "sparkles"
+        }
+    }
+
+    private func kindColor(_ kind: TimelineKind) -> Color {
+        switch kind {
+        case .meeting: .blue
+        case .task: .green
+        case .flight: .indigo
+        case .train: .orange
+        case .travel: .teal
+        case .interview: .purple
+        case .deadline: .red
+        case .unknown: .gray
+        }
+    }
+}
+
+private struct EditorSectionCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    @ViewBuilder let content: Content
+
+    init(
+        title: String,
+        systemImage: String,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 2)
+                .padding(.bottom, 8)
+
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .padding(.horizontal, 14)
+            .background(
+                Color(uiColor: .secondarySystemGroupedBackground),
+                in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.primary.opacity(0.06), lineWidth: 0.5)
+            }
+        }
+    }
+}
+
+private struct EditorTextRow: View {
+    let title: String
+    @Binding var text: String
+    let prompt: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 112, alignment: .leading)
+
+            TextField(prompt, text: $text)
+                .font(.body)
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(minHeight: 46)
+    }
+}
+
+private struct EditorDivider: View {
+    var body: some View {
+        Divider()
+            .padding(.leading, 2)
     }
 }

@@ -36,7 +36,7 @@ enum ItemDetailAction {
 }
 
 struct ItemDetailView: View {
-    static let navigationTitle = "详情"
+    static let navigationTitleKey = "detail.title"
 
     @Environment(\.dismiss) private var dismiss
     @State private var displayedItem: TimelineItem
@@ -105,7 +105,7 @@ struct ItemDetailView: View {
         }
         .background(TimelineTheme.backgroundGradient.ignoresSafeArea())
         .foregroundStyle(TimelineTheme.textPrimary)
-        .navigationTitle(localizer.string("detail.title"))
+        .navigationTitle(localizer.string(Self.navigationTitleKey))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if isEditable {
@@ -124,6 +124,9 @@ struct ItemDetailView: View {
             ) { editor in
                 try await save(editor)
             }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(30)
         }
         .alert(
             localizer.string("delete.confirmation.title"),

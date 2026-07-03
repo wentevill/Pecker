@@ -4,8 +4,8 @@ import XCTest
 
 final class ItemDetailActionTests: XCTestCase {
     @MainActor
-    func testNavigationTitleUsesStableShortCopy() {
-        XCTAssertEqual(ItemDetailView.navigationTitle, "\u{8be6}\u{60c5}")
+    func testNavigationTitleUsesLocalizedKey() {
+        XCTAssertEqual(ItemDetailView.navigationTitleKey, "detail.title")
     }
 
     func testPrimaryButtonTitleReflectsPinnedState() {

@@ -341,6 +341,114 @@ final class TimelineRecordEditorTests: XCTestCase {
         XCTAssertTrue(event.fields.isEmpty)
     }
 
+    func testEditorSectionsAreTypeAwareAndAlwaysIncludeCustomFields() {
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .flight),
+            [.common, .flight, .custom]
+        )
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .train),
+            [.common, .train, .custom]
+        )
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .travel),
+            [.common, .travel, .custom]
+        )
+        for kind in TimelineKind.allCases
+        where kind != .flight && kind != .train && kind != .travel {
+            XCTAssertEqual(
+                TimelineRecordEditor.sections(for: kind),
+                [.common, .custom]
+            )
+        }
+    }
+
+    func testTravelEditorPersistsDedicatedRouteFields() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.kind = .travel
+        editor.departureStation = "Shanghai"
+        editor.arrivalStation = "Suzhou"
+        editor.departureTimeText = "09:00"
+        editor.arrivalTimeText = "10:30"
+
+        let updated = try editor.makeRecord(updatedAt: .now)
+
+        guard case let .generic(event) = updated.template else {
+            return XCTFail("Expected generic template")
+        }
+        XCTAssertEqual(event.fields["origin"], "Shanghai")
+        XCTAssertEqual(event.fields["destination"], "Suzhou")
+        XCTAssertEqual(event.fields["departureTime"], "09:00")
+        XCTAssertEqual(event.fields["arrivalTime"], "10:30")
+    }
+
+    func testDefaultEndDateIsCreatedWhenEndDateIsEnabled() {
+        let start = Date(timeIntervalSince1970: 1_000)
+
+        XCTAssertEqual(
+            TimelineRecordEditor.updatedEndDate(
+                hasEndDate: true,
+                current: nil,
+                start: start
+            ),
+            start.addingTimeInterval(1_800)
+        )
+        XCTAssertNil(
+            TimelineRecordEditor.updatedEndDate(
+                hasEndDate: false,
+                current: start.addingTimeInterval(1_800),
+                start: start
+            )
+        )
+    }
+
+    func testChangingFlightToTaskPreservesStructuredValuesAsCustomFields() throws {
+        let record = StoredEventRecord(
+            id: "image:converted-flight",
+            source: .importedImage,
+            sourceIdentifier: "converted-flight",
+            rawTitle: "SQ 833",
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: nil,
+            template: .flightTicket(.init(
+                flightNumber: "SQ 833",
+                carrier: "Singapore Airlines",
+                departureAirport: "Pudong",
+                departureAirportCode: "PVG",
+                arrivalAirport: "Changi",
+                arrivalAirportCode: "SIN",
+                departureTimeText: "14:35",
+                arrivalTimeText: "20:25",
+                terminal: "T2",
+                gate: "D75",
+                seat: "18A",
+                travelStatus: "Boarding"
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+        var editor = try TimelineRecordEditor(record: record)
+        editor.kind = .task
+
+        let updated = try editor.makeRecord(updatedAt: .now)
+
+        XCTAssertEqual(
+            updated.customFields.first { $0.name == "Flight number" }?.value,
+            "SQ 833"
+        )
+        XCTAssertEqual(
+            updated.customFields.first { $0.name == "Seat" }?.value,
+            "18A"
+        )
+        XCTAssertEqual(
+            Set(updated.customFields.map(\.id)).count,
+            updated.customFields.count
+        )
+    }
+
     func testTrainEditorPersistsEveryStructuredTicketField() throws {
         let record = StoredEventRecord(
             id: "image:train",

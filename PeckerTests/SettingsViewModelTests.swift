@@ -87,7 +87,6 @@ final class SettingsViewModelTests: XCTestCase {
     @MainActor
     func testLiveActivityRowStatusReflectsPreferenceState() {
         let store = makeStore()
-        let localizer = AppLocalizer(language: .simplifiedChinese)
         let viewModel = SettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
@@ -95,56 +94,37 @@ final class SettingsViewModelTests: XCTestCase {
             openURL: { _ in }
         )
 
-        XCTAssertEqual(
-            viewModel.liveActivityStatusText(localizer: localizer),
-            "\u{5df2}\u{6682}\u{505c}"
-        )
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{5df2}\u{6682}\u{505c}")
         store.update { $0.liveActivityEnabled = true }
-        XCTAssertEqual(
-            viewModel.liveActivityStatusText(localizer: localizer),
-            "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
-        )
-        XCTAssertFalse(
-            viewModel.liveActivityDescriptionText(localizer: localizer)
-                .contains("\u{5c1a}\u{672a}\u{63a5}\u{5165} ActivityKit")
-        )
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{7b49}\u{5f85}\u{5185}\u{5bb9}")
+        XCTAssertFalse(viewModel.liveActivityDescriptionText.contains("\u{5c1a}\u{672a}\u{63a5}\u{5165} ActivityKit"))
     }
 
     @MainActor
     func testLiveActivityRowUsesKnownRuntimeStatusWhenEnabled() {
         let store = makeStore()
-        let localizer = AppLocalizer(language: .simplifiedChinese)
         store.update { $0.liveActivityEnabled = true }
 
         let unavailable = SettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "unavailable" },
+            liveActivityStatusText: { "\u{6682}\u{4e0d}\u{53ef}\u{7528}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
-        XCTAssertEqual(
-            unavailable.liveActivityStatusText(localizer: localizer),
-            "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
-        )
+        XCTAssertEqual(unavailable.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
 
         let running = SettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "running" },
+            liveActivityStatusText: { "\u{8fd0}\u{884c}\u{4e2d}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
-        XCTAssertEqual(
-            running.liveActivityStatusText(localizer: localizer),
-            "\u{8fd0}\u{884c}\u{4e2d}"
-        )
+        XCTAssertEqual(running.liveActivityStatusText, "\u{8fd0}\u{884c}\u{4e2d}")
 
         store.update { $0.liveActivityEnabled = false }
-        XCTAssertEqual(
-            running.liveActivityStatusText(localizer: localizer),
-            "\u{5df2}\u{6682}\u{505c}"
-        )
+        XCTAssertEqual(running.liveActivityStatusText, "\u{5df2}\u{6682}\u{505c}")
     }
 
     @MainActor
@@ -175,7 +155,6 @@ final class SettingsViewModelTests: XCTestCase {
     @MainActor
     func testOpenAIAPIKeyStatusIsStoredOutsideSettingsPayload() throws {
         let store = makeStore()
-        let localizer = AppLocalizer(language: .simplifiedChinese)
         let keyStore = InMemoryAPIKeyStore()
         let viewModel = SettingsViewModel(
             settingsStore: store,
@@ -185,28 +164,19 @@ final class SettingsViewModelTests: XCTestCase {
             openURL: { _ in }
         )
 
-        XCTAssertEqual(
-            viewModel.openAIAPIKeyStatusText(localizer: localizer),
-            "\u{672a}\u{914d}\u{7f6e}"
-        )
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{672a}\u{914d}\u{7f6e}")
 
         try viewModel.saveOpenAIAPIKey(" sk-test ")
 
         XCTAssertEqual(try keyStore.loadOpenAIAPIKey(), "sk-test")
         XCTAssertTrue(store.value.openAIAPIKeyConfigured)
-        XCTAssertEqual(
-            viewModel.openAIAPIKeyStatusText(localizer: localizer),
-            "\u{5df2}\u{914d}\u{7f6e}"
-        )
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{5df2}\u{914d}\u{7f6e}")
 
         try viewModel.clearOpenAIAPIKey()
 
         XCTAssertNil(try keyStore.loadOpenAIAPIKey())
         XCTAssertFalse(store.value.openAIAPIKeyConfigured)
-        XCTAssertEqual(
-            viewModel.openAIAPIKeyStatusText(localizer: localizer),
-            "\u{672a}\u{914d}\u{7f6e}"
-        )
+        XCTAssertEqual(viewModel.openAIAPIKeyStatusText, "\u{672a}\u{914d}\u{7f6e}")
     }
 
     @MainActor

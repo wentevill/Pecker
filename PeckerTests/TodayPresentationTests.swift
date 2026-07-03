@@ -16,17 +16,12 @@ final class TodayPresentationTests: XCTestCase {
         let viewModel = TodayView.makeSettingsViewModel(
             settingsStore: store,
             authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
-            liveActivityStatusText: { "unavailable" },
+            liveActivityStatusText: { "\u{6682}\u{4e0d}\u{53ef}\u{7528}" },
             onSettingsChanged: {},
             openURL: { _ in }
         )
 
-        XCTAssertEqual(
-            viewModel.liveActivityStatusText(
-                localizer: AppLocalizer(language: .simplifiedChinese)
-            ),
-            "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
-        )
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     func testPartialAuthorizationProducesNonBlockingNotice() {
@@ -46,7 +41,6 @@ final class TodayPresentationTests: XCTestCase {
             now: Date(timeIntervalSince1970: 1_000),
             authorization: .init(calendar: .denied, reminders: .fullAccess),
             settings: .init(),
-            localizer: AppLocalizer(language: .simplifiedChinese),
             locale: Locale(identifier: "en_US_POSIX"),
             calendar: {
                 var calendar = Calendar(identifier: .gregorian)
@@ -70,7 +64,6 @@ final class TodayPresentationTests: XCTestCase {
             now: Date(timeIntervalSince1970: 1_000),
             authorization: .init(calendar: .denied, reminders: .fullAccess),
             settings: .init(calendarEnabled: true, remindersEnabled: true),
-            localizer: AppLocalizer(language: .simplifiedChinese),
             locale: Locale(identifier: "en_US_POSIX"),
             calendar: utcCalendar()
         )
@@ -179,18 +172,9 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     func testConcurrentTextIsShownOnlyForAdditionalActiveItems() {
-        let localizer = AppLocalizer(language: .simplifiedChinese)
-        XCTAssertNil(
-            TodayPresentation.concurrentText(
-                extraCount: 0,
-                localizer: localizer
-            )
-        )
+        XCTAssertNil(TodayPresentation.concurrentText(extraCount: 0))
         XCTAssertEqual(
-            TodayPresentation.concurrentText(
-                extraCount: 2,
-                localizer: localizer
-            ),
+            TodayPresentation.concurrentText(extraCount: 2),
             "\u{53e6}\u{6709} 2 \u{9879}\u{8fdb}\u{884c}\u{4e2d}"
         )
     }
@@ -224,7 +208,6 @@ final class TodayPresentationTests: XCTestCase {
         let content = TodayScreenContent.make(
             from: .content(snapshot),
             now: now,
-            localizer: AppLocalizer(language: .simplifiedChinese),
             locale: Locale(identifier: "zh_Hans_CN"),
             calendar: utcCalendar()
         )
@@ -262,14 +245,12 @@ final class TodayPresentationTests: XCTestCase {
         let runningContent = TodayScreenContent.make(
             from: .content(snapshot(pinned: runningPinned, now: now)),
             now: now,
-            localizer: AppLocalizer(language: .simplifiedChinese),
             locale: Locale(identifier: "zh_Hans_CN"),
             calendar: utcCalendar()
         )
         let upcomingContent = TodayScreenContent.make(
             from: .content(snapshot(pinned: upcomingPinned, now: now)),
             now: now,
-            localizer: AppLocalizer(language: .simplifiedChinese),
             locale: Locale(identifier: "zh_Hans_CN"),
             calendar: utcCalendar()
         )
@@ -279,24 +260,9 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     func testPinBadgeCopyMatchesOrigin() {
-        let localizer = AppLocalizer(language: .simplifiedChinese)
-        XCTAssertEqual(
-            TodayPresentation.pinBadgeText(
-                for: .automatic,
-                localizer: localizer
-            ),
-            "\u{81ea}\u{52a8}\u{63a8}\u{8350}"
-        )
-        XCTAssertEqual(
-            TodayPresentation.pinBadgeText(
-                for: .manual,
-                localizer: localizer
-            ),
-            "\u{624b}\u{52a8}\u{56fa}\u{5b9a}"
-        )
-        XCTAssertNil(
-            TodayPresentation.pinBadgeText(for: nil, localizer: localizer)
-        )
+        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .automatic), "\u{81ea}\u{52a8}\u{63a8}\u{8350}")
+        XCTAssertEqual(TodayPresentation.pinBadgeText(for: .manual), "\u{624b}\u{52a8}\u{56fa}\u{5b9a}")
+        XCTAssertNil(TodayPresentation.pinBadgeText(for: nil))
     }
 
     func testRecognitionActionsHiddenUntilRecognitionIsEnabled() {
@@ -322,7 +288,6 @@ final class TodayPresentationTests: XCTestCase {
             aiRecognitionMode: .openAI,
             openAIAPIKeyConfigured: true
         )
-        let localizer = AppLocalizer(language: .simplifiedChinese)
         let draft = ImageRecognitionDraft(
             id: "image:draft-1",
             sourceIdentifier: "draft-1",
@@ -347,11 +312,7 @@ final class TodayPresentationTests: XCTestCase {
         )
 
         let idle = try XCTUnwrap(
-            TodayScreenContent.recognitionActions(
-                settings: settings,
-                phase: .idle,
-                localizer: localizer
-            )
+            TodayScreenContent.recognitionActions(settings: settings, phase: .idle)
         )
         XCTAssertEqual(idle.statusText, "\u{7b49}\u{5f85}\u{56fe}\u{7247}")
         XCTAssertFalse(idle.isLoading)
@@ -363,8 +324,7 @@ final class TodayPresentationTests: XCTestCase {
         let recognizing = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .recognizing,
-                localizer: localizer
+                phase: .recognizing
             )
         )
         XCTAssertEqual(recognizing.statusText, "\u{6b63}\u{5728}\u{8bc6}\u{522b}")
@@ -376,8 +336,7 @@ final class TodayPresentationTests: XCTestCase {
         let confirmation = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .awaitingConfirmation(draft),
-                localizer: localizer
+                phase: .awaitingConfirmation(draft)
             )
         )
         XCTAssertEqual(confirmation.statusText, "\u{8bc6}\u{522b}\u{5b8c}\u{6210}，\u{786e}\u{8ba4}\u{540e}\u{4fdd}\u{5b58}")
@@ -391,8 +350,7 @@ final class TodayPresentationTests: XCTestCase {
         let saving = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .saving(draft),
-                localizer: localizer
+                phase: .saving(draft)
             )
         )
         XCTAssertEqual(saving.statusText, "\u{6b63}\u{5728}\u{4fdd}\u{5b58}")
@@ -402,8 +360,7 @@ final class TodayPresentationTests: XCTestCase {
         let saveFailure = try XCTUnwrap(
             TodayScreenContent.recognitionActions(
                 settings: settings,
-                phase: .saveFailure(draft, "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。"),
-                localizer: localizer
+                phase: .saveFailure(draft, "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。")
             )
         )
         XCTAssertEqual(saveFailure.preview?.errorText, "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。")
@@ -415,8 +372,7 @@ final class TodayPresentationTests: XCTestCase {
                 phase: .failure(.init(
                     reason: "\u{670d}\u{52a1}\u{8fd4}\u{56de} 429：\u{8bf7}\u{6c42}\u{8fc7}\u{4e8e}\u{9891}\u{7e41}",
                     technicalDetails: "\u{9636}\u{6bb5}：\u{7ed3}\u{679c}\u{6838}\u{5bf9}\nHTTP 429\n\u{9519}\u{8bef}\u{7801}：rate_limit"
-                )),
-                localizer: localizer
+                ))
             )
         )
         XCTAssertEqual(failure.statusText, "\u{8bc6}\u{522b}\u{5931}\u{8d25}")
@@ -472,27 +428,11 @@ final class TodayPresentationTests: XCTestCase {
     }
 
     func testStateCopyIsStable() {
-        let localizer = AppLocalizer(language: .simplifiedChinese)
-        XCTAssertEqual(
-            TodayStateCopy.loadingTitle(localizer),
-            "\u{52a0}\u{8f7d}\u{4e2d}"
-        )
-        XCTAssertEqual(
-            TodayStateCopy.emptyTitle(localizer),
-            "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{7a7a}\u{95f2}"
-        )
-        XCTAssertEqual(
-            TodayStateCopy.permissionTitle(localizer),
-            "\u{9700}\u{8981}\u{8bbf}\u{95ee}\u{65e5}\u{5386}\u{4e0e}\u{63d0}\u{9192}\u{4e8b}\u{9879}"
-        )
-        XCTAssertEqual(
-            TodayStateCopy.staleBanner(localizer),
-            "\u{6570}\u{636e}\u{53ef}\u{80fd}\u{5df2}\u{8fc7}\u{65f6}"
-        )
-        XCTAssertEqual(
-            TodayStateCopy.failureTitle(localizer),
-            "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{4e0d}\u{53ef}\u{7528}"
-        )
+        XCTAssertEqual(TodayStateCopy.loadingTitle, "\u{52a0}\u{8f7d}\u{4e2d}")
+        XCTAssertEqual(TodayStateCopy.emptyTitle, "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{7a7a}\u{95f2}")
+        XCTAssertEqual(TodayStateCopy.permissionTitle, "\u{9700}\u{8981}\u{8bbf}\u{95ee}\u{65e5}\u{5386}\u{4e0e}\u{63d0}\u{9192}\u{4e8b}\u{9879}")
+        XCTAssertEqual(TodayStateCopy.staleBanner, "\u{6570}\u{636e}\u{53ef}\u{80fd}\u{5df2}\u{8fc7}\u{65f6}")
+        XCTAssertEqual(TodayStateCopy.failureTitle, "\u{4eca}\u{5929}\u{6682}\u{65f6}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     func testHeaderAccessibilityLabelCombinesDateAndTodayTitle() {
@@ -508,10 +448,7 @@ final class TodayPresentationTests: XCTestCase {
             }()
         )
 
-        XCTAssertEqual(
-            content.header.accessibilityLabel,
-            "Wednesday, January 1, Today"
-        )
+        XCTAssertEqual(content.header.accessibilityLabel, "Wednesday, January 1，Today")
     }
 
     func testHeaderDateTextUsesInjectedCalendarAndTimeZone() {

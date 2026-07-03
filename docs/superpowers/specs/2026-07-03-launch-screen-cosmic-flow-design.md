@@ -25,21 +25,23 @@ should become apparent only on a second look.
 
 ## Composition
 
-The launch artwork is centered in the safe visual area and occupies roughly the
-middle third of the screen height.
+The launch artwork is full bleed. The image scales proportionally until it covers
+the entire display, and the system may crop its outer edges on compact or unusually
+tall devices.
 
 - A one-pixel vertical time axis runs through the current-time node and fades before
   reaching either screen edge.
 - The current-time node sits slightly above the screen's vertical midpoint.
 - Three broad translucent ribbons cross the node area. Their negative space suggests
   the woodpecker's head, beak, and wings.
+- The inferred bird occupies about 80% of the visible screen width.
 - Fine light trails extend away from the inferred beak and dissolve into the
   background.
 - No app name, tagline, loading label, progress indicator, or NASA attribution is
   displayed.
 
-The composition must preserve generous empty space so it remains calm on both compact
-and large iPhone displays.
+The node, bird head, beak, and primary ribbons remain inside the central safe
+composition zone. Only peripheral stars, haze, and ribbon tails may be cropped.
 
 ## Color and Material
 
@@ -59,28 +61,34 @@ separate solid colors, realistic feathers, or a discrete body layer.
 iOS launch screens are static, so motion is implied through tapered trails,
 asymmetric flow, blur, and fading opacity.
 
-Implementation remains asset-catalog based:
+Implementation uses a static launch storyboard backed by the existing asset catalog:
 
-- Replace the raster renditions inside
-  `PeckerLaunchTimeline.imageset` with the approved cosmic-flow artwork.
+- Add `Pecker/Resources/LaunchScreen.storyboard`.
+- Place a single image view on the storyboard and constrain all four edges to the
+  root view, not the safe area.
+- Set the image view content mode to Aspect Fill and enable clipping.
+- Use `PeckerLaunchTimeline` as the image and `PeckerLaunchBackground` as the root
+  view background color.
 - Retain `PeckerLaunchBackground.colorset`, adjusting its color only if needed to
   blend seamlessly with the new artwork.
-- Keep the existing `UILaunchScreen` configuration and safe-area behavior in
-  `Pecker/Resources/Info.plist`.
-- Do not add a launch storyboard, runtime animation, SwiftUI launch overlay, or
-  artificial startup delay.
+- Replace the existing `UILaunchScreen` dictionary in
+  `Pecker/Resources/Info.plist` with `UILaunchStoryboardName = LaunchScreen`.
+- Do not add runtime animation, a SwiftUI launch overlay, or an artificial startup
+  delay.
 
-The raster asset must use transparency around the central artwork so the named launch
-background can fill every screen ratio without cropping the focal composition.
+The storyboard supplies deterministic Aspect Fill behavior on every iPhone size.
+Cropping is accepted by design and must never remove the focal composition.
 
 ## Asset Requirements
 
 - Generate 260 × 520, 520 × 1040, and 780 × 1560 PNG renditions for 1x, 2x,
   and 3x with identical visual alignment.
-- Preserve transparency outside the artwork.
+- Keep the deep-space background full frame and match its outer edge color to
+  `PeckerLaunchBackground`.
 - Avoid fine features that disappear at 1x or bloom into solid shapes at 3x.
 - Keep the focal node and inferred bird readable at normal device viewing distance.
-- Do not use an external astronomy photograph or a literal star-field background.
+- Do not use an external astronomy photograph, dense star field, or recognizable
+  constellation; retain only the approved sparse synthetic stars and haze.
 
 ## Verification
 
@@ -88,9 +96,10 @@ background can fill every screen ratio without cropping the focal composition.
 - Build the app for an iOS simulator with code signing disabled.
 - Capture cold-launch screenshots on at least one compact and one large iPhone
   simulator.
-- Confirm there are no visible seams between the transparent artwork and launch
-  background.
-- Confirm the artwork does not clip, stretch, or shift away from the safe visual area.
+- Confirm there are no uncovered bars or visible seams at any display edge.
+- Confirm the artwork fills the screen without stretching.
+- Confirm compact-device cropping removes only peripheral background details.
+- Confirm the inferred bird occupies approximately 80% of the visible screen width.
 - Confirm the first rendered app screen does not produce a jarring background-color
   flash after the launch screen.
 

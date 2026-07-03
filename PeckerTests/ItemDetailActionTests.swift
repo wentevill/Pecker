@@ -4,8 +4,8 @@ import XCTest
 
 final class ItemDetailActionTests: XCTestCase {
     @MainActor
-    func testNavigationTitleUsesStableShortCopy() {
-        XCTAssertEqual(ItemDetailView.navigationTitle, "\u{8be6}\u{60c5}")
+    func testNavigationTitleUsesLocalizedKey() {
+        XCTAssertEqual(ItemDetailView.navigationTitleKey, "detail.title")
     }
 
     func testPrimaryButtonTitleReflectsPinnedState() {
@@ -47,6 +47,19 @@ final class ItemDetailActionTests: XCTestCase {
         XCTAssertEqual(pinned.manualPinnedSourceIdentifier, item.sourceIdentifier)
         XCTAssertNil(unpinned.manualPinnedSourceIdentifier)
         XCTAssertEqual(item, originalItem)
+    }
+
+    func testVisibleCustomFieldsDropsBlankRowsWithoutReordering() {
+        let fields = [
+            EventCustomField(id: "one", name: "Booking", value: "K8X2"),
+            EventCustomField(id: "blank", name: " ", value: " "),
+            EventCustomField(id: "two", name: "Seat", value: "18A")
+        ]
+
+        XCTAssertEqual(
+            ItemDetailAction.visibleCustomFields(fields),
+            [fields[0], fields[2]]
+        )
     }
 
     private func makeItem() -> TimelineItem {

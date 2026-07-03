@@ -50,6 +50,21 @@ final class TimelineRecordEditorTests: XCTestCase {
         )
     }
 
+    func testEditorPersistsStartAndEndDateChanges() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.startDate = Date(timeIntervalSince1970: 4_000)
+        editor.endDate = Date(timeIntervalSince1970: 4_600)
+        editor.isAllDay = true
+
+        let updated = try editor.makeRecord(
+            updatedAt: Date(timeIntervalSince1970: 5_000)
+        )
+
+        XCTAssertEqual(updated.startDate, editor.startDate)
+        XCTAssertEqual(updated.endDate, editor.endDate)
+        XCTAssertTrue(updated.isAllDay)
+    }
+
     func testEditorRejectsInvalidTitleAndRange() throws {
         var editor = try TimelineRecordEditor(record: makeRecord())
         editor.title = " "
@@ -110,7 +125,71 @@ final class TimelineRecordEditorTests: XCTestCase {
         XCTAssertEqual(updatedTicket.seat, "12A")
     }
 
-    func testGenericEditorPreservesRecognitionFields() throws {
+    func testFlightEditorPersistsEveryStructuredTicketField() throws {
+        let record = StoredEventRecord(
+            id: "image:flight",
+            source: .importedImage,
+            sourceIdentifier: "flight",
+            rawTitle: "SQ 833",
+            rawLocation: "Terminal 3",
+            rawNotes: "Original notes",
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 2_000),
+            template: .flightTicket(.init(
+                flightNumber: "SQ 833",
+                carrier: "Singapore Airlines",
+                departureAirport: "Shanghai Pudong",
+                departureAirportCode: "PVG",
+                arrivalAirport: "Singapore Changi",
+                arrivalAirportCode: "SIN",
+                departureTimeText: "14:35",
+                arrivalTimeText: "20:25",
+                terminal: "T3",
+                gate: "B7",
+                seat: "12A",
+                travelStatus: "Boarding"
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        var editor = try TimelineRecordEditor(record: record)
+        editor.flightNumber = "MU 567"
+        editor.carrier = "China Eastern"
+        editor.departureAirport = "Hongqiao"
+        editor.departureAirportCode = "SHA"
+        editor.arrivalAirport = "Beijing Capital"
+        editor.arrivalAirportCode = "PEK"
+        editor.departureTimeText = "10:20"
+        editor.arrivalTimeText = "12:40"
+        editor.terminal = "T2"
+        editor.gate = "C11"
+        editor.seat = "8C"
+        editor.travelStatus = "Delayed"
+
+        let updated = try editor.makeRecord(
+            updatedAt: Date(timeIntervalSince1970: 3_000)
+        )
+
+        guard case let .flightTicket(ticket) = updated.template else {
+            return XCTFail("Expected flight ticket")
+        }
+        XCTAssertEqual(ticket.flightNumber, "MU 567")
+        XCTAssertEqual(ticket.carrier, "China Eastern")
+        XCTAssertEqual(ticket.departureAirport, "Hongqiao")
+        XCTAssertEqual(ticket.departureAirportCode, "SHA")
+        XCTAssertEqual(ticket.arrivalAirport, "Beijing Capital")
+        XCTAssertEqual(ticket.arrivalAirportCode, "PEK")
+        XCTAssertEqual(ticket.departureTimeText, "10:20")
+        XCTAssertEqual(ticket.arrivalTimeText, "12:40")
+        XCTAssertEqual(ticket.terminal, "T2")
+        XCTAssertEqual(ticket.gate, "C11")
+        XCTAssertEqual(ticket.seat, "8C")
+        XCTAssertEqual(ticket.travelStatus, "Delayed")
+    }
+
+    func testGenericEditorMigratesRecognitionFields() throws {
         let fields = [
             "title": "Design interview",
             "location": "Zoom",
@@ -146,7 +225,294 @@ final class TimelineRecordEditorTests: XCTestCase {
         guard case let .generic(event) = updated.template else {
             return XCTFail("Expected generic template")
         }
-        XCTAssertEqual(event.fields["interviewer"], "Design Lead")
+        XCTAssertTrue(event.fields.isEmpty)
+        XCTAssertEqual(
+            updated.customFields.first { $0.name == "interviewer" }?.value,
+            "Design Lead"
+        )
+    }
+
+    func testEditorMigratesLegacyGenericFieldsInNameOrder() throws {
+        let record = StoredEventRecord(
+            id: "image:legacy-fields",
+            source: .importedImage,
+            sourceIdentifier: "legacy-fields",
+            rawTitle: "Trip",
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: nil,
+            template: .generic(.init(
+                kind: .travel,
+                title: "Trip",
+                location: nil,
+                notes: nil,
+                fields: ["Zone": "A", "Booking": "K8X2"]
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        let editor = try TimelineRecordEditor(record: record)
+
+        XCTAssertEqual(editor.customFields.map(\.name), ["Booking", "Zone"])
+        XCTAssertEqual(editor.customFields.map(\.value), ["K8X2", "A"])
+    }
+
+    func testEditorPrefersRecordLevelFieldsForFlight() throws {
+        let fields = [
+            EventCustomField(id: "meal", name: "Meal", value: "Vegetarian")
+        ]
+        let record = StoredEventRecord(
+            id: "image:flight-fields",
+            source: .importedImage,
+            sourceIdentifier: "flight-fields",
+            rawTitle: "SQ 833",
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: nil,
+            template: .flightTicket(.init(
+                flightNumber: "SQ 833",
+                carrier: nil,
+                departureAirport: nil,
+                departureAirportCode: nil,
+                arrivalAirport: nil,
+                arrivalAirportCode: nil,
+                departureTimeText: nil,
+                arrivalTimeText: nil,
+                terminal: nil,
+                gate: nil,
+                seat: nil,
+                travelStatus: nil
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000),
+            customFields: fields
+        )
+
+        let editor = try TimelineRecordEditor(record: record)
+
+        XCTAssertEqual(editor.customFields, fields)
+    }
+
+    func testEditorRejectsHalfCompleteCustomField() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.customFields = [
+            .init(id: "broken", name: "Booking", value: " ")
+        ]
+
+        XCTAssertEqual(
+            editor.validationError,
+            .incompleteCustomField(id: "broken")
+        )
+    }
+
+    func testEditorRejectsDuplicateCustomFieldNamesIgnoringCase() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.customFields = [
+            .init(id: "one", name: " Booking ", value: "A"),
+            .init(id: "two", name: "booking", value: "B")
+        ]
+
+        XCTAssertEqual(
+            editor.validationError,
+            .duplicateCustomField(ids: ["one", "two"])
+        )
+    }
+
+    func testEditorTrimsAndPreservesCustomFieldOrder() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.customFields = [
+            .init(id: "second", name: " Seat note ", value: " Window "),
+            .init(id: "blank", name: " ", value: " ")
+        ]
+
+        let updated = try editor.makeRecord(updatedAt: .now)
+
+        XCTAssertEqual(updated.customFields, [
+            .init(id: "second", name: "Seat note", value: "Window")
+        ])
+        guard case let .generic(event) = updated.template else {
+            return XCTFail("Expected generic template")
+        }
+        XCTAssertTrue(event.fields.isEmpty)
+    }
+
+    func testEditorSectionsAreTypeAwareAndAlwaysIncludeCustomFields() {
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .flight),
+            [.common, .flight, .custom]
+        )
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .train),
+            [.common, .train, .custom]
+        )
+        XCTAssertEqual(
+            TimelineRecordEditor.sections(for: .travel),
+            [.common, .travel, .custom]
+        )
+        for kind in TimelineKind.allCases
+        where kind != .flight && kind != .train && kind != .travel {
+            XCTAssertEqual(
+                TimelineRecordEditor.sections(for: kind),
+                [.common, .custom]
+            )
+        }
+    }
+
+    func testTravelEditorPersistsDedicatedRouteFields() throws {
+        var editor = try TimelineRecordEditor(record: makeRecord())
+        editor.kind = .travel
+        editor.departureStation = "Shanghai"
+        editor.arrivalStation = "Suzhou"
+        editor.departureTimeText = "09:00"
+        editor.arrivalTimeText = "10:30"
+
+        let updated = try editor.makeRecord(updatedAt: .now)
+
+        guard case let .generic(event) = updated.template else {
+            return XCTFail("Expected generic template")
+        }
+        XCTAssertEqual(event.fields["origin"], "Shanghai")
+        XCTAssertEqual(event.fields["destination"], "Suzhou")
+        XCTAssertEqual(event.fields["departureTime"], "09:00")
+        XCTAssertEqual(event.fields["arrivalTime"], "10:30")
+    }
+
+    func testDefaultEndDateIsCreatedWhenEndDateIsEnabled() {
+        let start = Date(timeIntervalSince1970: 1_000)
+
+        XCTAssertEqual(
+            TimelineRecordEditor.updatedEndDate(
+                hasEndDate: true,
+                current: nil,
+                start: start
+            ),
+            start.addingTimeInterval(1_800)
+        )
+        XCTAssertNil(
+            TimelineRecordEditor.updatedEndDate(
+                hasEndDate: false,
+                current: start.addingTimeInterval(1_800),
+                start: start
+            )
+        )
+    }
+
+    func testChangingFlightToTaskPreservesStructuredValuesAsCustomFields() throws {
+        let record = StoredEventRecord(
+            id: "image:converted-flight",
+            source: .importedImage,
+            sourceIdentifier: "converted-flight",
+            rawTitle: "SQ 833",
+            rawLocation: nil,
+            rawNotes: nil,
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: nil,
+            template: .flightTicket(.init(
+                flightNumber: "SQ 833",
+                carrier: "Singapore Airlines",
+                departureAirport: "Pudong",
+                departureAirportCode: "PVG",
+                arrivalAirport: "Changi",
+                arrivalAirportCode: "SIN",
+                departureTimeText: "14:35",
+                arrivalTimeText: "20:25",
+                terminal: "T2",
+                gate: "D75",
+                seat: "18A",
+                travelStatus: "Boarding"
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+        var editor = try TimelineRecordEditor(record: record)
+        editor.kind = .task
+
+        let updated = try editor.makeRecord(updatedAt: .now)
+
+        XCTAssertEqual(
+            updated.customFields.first { $0.name == "Flight number" }?.value,
+            "SQ 833"
+        )
+        XCTAssertEqual(
+            updated.customFields.first { $0.name == "Seat" }?.value,
+            "18A"
+        )
+        XCTAssertEqual(
+            Set(updated.customFields.map(\.id)).count,
+            updated.customFields.count
+        )
+    }
+
+    func testTrainEditorPersistsEveryStructuredTicketField() throws {
+        let record = StoredEventRecord(
+            id: "image:train",
+            source: .importedImage,
+            sourceIdentifier: "train",
+            rawTitle: "G123",
+            rawLocation: "Gate A1",
+            rawNotes: "Original notes",
+            imageReference: nil,
+            startDate: Date(timeIntervalSince1970: 1_000),
+            endDate: Date(timeIntervalSince1970: 2_000),
+            template: .trainTicket(.init(
+                trainNumber: "G123",
+                departureStation: "Shanghai Hongqiao",
+                arrivalStation: "Beijing South",
+                departureTimeText: "08:30",
+                arrivalTimeText: "13:12",
+                carriageNumber: "08",
+                seatNumber: "03A",
+                checkInGate: "B7",
+                passengerName: "Wen",
+                ticketNumber: "ETK-001",
+                seatClass: "First",
+                priceText: "553 CNY"
+            )),
+            recognitionStatus: .recognized,
+            updatedAt: Date(timeIntervalSince1970: 1_000)
+        )
+
+        var editor = try TimelineRecordEditor(record: record)
+        editor.title = "G124"
+        editor.trainNumber = "G124"
+        editor.departureStation = "Hangzhou East"
+        editor.arrivalStation = "Nanjing South"
+        editor.departureTimeText = "09:10"
+        editor.arrivalTimeText = "11:45"
+        editor.carriageNumber = "06"
+        editor.seatNumber = "12F"
+        editor.checkInGate = "A9"
+        editor.passengerName = "Tang"
+        editor.ticketNumber = "ETK-999"
+        editor.seatClass = "Business"
+        editor.priceText = "720 CNY"
+
+        let updated = try editor.makeRecord(
+            updatedAt: Date(timeIntervalSince1970: 3_000)
+        )
+
+        guard case let .trainTicket(ticket) = updated.template else {
+            return XCTFail("Expected train ticket")
+        }
+        XCTAssertEqual(ticket.trainNumber, "G124")
+        XCTAssertEqual(ticket.departureStation, "Hangzhou East")
+        XCTAssertEqual(ticket.arrivalStation, "Nanjing South")
+        XCTAssertEqual(ticket.departureTimeText, "09:10")
+        XCTAssertEqual(ticket.arrivalTimeText, "11:45")
+        XCTAssertEqual(ticket.carriageNumber, "06")
+        XCTAssertEqual(ticket.seatNumber, "12F")
+        XCTAssertEqual(ticket.checkInGate, "A9")
+        XCTAssertEqual(ticket.passengerName, "Tang")
+        XCTAssertEqual(ticket.ticketNumber, "ETK-999")
+        XCTAssertEqual(ticket.seatClass, "Business")
+        XCTAssertEqual(ticket.priceText, "720 CNY")
+        XCTAssertEqual(updated.rawTitle, "G124")
     }
 
     func testEditorRejectsSystemOwnedRecord() {

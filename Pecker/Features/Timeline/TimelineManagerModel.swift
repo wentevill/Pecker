@@ -49,7 +49,8 @@ final class TimelineManagerModel {
         )
     }
 
-    func load(now: Date = .now) async {
+    @discardableResult
+    func load(now: Date = .now) async -> Bool {
         referenceDate = now
         isLoading = true
         errorText = nil
@@ -91,16 +92,39 @@ final class TimelineManagerModel {
                 merged.map { ($0.id, $0) },
                 uniquingKeysWith: { _, latest in latest }
             ).values.map { $0 }
+            return true
         } catch is CancellationError {
-            return
+            return false
         } catch {
-            errorText = "\u{65f6}\u{95f4}\u{7ebf}\u{52a0}\u{8f7d}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}。"
+            errorText = "Timeline failed to load. Please try again."
+            return false
         }
     }
 
     func setScope(_ scope: TimelineDateScope, now: Date = .now) async {
         selectedScope = scope
         await load(now: now)
+    }
+
+    func revealSavedRecord(
+        _ record: StoredEventRecord,
+        now: Date = .now
+    ) async -> Bool {
+        guard let item = Self.timelineItem(from: record, now: now) else {
+            return false
+        }
+
+        selectedKind = nil
+        selectedScope = TimelineDateScope.classify(
+            item,
+            calendar: calendar,
+            now: now
+        )
+
+        guard await load(now: now) else {
+            return false
+        }
+        return visibleItems.contains { $0.id == record.id }
     }
 
     func isEditable(_ item: TimelineItem) -> Bool {
@@ -117,10 +141,12 @@ final class TimelineManagerModel {
     func save(
         _ editor: TimelineRecordEditor,
         now: Date = .now
-    ) async throws {
-        try await localCards.update(editor.makeRecord(updatedAt: now))
+    ) async throws -> TimelineItem? {
+        let record = try editor.makeRecord(updatedAt: now)
+        try await localCards.update(record)
         await load(now: now)
         await onMutation()
+        return Self.timelineItem(from: record, now: now)
     }
 
     func delete(_ item: TimelineItem, now: Date = .now) async throws {
@@ -202,7 +228,32 @@ final class TimelineManagerModel {
             location: item.location,
             notes: item.notes,
             template: item.template,
-            isCompleted: item.isCompleted
+            isCompleted: item.isCompleted,
+            customFields: item.customFields
+        )
+    }
+
+    nonisolated static func timelineItem(
+        from record: StoredEventRecord,
+        now: Date
+    ) -> TimelineItem? {
+        guard let template = record.template else {
+            return nil
+        }
+        let presentation = template.presentation
+        return TimelineItem(
+            id: record.id,
+            sourceIdentifier: record.sourceIdentifier ?? record.id,
+            title: presentation.title,
+            startDate: record.startDate ?? now,
+            endDate: record.endDate,
+            isAllDay: record.isAllDay,
+            source: .external,
+            kind: template.kind,
+            location: record.rawLocation,
+            notes: record.rawNotes ?? presentation.subtitle,
+            template: template,
+            customFields: record.customFields
         )
     }
 }

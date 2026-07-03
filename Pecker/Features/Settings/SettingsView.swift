@@ -257,7 +257,7 @@ struct SettingsView: View {
 
     private var timelineCard: some View {
         let localizer = AppLocalizer(language: settingsStore.value.language)
-        TimelineCard(accent: .next) {
+        return TimelineCard(accent: .next) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("\u{65f6}\u{95f4}\u{7ebf}")
                     .font(.headline.weight(.semibold))

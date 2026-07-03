@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -154,13 +154,13 @@
 
 /* Begin PBXFileReference section */
 		00A5DACD2EAEA953EEF8761B /* SystemEventRecognitionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemEventRecognitionCoordinator.swift; sourceTree = "<group>"; };
-		0326C97B74B79A291ADB48FA /* libPeckerCore.a */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = archive.ar; path = libPeckerCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		0326C97B74B79A291ADB48FA /* libPeckerCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPeckerCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		039834399FFB7E60E6C39C1D /* ItemDetailActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemDetailActionTests.swift; sourceTree = "<group>"; };
 		0428C7B4B3C695EEB674AB9A /* RecognizedEventValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognizedEventValidator.swift; sourceTree = "<group>"; };
 		06E0A9D8FAC6E7398BC3756B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		0BC3B78E0B4324773D3D0158 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0C43BF53CDA6ECA0B1D6EBFF /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
-		0CD66C795E57B87001669D03 /* PeckerCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CD66C795E57B87001669D03 /* PeckerCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeckerCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DD7E2595C59D7468FFFDBED /* TimelineTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTheme.swift; sourceTree = "<group>"; };
 		11A611540DA5E60CB389AB26 /* RecognitionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionProvider.swift; sourceTree = "<group>"; };
 		12D837A7D06FC907F7FA3D22 /* SwipeDeleteActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeDeleteActionTests.swift; sourceTree = "<group>"; };
@@ -190,7 +190,7 @@
 		7455385DC3B1E7451E402D00 /* EventRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRepository.swift; sourceTree = "<group>"; };
 		77A3309D7C9F5E3A123D75A9 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
 		7BCF00CEA0A559FD7217FD93 /* TimelineEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineEngine.swift; sourceTree = "<group>"; };
-		7D9837CC561BDE560F0B2F31 /* Pecker.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Pecker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D9837CC561BDE560F0B2F31 /* Pecker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Pecker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		801400D467F38808155B81EA /* TimelineClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineClassifier.swift; sourceTree = "<group>"; };
 		8134030577E59314232590A8 /* SettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsStore.swift; sourceTree = "<group>"; };
 		8301C972B29F424ECD53CD2C /* AppLocalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalizer.swift; sourceTree = "<group>"; };
@@ -199,7 +199,7 @@
 		888FCA95EF551A9228FC7260 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		893D8847FA14CF3D382D72DA /* TimelineCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineCard.swift; sourceTree = "<group>"; };
 		8CB6B6F9C7893B2465E06914 /* RecognitionFunctionContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionFunctionContractTests.swift; sourceTree = "<group>"; };
-		905C71DE2A54999B6D4A54C8 /* PeckerLiveActivity.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = PeckerLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		905C71DE2A54999B6D4A54C8 /* PeckerLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PeckerLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		91F6FCD16FB397FB32E84A44 /* PeckerLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityWidget.swift; sourceTree = "<group>"; };
 		93485E4387F4131269A9CB17 /* EventKitGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventKitGateway.swift; sourceTree = "<group>"; };
 		960B54083A9011E5155EE491 /* PeckerLiveActivityPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerLiveActivityPresentation.swift; sourceTree = "<group>"; };
@@ -232,7 +232,7 @@
 		DC0BA5F9CC623200A601A031 /* LockScreenLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenLiveActivityView.swift; sourceTree = "<group>"; };
 		DFFA24CB4A84FFD20D7317CC /* SnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStore.swift; sourceTree = "<group>"; };
 		E125643CB612C366015BCD60 /* OnboardingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateTests.swift; sourceTree = "<group>"; };
-		E376ECD8DD9B8567E5DAF48A /* PeckerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E376ECD8DD9B8567E5DAF48A /* PeckerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeckerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E7C45B689809643A0E569744 /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		E7CB769B36F0251786BE6C84 /* PeckerActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerActivityAttributes.swift; sourceTree = "<group>"; };
 		E80A158B72D538CE0B38C7E5 /* PeckerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerApp.swift; sourceTree = "<group>"; };
@@ -696,7 +696,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1430;
+				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					07F424BE48489BC5EF2C968E = {
 						DevelopmentTeam = LNQGSLWW24;
@@ -719,7 +719,6 @@
 			);
 			mainGroup = 0CB86DCDDEF05995FC075958;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -1051,6 +1050,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1084,6 +1084,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1104,6 +1105,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
@@ -1157,6 +1159,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -1190,6 +1193,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -1203,6 +1207,7 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;

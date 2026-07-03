@@ -36,27 +36,6 @@ final class LiveActivityPresentationTests: XCTestCase {
         XCTAssertGreaterThan(PeckerLiveActivityPalette.darkTop.blue, PeckerLiveActivityPalette.darkTop.red)
     }
 
-    func testLiveActivityTimeFormattingUsesHumanReadableClockOnly() {
-        let date = DateComponents(
-            calendar: Calendar(identifier: .gregorian),
-            timeZone: TimeZone(secondsFromGMT: 0),
-            year: 2026,
-            month: 6,
-            day: 24,
-            hour: 10,
-            minute: 30
-        ).date!
-        let rendered = PeckerLiveActivityCopy.timeString(
-            date,
-            locale: Locale(identifier: "en_US_POSIX")
-        )
-
-        XCTAssertTrue(rendered.contains("30"))
-        XCTAssertFalse(rendered.contains("2026"))
-        XCTAssertFalse(rendered.contains("T"))
-        XCTAssertFalse(rendered.contains("+0000"))
-    }
-
     func testStyleMapsEveryKindAndFallsBackForUnknownRawValue() {
         XCTAssertEqual(PeckerLiveActivityStyle.symbolName(kindRawValue: "meeting"), "person.2.fill")
         XCTAssertEqual(PeckerLiveActivityStyle.symbolName(kindRawValue: "task"), "checklist")
@@ -117,6 +96,5 @@ final class LiveActivityPresentationTests: XCTestCase {
         XCTAssertEqual(state.title, "Old meeting")
         XCTAssertEqual(state.location, "Room 42")
         XCTAssertEqual(state.symbolName, "person.2.fill")
-        XCTAssertNil(state.localeIdentifier)
     }
 }

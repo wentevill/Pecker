@@ -115,10 +115,7 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(fixture.model.currentStep, .reminders)
         XCTAssertEqual(fixture.model.calendarStatus, .failed)
-        XCTAssertEqual(
-            fixture.model.errorMessage,
-            "Unable to access Calendar. Try again later in system Settings."
-        )
+        XCTAssertEqual(fixture.model.errorMessage, "\u{65e0}\u{6cd5}\u{8bbf}\u{95ee}\u{65e5}\u{5386}，\u{8bf7}\u{7a0d}\u{540e}\u{5728}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}\u{4e2d}\u{91cd}\u{8bd5}。")
     }
 
     @MainActor
@@ -130,7 +127,7 @@ final class OnboardingStateTests: XCTestCase {
         )
         XCTAssertEqual(
             fixture.model.errorMessage,
-            "Unable to access Calendar. Try again later in system Settings."
+            "\u{65e0}\u{6cd5}\u{8bbf}\u{95ee}\u{65e5}\u{5386}，\u{8bf7}\u{7a0d}\u{540e}\u{5728}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}\u{4e2d}\u{91cd}\u{8bd5}。"
         )
 
         let skipped = fixture.model.skipCurrentPermission(
@@ -200,10 +197,7 @@ final class OnboardingStateTests: XCTestCase {
             .liveActivityIntroduction
         )
         XCTAssertEqual(fixture.model.reminderStatus, .failed)
-        XCTAssertEqual(
-            fixture.model.errorMessage,
-            "Unable to access Reminders. Try again later in system Settings."
-        )
+        XCTAssertEqual(fixture.model.errorMessage, "\u{65e0}\u{6cd5}\u{8bbf}\u{95ee}\u{63d0}\u{9192}\u{4e8b}\u{9879}，\u{8bf7}\u{7a0d}\u{540e}\u{5728}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}\u{4e2d}\u{91cd}\u{8bd5}。")
     }
 
     @MainActor

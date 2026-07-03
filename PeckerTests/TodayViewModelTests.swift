@@ -218,7 +218,7 @@ final class TodayViewModelTests: XCTestCase {
             return XCTFail("Expected content despite ActivityKit failure, got \(viewModel.state)")
         }
         XCTAssertEqual(snapshot.items.map(\.title), ["Team meeting"])
-        XCTAssertEqual(viewModel.liveActivityStatusText, "unavailable")
+        XCTAssertEqual(viewModel.liveActivityStatusText, "\u{6682}\u{4e0d}\u{53ef}\u{7528}")
     }
 
     @MainActor

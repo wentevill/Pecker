@@ -122,7 +122,8 @@ struct TodayScreenContent: Equatable {
 
     static func recognitionActions(
         settings: TimelineSettings,
-        phase: ImageRecognitionPhase
+        phase: ImageRecognitionPhase,
+        localizer: AppLocalizer = AppLocalizer(language: .system)
     ) -> RecognitionActions? {
         guard imageRecognitionIsEnabled(settings) else {
             return nil
@@ -131,7 +132,7 @@ struct TodayScreenContent: Equatable {
         switch phase {
         case .idle:
             return RecognitionActions(
-                statusText: "\u{7b49}\u{5f85}\u{56fe}\u{7247}",
+                statusText: localizer.string("recognition.status.waiting"),
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: nil,
@@ -141,7 +142,7 @@ struct TodayScreenContent: Equatable {
             )
         case .recognizing:
             return RecognitionActions(
-                statusText: "\u{6b63}\u{5728}\u{8bc6}\u{522b}",
+                statusText: localizer.string("recognition.status.recognizing"),
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -151,17 +152,17 @@ struct TodayScreenContent: Equatable {
             )
         case let .awaitingConfirmation(draft):
             return RecognitionActions(
-                statusText: "\u{8bc6}\u{522b}\u{5b8c}\u{6210}，\u{786e}\u{8ba4}\u{540e}\u{4fdd}\u{5b58}",
+                statusText: localizer.string("recognition.status.ready"),
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
                 errorTechnicalDetails: nil,
                 showsTypingIndicator: false,
-                preview: recognitionPreview(from: draft)
+                preview: recognitionPreview(from: draft, localizer: localizer)
             )
         case let .saving(draft):
             return RecognitionActions(
-                statusText: "\u{6b63}\u{5728}\u{4fdd}\u{5b58}",
+                statusText: localizer.string("recognition.status.saving"),
                 isLoading: true,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -169,6 +170,7 @@ struct TodayScreenContent: Equatable {
                 showsTypingIndicator: false,
                 preview: recognitionPreview(
                     from: draft,
+                    localizer: localizer,
                     buttonsDisabled: true
                 )
             )
@@ -184,7 +186,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .failure(issue):
             return RecognitionActions(
-                statusText: "\u{8bc6}\u{522b}\u{5931}\u{8d25}",
+                statusText: localizer.string("recognition.status.failed"),
                 isLoading: false,
                 buttonsDisabled: false,
                 errorText: issue.reason,
@@ -194,7 +196,7 @@ struct TodayScreenContent: Equatable {
             )
         case let .saveFailure(draft, errorText):
             return RecognitionActions(
-                statusText: "\u{4fdd}\u{5b58}\u{5931}\u{8d25}",
+                statusText: localizer.string("recognition.status.saveFailed"),
                 isLoading: false,
                 buttonsDisabled: true,
                 errorText: nil,
@@ -202,6 +204,7 @@ struct TodayScreenContent: Equatable {
                 showsTypingIndicator: false,
                 preview: recognitionPreview(
                     from: draft,
+                    localizer: localizer,
                     errorText: errorText
                 )
             )
@@ -210,6 +213,7 @@ struct TodayScreenContent: Equatable {
 
     private static func recognitionPreview(
         from draft: ImageRecognitionDraft,
+        localizer: AppLocalizer,
         buttonsDisabled: Bool = false,
         errorText: String? = nil
     ) -> RecognitionPreview {
@@ -226,7 +230,7 @@ struct TodayScreenContent: Equatable {
         }
         let fields = [
             EventTemplatePresentation.Field(
-                label: "\u{65f6}\u{95f4}",
+                label: localizer.string("common.time"),
                 value: timingText
             )
         ] + presentation.fields
@@ -234,8 +238,8 @@ struct TodayScreenContent: Equatable {
             titleText: presentation.title,
             subtitleText: presentation.subtitle,
             fields: fields,
-            saveButtonText: "\u{4fdd}\u{5b58}",
-            cancelButtonText: "\u{53d6}\u{6d88}",
+            saveButtonText: localizer.string("common.save"),
+            cancelButtonText: localizer.string("common.cancel"),
             buttonsDisabled: buttonsDisabled,
             errorText: errorText
         )
@@ -257,15 +261,20 @@ struct TodayScreenContent: Equatable {
         now: Date,
         authorization: SourceAuthorization? = nil,
         settings: TimelineSettings = .init(),
+        localizer: AppLocalizer = AppLocalizer(language: .system),
         locale: Locale = .autoupdatingCurrent,
         calendar: Calendar = .autoupdatingCurrent
     ) -> TodayScreenContent {
         let dateText = Self.headerDateText(now, locale: locale, calendar: calendar)
         let header = Header(
             dateText: dateText,
-            todayText: "Today",
-            settingsButtonLabel: "\u{8bbe}\u{7f6e}",
-            accessibilityLabel: "\(dateText)，Today"
+            todayText: localizer.string("today.title"),
+            settingsButtonLabel: localizer.string("settings.title"),
+            accessibilityLabel: localizer.string(
+                "today.header.accessibility",
+                dateText,
+                localizer.string("today.title")
+            )
         )
 
         switch state {
@@ -284,14 +293,16 @@ struct TodayScreenContent: Equatable {
                 sourceNotice: nil
             )
         case let .empty(notice):
-            let sourceNotice = notice.map { mappedNotice(from: $0) }
+            let sourceNotice = notice.map {
+                mappedNotice(from: $0, localizer: localizer)
+            }
             return TodayScreenContent(
                 header: header,
                 mode: .empty(sourceNotice),
                 nowCard: nil,
                 nextCard: nil,
                 pinnedCard: nil,
-                summary: fullTimelineSummary(),
+                summary: fullTimelineSummary(localizer: localizer),
                 footer: nil,
                 permission: nil,
                 failure: nil,
@@ -308,9 +319,12 @@ struct TodayScreenContent: Equatable {
                 summary: nil,
                 footer: nil,
                 permission: Permission(
-                    titleText: TodayStateCopy.permissionTitle,
-                    bodyText: permissionBodyText(for: authorization),
-                    buttonText: TodayStateCopy.permissionButton
+                    titleText: TodayStateCopy.permissionTitle(localizer),
+                    bodyText: permissionBodyText(
+                        for: authorization,
+                        localizer: localizer
+                    ),
+                    buttonText: TodayStateCopy.permissionButton(localizer)
                 ),
                 failure: nil,
                 stale: nil,
@@ -323,7 +337,8 @@ struct TodayScreenContent: Equatable {
                 authorization: authorization,
                 settings: settings,
                 locale: locale,
-                calendar: calendar
+                calendar: calendar,
+                localizer: localizer
             )
             return TodayScreenContent(
                 header: header,
@@ -337,7 +352,7 @@ struct TodayScreenContent: Equatable {
                 failure: nil,
                 stale: Stale(
                     bannerText: message,
-                    retryText: TodayStateCopy.staleRetry
+                    retryText: TodayStateCopy.staleRetry(localizer)
                 ),
                 sourceNotice: timeline.sourceNotice
                 )
@@ -352,9 +367,9 @@ struct TodayScreenContent: Equatable {
                 footer: nil,
                 permission: nil,
                 failure: Failure(
-                    titleText: TodayStateCopy.failureTitle,
+                    titleText: TodayStateCopy.failureTitle(localizer),
                     bodyText: message,
-                    retryText: TodayStateCopy.failureRetry
+                    retryText: TodayStateCopy.failureRetry(localizer)
                 ),
                 stale: nil,
                 sourceNotice: nil
@@ -366,7 +381,8 @@ struct TodayScreenContent: Equatable {
                 authorization: authorization,
                 settings: settings,
                 locale: locale,
-                calendar: calendar
+                calendar: calendar,
+                localizer: localizer
             )
             return TodayScreenContent(
                 header: header,
@@ -384,12 +400,18 @@ struct TodayScreenContent: Equatable {
         }
     }
 
-    private static func mappedNotice(from notice: TimelineAuthorizationNotice) -> SourceNotice {
+    private static func mappedNotice(
+        from notice: TimelineAuthorizationNotice,
+        localizer: AppLocalizer
+    ) -> SourceNotice {
         SourceNotice(
-            titleText: notice.titleText,
-            bodyText: notice.bodyText,
-            buttonText: notice.buttonText,
-            accessibilityLabel: notice.accessibilityLabel
+            titleText: sourceNoticeTitle(notice, localizer: localizer),
+            bodyText: sourceNoticeBody(notice, localizer: localizer),
+            buttonText: localizer.string("today.permission.button"),
+            accessibilityLabel: sourceNoticeAccessibility(
+                notice,
+                localizer: localizer
+            )
         )
     }
 
@@ -408,7 +430,8 @@ struct TodayScreenContent: Equatable {
         authorization: SourceAuthorization?,
         settings: TimelineSettings,
         locale: Locale,
-        calendar: Calendar
+        calendar: Calendar,
+        localizer: AppLocalizer
     ) -> TimelineContent {
         let nowItem = snapshot.resolvedNowItem
         let nextItem = snapshot.resolvedNextItem
@@ -420,11 +443,12 @@ struct TodayScreenContent: Equatable {
                     $0,
                     now: now,
                     locale: locale,
+                    localizer: localizer,
                     concurrentCount: snapshot.concurrentNowCount
                 )
             },
             nextCard: nextItem.map {
-                makeNextCard($0, now: now, locale: locale)
+                makeNextCard($0, now: now, locale: locale, localizer: localizer)
             },
             pinnedCard: pinnedItem.map {
                 makePinnedCard(
@@ -432,6 +456,7 @@ struct TodayScreenContent: Equatable {
                     now: now,
                     locale: locale,
                     calendar: calendar,
+                    localizer: localizer,
                     pinOrigin: snapshot.pinOrigin
                 )
             },
@@ -441,30 +466,40 @@ struct TodayScreenContent: Equatable {
                     now: now
                 )
                 return Summary(
-                    titleText: "\u{4eca}\u{5929}\u{8fd8}\u{6709} \(count) \u{4e2a}\u{65e5}\u{7a0b}",
-                    accessibilityLabel: "\u{4eca}\u{5929}\u{8fd8}\u{6709} \(count) \u{4e2a}\u{65e5}\u{7a0b}，\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}"
+                    titleText: localizer.string("today.summary.count", count),
+                    accessibilityLabel: localizer.string(
+                        "today.summary.accessibility",
+                        count
+                    )
                 )
             }(),
             footer: Footer(
-                generatedAtText: generatedAtText(snapshot.generatedAt, now: now, locale: locale)
+                generatedAtText: generatedAtText(
+                    snapshot.generatedAt,
+                    now: now,
+                    locale: locale,
+                    localizer: localizer
+                )
             ),
             sourceNotice: sourceNotice(
                 authorization: authorization,
-                settings: settings
+                settings: settings,
+                localizer: localizer
             )
         )
     }
 
-    private static func fullTimelineSummary() -> Summary {
+    private static func fullTimelineSummary(localizer: AppLocalizer) -> Summary {
         Summary(
-            titleText: "\u{67e5}\u{770b}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}",
-            accessibilityLabel: "\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}，\u{67e5}\u{770b}\u{5386}\u{53f2}\u{548c}\u{672a}\u{6765}\u{65e5}\u{7a0b}"
+            titleText: localizer.string("today.summary.openTimeline"),
+            accessibilityLabel: localizer.string("today.summary.openTimeline.accessibility")
         )
     }
 
     private static func sourceNotice(
         authorization: SourceAuthorization?,
-        settings: TimelineSettings
+        settings: TimelineSettings,
+        localizer: AppLocalizer
     ) -> SourceNotice? {
         guard let notice = TimelineAuthorizationNotice.make(
             authorization: authorization,
@@ -474,10 +509,13 @@ struct TodayScreenContent: Equatable {
         }
 
         return SourceNotice(
-            titleText: notice.titleText,
-            bodyText: notice.bodyText,
-            buttonText: notice.buttonText,
-            accessibilityLabel: notice.accessibilityLabel
+            titleText: sourceNoticeTitle(notice, localizer: localizer),
+            bodyText: sourceNoticeBody(notice, localizer: localizer),
+            buttonText: localizer.string("today.permission.button"),
+            accessibilityLabel: sourceNoticeAccessibility(
+                notice,
+                localizer: localizer
+            )
         )
     }
 
@@ -485,6 +523,7 @@ struct TodayScreenContent: Equatable {
         _ item: TimelineItem,
         now: Date,
         locale: Locale,
+        localizer: AppLocalizer,
         concurrentCount: Int
     ) -> Card {
         let progress = TodayPresentation.progress(
@@ -494,10 +533,12 @@ struct TodayScreenContent: Equatable {
         )
         let remainingText = relativeDurationText(
             until: countdownTargetDate(for: item, now: now) ?? now,
-            relativeTo: now
+            relativeTo: now,
+            localizer: localizer
         )
         let concurrentText = TodayPresentation.concurrentText(
-            extraCount: max(0, concurrentCount)
+            extraCount: max(0, concurrentCount),
+            localizer: localizer
         )
         let timeText = timeRangeText(
             start: item.startDate,
@@ -508,11 +549,11 @@ struct TodayScreenContent: Equatable {
             "\(Int(($0 * 100).rounded()))%"
         }
         let accessibilityLabel = accessibilityLabel(
-            statusText: "\u{73b0}\u{5728}",
+            statusText: localizer.string("today.card.now"),
             badgeText: nil,
             titleText: item.title,
             timeText: timeText,
-            secondaryText: "\u{5269}\u{4f59} \(remainingText)",
+            secondaryText: localizer.string("today.remaining", remainingText),
             tertiaryText: concurrentText,
             progressText: progressText
         )
@@ -521,12 +562,12 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .now,
             accent: .now,
-            statusText: "\u{73b0}\u{5728}",
+            statusText: localizer.string("today.card.now"),
             badgeText: nil,
             symbolName: symbolName(for: item, fallback: .now),
             titleText: item.title,
             timeText: timeText,
-            secondaryText: "\u{5269}\u{4f59} \(remainingText)",
+            secondaryText: localizer.string("today.remaining", remainingText),
             tertiaryText: concurrentText,
             progress: progress,
             progressText: progressText,
@@ -537,7 +578,8 @@ struct TodayScreenContent: Equatable {
     private static func makeNextCard(
         _ item: TimelineItem,
         now: Date,
-        locale: Locale
+        locale: Locale,
+        localizer: AppLocalizer
     ) -> Card {
         let timeText = timeRangeText(
             start: item.startDate,
@@ -546,10 +588,11 @@ struct TodayScreenContent: Equatable {
         )
         let countdown = relativeCountdownText(
             start: item.startDate,
-            now: now
+            now: now,
+            localizer: localizer
         )
         let accessibilityLabel = accessibilityLabel(
-            statusText: "\u{4e0b}\u{4e00}\u{9879}",
+            statusText: localizer.string("today.card.next"),
             badgeText: nil,
             titleText: item.title,
             timeText: timeText,
@@ -562,7 +605,7 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .next,
             accent: .next,
-            statusText: "\u{4e0b}\u{4e00}\u{9879}",
+            statusText: localizer.string("today.card.next"),
             badgeText: nil,
             symbolName: symbolName(for: item, fallback: .next),
             titleText: item.title,
@@ -580,22 +623,28 @@ struct TodayScreenContent: Equatable {
         now: Date,
         locale: Locale,
         calendar: Calendar,
+        localizer: AppLocalizer,
         pinOrigin: PinOrigin?
     ) -> Card {
-        let badgeText = TodayPresentation.pinBadgeText(for: pinOrigin)
+        let badgeText = TodayPresentation.pinBadgeText(
+            for: pinOrigin,
+            localizer: localizer
+        )
         let timeText = pinnedTimeText(
             for: item,
             now: now,
             locale: locale,
             calendar: calendar,
+            localizer: localizer,
             includeLocation: true
         )
         let countdown = relativeCountdownText(
             target: countdownTargetDate(for: item, now: now),
-            now: now
+            now: now,
+            localizer: localizer
         )
         let accessibilityLabel = accessibilityLabel(
-            statusText: "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}",
+            statusText: localizer.string("pin.action.pin"),
             badgeText: badgeText,
             titleText: item.title,
             timeText: timeText,
@@ -608,7 +657,7 @@ struct TodayScreenContent: Equatable {
             id: item.id,
             kind: .pinned,
             accent: .pinned,
-            statusText: "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}",
+            statusText: localizer.string("pin.action.pin"),
             badgeText: badgeText,
             symbolName: symbolName(for: item, fallback: .pinned),
             titleText: item.title,
@@ -658,6 +707,7 @@ struct TodayScreenContent: Equatable {
         now: Date,
         locale: Locale,
         calendar: Calendar,
+        localizer: AppLocalizer,
         includeLocation: Bool
     ) -> String {
         var style = calendar.isDate(item.startDate, inSameDayAs: now)
@@ -676,7 +726,7 @@ struct TodayScreenContent: Equatable {
         let startText = item.startDate.formatted(style)
 
         let baseText: String
-        if let kind = kindText(for: item.kind) {
+        if let kind = kindText(for: item.kind, localizer: localizer) {
             baseText = "\(startText) \(kind)"
         } else {
             baseText = startText
@@ -689,20 +739,23 @@ struct TodayScreenContent: Equatable {
         return "\(baseText) · \(location)"
     }
 
-    private static func kindText(for kind: TimelineKind) -> String? {
+    private static func kindText(
+        for kind: TimelineKind,
+        localizer: AppLocalizer
+    ) -> String? {
         switch kind {
         case .flight:
-            "\u{8d77}\u{98de}"
+            localizer.string("timeline.kind.action.flight")
         case .train:
-            "\u{53d1}\u{8f66}"
+            localizer.string("timeline.kind.action.train")
         case .interview:
-            "\u{9762}\u{8bd5}"
+            localizer.string("timeline.kind.interview")
         case .meeting:
-            "\u{4f1a}\u{8bae}"
+            localizer.string("timeline.kind.meeting")
         case .deadline:
-            "\u{622a}\u{6b62}"
+            localizer.string("timeline.kind.deadline")
         case .task:
-            "\u{5f85}\u{529e}"
+            localizer.string("timeline.kind.task")
         case .travel, .unknown:
             nil
         }
@@ -710,21 +763,30 @@ struct TodayScreenContent: Equatable {
 
     private static func relativeCountdownText(
         start: Date,
-        now: Date
+        now: Date,
+        localizer: AppLocalizer
     ) -> String {
-        relativeCountdownText(target: start, now: now)
+        relativeCountdownText(
+            target: start,
+            now: now,
+            localizer: localizer
+        )
     }
 
     private static func relativeCountdownText(
         target: Date?,
-        now: Date
+        now: Date,
+        localizer: AppLocalizer
     ) -> String {
         guard let target else {
             return ""
         }
 
         let interval = max(0, target.timeIntervalSince(now))
-        return "\u{8fd8}\u{6709} \(durationText(for: interval))"
+        return localizer.string(
+            "today.countdown.prefix",
+            localizer.durationText(for: interval)
+        )
     }
 
     private static func countdownTargetDate(
@@ -747,46 +809,29 @@ struct TodayScreenContent: Equatable {
 
     private static func relativeDurationText(
         until target: Date,
-        relativeTo now: Date
+        relativeTo now: Date,
+        localizer: AppLocalizer
     ) -> String {
         let interval = max(0, target.timeIntervalSince(now))
-        return durationText(for: interval)
-    }
-
-    private static func durationText(for interval: TimeInterval) -> String {
-        if interval < 60 {
-            return "\u{4e0d}\u{5230} 1 \u{5206}\u{949f}"
-        }
-
-        let totalMinutes = Int((interval / 60).rounded(.down))
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-
-        switch (hours, minutes) {
-        case let (hours, 0) where hours > 0:
-            return "\(hours) \u{5c0f}\u{65f6}"
-        case let (0, minutes):
-            return "\(minutes) \u{5206}\u{949f}"
-        case let (hours, minutes):
-            return "\(hours) \u{5c0f}\u{65f6} \(minutes) \u{5206}\u{949f}"
-        }
+        return localizer.durationText(for: interval)
     }
 
     private static func generatedAtText(
         _ date: Date,
         now: Date,
-        locale: Locale
+        locale: Locale,
+        localizer: AppLocalizer
     ) -> String {
         let interval = abs(date.timeIntervalSince(now))
         if interval < 60 {
-            return "\u{521a}\u{521a}\u{66f4}\u{65b0}"
+            return localizer.string("today.updated.now")
         }
 
         let style = Date.FormatStyle()
             .hour(.defaultDigits(amPM: .omitted))
             .minute()
             .locale(locale)
-        return "\u{66f4}\u{65b0}\u{4e8e} \(date.formatted(style))"
+        return localizer.string("today.updated.at", date.formatted(style))
     }
 
     private static func symbolName(
@@ -842,24 +887,77 @@ struct TodayScreenContent: Equatable {
             parts.append(tertiaryText)
         }
         if let progressText, !progressText.isEmpty {
-            parts.append("\u{8fdb}\u{5ea6} \(progressText)")
+            parts.append(progressText)
         }
-        return parts.joined(separator: "，")
+        return parts.joined(separator: ", ")
+    }
+
+    private static func sourceNoticeTitle(
+        _ notice: TimelineAuthorizationNotice,
+        localizer: AppLocalizer
+    ) -> String {
+        localizer.string("today.sourceNotice.title")
+    }
+
+    private static func sourceNoticeBody(
+        _ notice: TimelineAuthorizationNotice,
+        localizer: AppLocalizer
+    ) -> String {
+        let sourceNames = notice.unavailableSources.map {
+            sourceTitle($0, localizer: localizer)
+        }
+        return localizer.string(
+            "today.sourceNotice.body",
+            localizer.joinedList(sourceNames)
+        )
+    }
+
+    private static func sourceNoticeAccessibility(
+        _ notice: TimelineAuthorizationNotice,
+        localizer: AppLocalizer
+    ) -> String {
+        localizer.string(
+            "today.sourceNotice.accessibility",
+            sourceNoticeTitle(notice, localizer: localizer),
+            sourceNoticeBody(notice, localizer: localizer)
+        )
+    }
+
+    private static func sourceTitle(
+        _ source: TimelineSource,
+        localizer: AppLocalizer
+    ) -> String {
+        switch source {
+        case .calendar:
+            localizer.string("source.calendar")
+        case .reminder:
+            localizer.string("source.reminders")
+        case .external:
+            "Pecker"
+        }
     }
 
     private static func permissionBodyText(
-        for authorization: SourceAuthorization
+        for authorization: SourceAuthorization,
+        localizer: AppLocalizer
     ) -> String {
         let missing: [String] = [
-            authorization.calendar == .fullAccess ? nil : "\u{65e5}\u{5386}",
-            authorization.reminders == .fullAccess ? nil : "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
+            authorization.calendar == .fullAccess
+                ? nil
+                : localizer.string("source.calendar"),
+            authorization.reminders == .fullAccess
+                ? nil
+                : localizer.string("source.reminders")
         ]
         .compactMap { $0 }
 
         guard !missing.isEmpty else {
-            return "\u{5f00}\u{542f}\u{540e}，Today \u{624d}\u{80fd}\u{663e}\u{793a}\u{4f60}\u{7684}\u{65e5}\u{7a0b}。"
+            return localizer.string("today.permission.body.noMissing")
         }
 
-        return "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\(missing.joined(separator: "\u{548c}"))\u{540e}，Today \u{624d}\u{80fd}\u{66f4}\u{65b0}\u{65f6}\u{95f4}\u{7ebf}。"
+        return localizer.string(
+            "today.permission.body.missing",
+            localizer.joinedList(missing)
+        )
     }
 }

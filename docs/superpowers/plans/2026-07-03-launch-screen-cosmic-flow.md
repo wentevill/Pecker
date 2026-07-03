@@ -149,12 +149,12 @@ Expected:
 Run:
 
 ```bash
-plutil -lint Pecker/Resources/Assets.xcassets/PeckerLaunchTimeline.imageset/Contents.json
+jq empty Pecker/Resources/Assets.xcassets/PeckerLaunchTimeline.imageset/Contents.json
 rg -n '"filename"|"scale"' \
   Pecker/Resources/Assets.xcassets/PeckerLaunchTimeline.imageset/Contents.json
 ```
 
-Expected: `Contents.json: OK`, with one filename mapped to each of `1x`, `2x`, and `3x`.
+Expected: `jq` exits successfully, with one filename mapped to each of `1x`, `2x`, and `3x`.
 
 - [ ] **Step 5: Verify the static launch-screen configuration**
 
@@ -256,7 +256,7 @@ Run:
 
 ```bash
 plutil -lint Pecker/Resources/Info.plist
-plutil -lint Pecker/Resources/Assets.xcassets/PeckerLaunchTimeline.imageset/Contents.json
+jq empty Pecker/Resources/Assets.xcassets/PeckerLaunchTimeline.imageset/Contents.json
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 xcodebuild -project Pecker.xcodeproj -scheme Pecker \
   -sdk iphonesimulator -configuration Debug \
@@ -264,7 +264,7 @@ xcodebuild -project Pecker.xcodeproj -scheme Pecker \
   CODE_SIGNING_ALLOWED=NO build
 ```
 
-Expected: both plist checks report `OK` and the build reports `** BUILD SUCCEEDED **`.
+Expected: the plist and JSON checks succeed and the build reports `** BUILD SUCCEEDED **`.
 
 - [ ] **Step 2: Commit only the launch-screen implementation**
 

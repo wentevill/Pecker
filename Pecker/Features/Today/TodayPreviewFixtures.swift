@@ -42,12 +42,12 @@ enum TodayPreviewFixtures {
                 ),
                 item(
                     id: "pinned",
-                    title: "SQ 833 \u{65b0}\u{52a0}\u{5761}\u{822a}\u{7a7a}",
+                    title: "SQ 833 Singapore Airlines",
                     start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
                     end: sampleNow.addingTimeInterval(6 * 3_600),
                     source: .calendar,
                     kind: .flight,
-                    location: "T3 \u{822a}\u{7ad9}\u{697c} · Gate B7"
+                    location: "Terminal 3 · Gate B7"
                 )
             ]
         )
@@ -56,13 +56,13 @@ enum TodayPreviewFixtures {
     static func flightItem() -> TimelineItem {
         item(
             id: "flight",
-            title: "SQ 833 \u{65b0}\u{52a0}\u{5761}\u{822a}\u{7a7a} · \u{4e0a}\u{6d77}\u{98de}\u{65b0}\u{52a0}\u{5761}",
+            title: "SQ 833 Singapore Airlines · Shanghai to Singapore",
             start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
             end: sampleNow.addingTimeInterval(6 * 3_600),
             source: .calendar,
             kind: .flight,
-            location: "T3 \u{822a}\u{7ad9}\u{697c} · Gate B7",
-            notes: "\u{767b}\u{673a}\u{53e3}\u{53ef}\u{80fd}\u{53d8}\u{66f4}，\u{8bf7}\u{7559}\u{610f}\u{673a}\u{573a}\u{901a}\u{77e5}。\u{6b64}\u{5904}\u{7528}\u{4e8e}\u{9a8c}\u{8bc1}\u{957f}\u{5907}\u{6ce8}\u{5728}\u{8be6}\u{60c5}\u{9875}\u{91cc}\u{7684}\u{6362}\u{884c}\u{4e0e}\u{53ef}\u{8bfb}\u{6027}。"
+            location: "Terminal 3 · Gate B7",
+            notes: "Gate may change. Watch airport updates. This long note verifies wrapping and readability on the detail page."
         )
     }
 
@@ -208,16 +208,16 @@ enum TodayPreviewFixtures {
                         ),
                         item(
                         id: "pinned",
-                        title: "SQ 833 \u{65b0}\u{52a0}\u{5761}\u{822a}\u{7a7a}",
+                        title: "SQ 833 Singapore Airlines",
                         start: sampleNow.addingTimeInterval(4 * 3_600 + 47 * 60),
                         end: sampleNow.addingTimeInterval(6 * 3_600),
                             source: .calendar,
                             kind: .flight,
-                            location: "T3 \u{822a}\u{7ad9}\u{697c} · Gate B7"
+                            location: "Terminal 3 · Gate B7"
                         )
                     ]
                 ),
-                "\u{6570}\u{636e}\u{53ef}\u{80fd}\u{5df2}\u{8fc7}\u{65f6}"
+                "Data may be stale"
             ),
             now: sampleNow,
             locale: zhLocale,

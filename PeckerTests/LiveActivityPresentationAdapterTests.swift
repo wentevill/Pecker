@@ -57,7 +57,8 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         let state = LiveActivityPresentationAdapter().makeState(
             item: item,
             status: .now,
-            generatedAt: testNow
+            generatedAt: testNow,
+            language: .simplifiedChinese
         )
 
         XCTAssertEqual(state.title, "C5770")
@@ -66,8 +67,9 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         XCTAssertEqual(state.trailingEndpoint, "\u{91cd}\u{5e86}\u{897f}")
         XCTAssertEqual(
             state.metadata,
-            ["02 \u{8f66}", "06D \u{5ea7}", "B3 \u{68c0}\u{7968}\u{53e3}", "\u{4e8c}\u{7b49}\u{5ea7}"]
+            ["02\u{8f66}", "06D\u{5ea7}", "\u{68c0}\u{7968}\u{53e3} B3", "\u{4e8c}\u{7b49}\u{5ea7}"]
         )
+        XCTAssertEqual(state.localeIdentifier, "zh-Hans")
     }
 
     func testFlightTicketMapsAirportsAndBoundedCredentials() {
@@ -92,14 +94,16 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         let state = LiveActivityPresentationAdapter().makeState(
             item: item,
             status: .pinned,
-            generatedAt: testNow
+            generatedAt: testNow,
+            language: .english
         )
 
         XCTAssertEqual(state.title, "SQ 833")
         XCTAssertEqual(state.secondaryIdentity, "Singapore Airlines")
         XCTAssertEqual(state.leadingEndpoint, "PVG · \u{4e0a}\u{6d77}\u{6d66}\u{4e1c}")
         XCTAssertEqual(state.trailingEndpoint, "SIN · \u{65b0}\u{52a0}\u{5761}\u{6a1f}\u{5b9c}")
-        XCTAssertEqual(state.metadata, ["T3", "Gate B7", "12A \u{5ea7}", "\u{767b}\u{673a}\u{4e2d}"])
+        XCTAssertEqual(state.metadata, ["T3", "Gate B7", "Seat 12A", "\u{767b}\u{673a}\u{4e2d}"])
+        XCTAssertEqual(state.localeIdentifier, "en")
         XCTAssertEqual(state.statusRawValue, "pinned")
     }
 
@@ -131,6 +135,33 @@ final class LiveActivityPresentationAdapterTests: XCTestCase {
         XCTAssertEqual(state.supportingDetail, "\u{51c6}\u{5907}\u{4f5c}\u{54c1}\u{96c6}")
         XCTAssertTrue(state.metadata.isEmpty)
         XCTAssertLessThanOrEqual(state.metadata.count, 4)
+    }
+
+    func testGenericItemDoesNotUseMachineDateFieldsAsSupportingDetail() {
+        let item = makeItem(
+            kind: .meeting,
+            notes: nil,
+            template: .generic(.init(
+                kind: .meeting,
+                title: "Planning",
+                location: "Room",
+                notes: nil,
+                fields: [
+                    "endDateTime": "2026-06-28T11:48:00+08:00",
+                    "organizer": "Design Lead",
+                    "startDateTime": "2026-06-28T10:30:00+08:00"
+                ]
+            ))
+        )
+
+        let state = LiveActivityPresentationAdapter().makeState(
+            item: item,
+            status: .next,
+            generatedAt: testNow,
+            language: .english
+        )
+
+        XCTAssertEqual(state.supportingDetail, "Design Lead")
     }
 
     private func makeItem(

@@ -130,6 +130,27 @@ final class ActivityCoordinatorTests: XCTestCase {
         XCTAssertEqual(result.nextBoundary, nextItem.startDate)
     }
 
+    func testReconciliationPassesConfiguredLanguageToLiveActivityState() async throws {
+        let client = FakeActivityClient()
+        let coordinator = ActivityCoordinator(
+            client: client,
+            calendar: utcCalendar()
+        )
+        let nowItem = makeItem(id: "now-id", title: "Design Review")
+        let snapshot = makeSnapshot(now: nowItem)
+
+        let result = try await coordinator.reconcileWithBoundary(
+            snapshot: snapshot,
+            settings: TimelineSettings(
+                liveActivityEnabled: true,
+                language: .english
+            ),
+            now: testNow
+        )
+
+        XCTAssertEqual(result.decision.contentState?.localeIdentifier, "en")
+    }
+
     func testChangedContentUpdatesCurrentActivity() async throws {
         let existingState = makeContentState(primaryTitle: "Old Title")
         let client = FakeActivityClient(currentState: existingState)

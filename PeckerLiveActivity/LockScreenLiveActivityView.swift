@@ -3,7 +3,6 @@ import SwiftUI
 import WidgetKit
 
 struct LockScreenLiveActivityView: View {
-    @Environment(\.locale) private var locale
     private let state: PeckerActivityAttributes.ContentState
 
     init(context: ActivityViewContext<PeckerActivityAttributes>) {
@@ -16,7 +15,7 @@ struct LockScreenLiveActivityView: View {
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
                 header(at: timeline.date)
 
                 if state.hasEnded(at: timeline.date) {
@@ -37,7 +36,7 @@ struct LockScreenLiveActivityView: View {
                     ActivityProgressBar(progress: progress, accent: accent)
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.vertical, 8)
             .padding(.horizontal, 18)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
@@ -59,6 +58,7 @@ struct LockScreenLiveActivityView: View {
                     }
             }
         }
+        .environment(\.locale, state.locale)
     }
 
     private func header(at date: Date) -> some View {
@@ -70,10 +70,10 @@ struct LockScreenLiveActivityView: View {
 
             Text(
                 state.hasEnded(at: date)
-                    ? PeckerLiveActivityCopy.endedLabel(locale: locale)
+                    ? PeckerLiveActivityCopy.endedLabel(locale: state.locale)
                     : PeckerLiveActivityCopy.statusLabel(
                         for: status,
-                        locale: locale
+                        locale: state.locale
                     )
             )
             .font(.caption2.weight(.heavy))
@@ -108,7 +108,7 @@ struct LockScreenLiveActivityView: View {
                     .font(.headline.weight(.bold))
                     .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
                     .lineLimit(1)
-                Text(PeckerLiveActivityCopy.endedLabel(locale: locale))
+                Text(PeckerLiveActivityCopy.endedLabel(locale: state.locale))
                     .font(.caption)
                     .foregroundStyle(
                         PeckerLiveActivityPalette.textSecondary.color
@@ -146,7 +146,7 @@ private struct TransportActivityContent: View {
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 11) {
                 TypeIcon(
                     systemName: state.symbolName,
@@ -175,7 +175,8 @@ private struct TransportActivityContent: View {
                 EndpointBlock(
                     date: state.startDate,
                     title: state.leadingEndpoint,
-                    alignment: .leading
+                    alignment: .leading,
+                    locale: state.locale
                 )
 
                 Image(systemName: "arrow.right")
@@ -188,7 +189,8 @@ private struct TransportActivityContent: View {
                 EndpointBlock(
                     date: state.endDate,
                     title: state.trailingEndpoint,
-                    alignment: .trailing
+                    alignment: .trailing,
+                    locale: state.locale
                 )
             }
 
@@ -203,7 +205,7 @@ private struct TransportActivityContent: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.7)
                             .padding(.horizontal, 7)
-                            .padding(.vertical, 5)
+                            .padding(.vertical, 3)
                             .background(typeColor.opacity(0.12), in: Capsule())
                             .overlay {
                                 Capsule()
@@ -269,11 +271,12 @@ private struct EndpointBlock: View {
     let date: Date?
     let title: String?
     let alignment: HorizontalAlignment
+    let locale: Locale
 
     var body: some View {
-        VStack(alignment: alignment, spacing: 3) {
+        VStack(alignment: alignment, spacing: 2) {
             if let date {
-                Text(date, style: .time)
+                Text(PeckerLiveActivityCopy.timeString(date, locale: locale))
                     .font(.title3.weight(.bold).monospacedDigit())
                     .foregroundStyle(PeckerLiveActivityPalette.textPrimary.color)
             }
@@ -296,11 +299,17 @@ private struct TimeRangeText: View {
 
     var body: some View {
         if let start = state.startDate, let end = state.endDate {
-            Text("\(start.formatted(date: .omitted, time: .shortened))–\(end.formatted(date: .omitted, time: .shortened))")
+            Text(
+                PeckerLiveActivityCopy.timeRangeString(
+                    start: start,
+                    end: end,
+                    locale: state.locale
+                )
+            )
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
         } else if let start = state.startDate {
-            Text(start, style: .time)
+            Text(PeckerLiveActivityCopy.timeString(start, locale: state.locale))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
         }
@@ -315,7 +324,7 @@ private struct TypeIcon: View {
         Image(systemName: systemName)
             .font(.headline.weight(.bold))
             .foregroundStyle(color)
-            .frame(width: 40, height: 40)
+            .frame(width: 36, height: 36)
             .background(color.opacity(0.16), in: Circle())
     }
 }

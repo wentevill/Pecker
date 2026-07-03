@@ -247,13 +247,14 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         _ draft: ImageRecognitionDraft,
         imageReference: String
     ) async throws -> StoredEventRecord {
+        let editableFields = editableRecordFields(from: draft)
         let record = StoredEventRecord(
             id: draft.id,
             source: draft.source,
             sourceIdentifier: draft.sourceIdentifier,
-            rawTitle: draft.filename,
-            rawLocation: nil,
-            rawNotes: nil,
+            rawTitle: editableFields.title,
+            rawLocation: editableFields.location,
+            rawNotes: editableFields.notes,
             imageReference: imageReference,
             startDate: draft.startDate,
             endDate: draft.endDate,
@@ -382,6 +383,25 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             notes: record.rawNotes ?? presentation.subtitle,
             template: template
         )
+    }
+
+    private func editableRecordFields(
+        from draft: ImageRecognitionDraft
+    ) -> (title: String?, location: String?, notes: String?) {
+        switch draft.template {
+        case let .generic(event):
+            (
+                title: event.title,
+                location: event.location,
+                notes: event.notes
+            )
+        case .trainTicket, .flightTicket:
+            (
+                title: draft.template.presentation.title,
+                location: nil,
+                notes: draft.template.presentation.subtitle
+            )
+        }
     }
 
     private func storedRecord(

@@ -206,6 +206,32 @@ final class TimelineGroupingTests: XCTestCase {
         XCTAssertNil(sections.first(where: { $0.kind == .active }))
     }
 
+    func testElapsedOrdinaryEventWithoutEndDateAppearsInElapsedSection() {
+        let now = date(1_000)
+        let pointInTimeEvent = TimelineItem(
+            id: "warehouse-patrol",
+            sourceIdentifier: "warehouse-patrol",
+            title: "Warehouse patrol",
+            startDate: date(900),
+            endDate: nil,
+            isAllDay: false,
+            source: .external,
+            kind: .task,
+            location: "Warehouse",
+            notes: nil
+        )
+
+        let sections = TimelineGrouping.sections(
+            items: [pointInTimeEvent],
+            now: now
+        )
+
+        XCTAssertEqual(
+            sections.first(where: { $0.kind == .elapsed })?.items.map(\.id),
+            [pointInTimeEvent.id]
+        )
+    }
+
     func testAllItemsAppearInExactlyOneSectionAndAllDayRemindersStayOnlyInAllDay() {
         let now = date(1_000)
         let allDayReminder = item(

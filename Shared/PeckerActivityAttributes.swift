@@ -16,6 +16,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
         public let location: String?
         public let supportingDetail: String?
         public let metadata: [String]
+        public let localeIdentifier: String?
         public let generatedAt: Date
 
         public init(
@@ -32,6 +33,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             location: String?,
             supportingDetail: String?,
             metadata: [String],
+            localeIdentifier: String? = nil,
             generatedAt: Date
         ) {
             self.itemIdentifier = itemIdentifier
@@ -52,6 +54,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
                     .filter { !$0.isEmpty }
                     .prefix(4)
             )
+            self.localeIdentifier = localeIdentifier
             self.generatedAt = generatedAt
         }
 
@@ -68,6 +71,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             pinnedSubtitle: String?,
             additionalActiveCount: Int,
             generatedAt: Date,
+            localeIdentifier: String? = nil,
             primaryStatusRawValue: String = "now"
         ) {
             self.init(
@@ -84,6 +88,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
                 location: nil,
                 supportingDetail: primarySubtitle,
                 metadata: [],
+                localeIdentifier: localeIdentifier,
                 generatedAt: generatedAt
             )
         }
@@ -102,6 +107,7 @@ public struct PeckerActivityAttributes: ActivityAttributes {
             case location
             case supportingDetail
             case metadata
+            case localeIdentifier
             case generatedAt
             case primaryTitle
             case primarySubtitle
@@ -165,6 +171,10 @@ public struct PeckerActivityAttributes: ActivityAttributes {
                         [String].self,
                         forKey: .metadata
                     ) ?? [],
+                    localeIdentifier: try container.decodeIfPresent(
+                        String.self,
+                        forKey: .localeIdentifier
+                    ),
                     generatedAt: try container.decode(
                         Date.self,
                         forKey: .generatedAt
@@ -211,6 +221,10 @@ public struct PeckerActivityAttributes: ActivityAttributes {
                 location: subtitle,
                 supportingDetail: nil,
                 metadata: [],
+                localeIdentifier: try container.decodeIfPresent(
+                    String.self,
+                    forKey: .localeIdentifier
+                ),
                 generatedAt: try container.decode(
                     Date.self,
                     forKey: .generatedAt
@@ -245,6 +259,10 @@ public struct PeckerActivityAttributes: ActivityAttributes {
                 forKey: .supportingDetail
             )
             try container.encode(metadata, forKey: .metadata)
+            try container.encodeIfPresent(
+                localeIdentifier,
+                forKey: .localeIdentifier
+            )
             try container.encode(generatedAt, forKey: .generatedAt)
         }
 
@@ -290,6 +308,9 @@ public struct PeckerActivityAttributes: ActivityAttributes {
         public var primaryKindRawValue: String { kindRawValue }
         public var primarySourceIdentifier: String? { itemIdentifier }
         public var primaryStatusRawValue: String { statusRawValue }
+        public var locale: Locale {
+            localeIdentifier.map(Locale.init(identifier:)) ?? .autoupdatingCurrent
+        }
         public var nextTitle: String? { nil }
         public var nextStartDate: Date? { nil }
         public var pinnedTitle: String? { nil }

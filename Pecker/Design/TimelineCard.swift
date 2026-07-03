@@ -68,19 +68,21 @@ struct TimelineCard<Content: View>: View {
 
 struct SwipeDeleteAction<Content: View>: View {
     private let isEnabled: Bool
+    private let onTap: () -> Void
     private let onDelete: () -> Void
     private let content: Content
-    @State private var dragOffset: CGFloat = 0
-    @State private var isOpen = false
+    @State private var swipeState = SwipeDeleteState(actionWidth: 82)
 
     private let actionWidth: CGFloat = 82
 
     init(
         isEnabled: Bool,
+        onTap: @escaping () -> Void = {},
         onDelete: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
         self.isEnabled = isEnabled
+        self.onTap = onTap
         self.onDelete = onDelete
         self.content = content()
     }
@@ -92,27 +94,66 @@ struct SwipeDeleteAction<Content: View>: View {
                     close()
                     onDelete()
                 } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: actionWidth, height: 48)
-                        .frame(maxHeight: .infinity)
-                        .background(
-                            RoundedRectangle(
-                                cornerRadius: TimelineTheme.cardCornerRadius,
-                                style: .continuous
-                            )
-                            .fill(Color.red)
+                    VStack(spacing: 5) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("common.delete")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: actionWidth)
+                    .frame(maxHeight: .infinity)
+                    .background {
+                        RoundedRectangle(
+                            cornerRadius: TimelineTheme.cardCornerRadius,
+                            style: .continuous
                         )
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.red.opacity(0.92),
+                                    Color(red: 0.82, green: 0.08, blue: 0.08)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    }
+                    .overlay {
+                        RoundedRectangle(
+                            cornerRadius: TimelineTheme.cardCornerRadius,
+                            style: .continuous
+                        )
+                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                    }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\u{5220}\u{9664}")
+                .accessibilityLabel(Text("common.delete"))
+                .allowsHitTesting(swipeState.deleteActionReceivesHitTesting)
+                .zIndex(swipeState.deleteActionReceivesHitTesting ? 1 : -1)
             }
 
             content
-                .offset(x: currentOffset)
+                .background {
+                    RoundedRectangle(
+                        cornerRadius: TimelineTheme.cardCornerRadius,
+                        style: .continuous
+                    )
+                    .fill(TimelineTheme.cardFallbackFill)
+                }
+                .offset(x: swipeState.currentOffset)
                 .contentShape(Rectangle())
-                .gesture(
+                .onTapGesture {
+                    guard !swipeState.consumeTapSuppression() else {
+                        return
+                    }
+                    if swipeState.isOpen {
+                        close()
+                    } else {
+                        onTap()
+                    }
+                }
+                .simultaneousGesture(
                     DragGesture(minimumDistance: 18)
                         .onChanged { value in
                             guard isEnabled,
@@ -121,36 +162,84 @@ struct SwipeDeleteAction<Content: View>: View {
                             else {
                                 return
                             }
-                            let base = isOpen ? -actionWidth : 0
-                            dragOffset = min(0, max(-actionWidth, base + value.translation.width))
+                            swipeState.updateDrag(
+                                translationWidth: value.translation.width,
+                                isHorizontal: true
+                            )
                         }
                         .onEnded { value in
                             guard isEnabled else {
                                 return
                             }
-                            let projected = currentOffset + value.predictedEndTranslation.width * 0.08
                             withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-                                isOpen = projected < -actionWidth * 0.42
-                                dragOffset = 0
+                                swipeState.endDrag(
+                                    predictedEndTranslationWidth: value.predictedEndTranslation.width
+                                )
                             }
                         }
                 )
+                .zIndex(0)
         }
         .clipped()
-    }
-
-    private var currentOffset: CGFloat {
-        guard isEnabled else {
-            return 0
+        .onChange(of: isEnabled) { _, isEnabled in
+            if !isEnabled {
+                close()
+            }
         }
-        return dragOffset != 0 ? dragOffset : (isOpen ? -actionWidth : 0)
     }
 
     private func close() {
         withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-            isOpen = false
-            dragOffset = 0
+            swipeState.close()
         }
+    }
+}
+
+struct SwipeDeleteState: Equatable {
+    let actionWidth: CGFloat
+    var isOpen = false
+    private var activeDragOffset: CGFloat?
+    private var suppressNextTap = false
+
+    init(actionWidth: CGFloat) {
+        self.actionWidth = actionWidth
+    }
+
+    var currentOffset: CGFloat {
+        activeDragOffset ?? (isOpen ? -actionWidth : 0)
+    }
+
+    var deleteActionReceivesHitTesting: Bool {
+        isOpen || (activeDragOffset ?? 0) <= -actionWidth * 0.42
+    }
+
+    mutating func updateDrag(
+        translationWidth: CGFloat,
+        isHorizontal: Bool
+    ) {
+        guard isHorizontal else {
+            return
+        }
+        let base: CGFloat = isOpen ? -actionWidth : 0
+        activeDragOffset = min(0, max(-actionWidth, base + translationWidth))
+        suppressNextTap = true
+    }
+
+    mutating func endDrag(predictedEndTranslationWidth: CGFloat) {
+        let projected = currentOffset + predictedEndTranslationWidth * 0.08
+        isOpen = projected < -actionWidth * 0.42
+        activeDragOffset = nil
+    }
+
+    mutating func close() {
+        isOpen = false
+        activeDragOffset = nil
+    }
+
+    mutating func consumeTapSuppression() -> Bool {
+        let shouldSuppress = suppressNextTap
+        suppressNextTap = false
+        return shouldSuppress
     }
 }
 

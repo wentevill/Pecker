@@ -53,7 +53,7 @@ struct ActivityCoordinator: Sendable {
             currentDaySnapshot: currentDaySnapshot
         )
         let nextBoundary = settings.liveActivityEnabled
-            ? desiredState(snapshot: snapshot, now: now).map {
+            ? desiredState(snapshot: snapshot, settings: settings, now: now).map {
                 staleDate(for: $0, snapshot: snapshot, now: now)
             }
             : nil
@@ -106,7 +106,11 @@ struct ActivityCoordinator: Sendable {
             return .end
         }
 
-        guard let state = desiredState(snapshot: snapshot, now: now) else {
+        guard let state = desiredState(
+            snapshot: snapshot,
+            settings: settings,
+            now: now
+        ) else {
             return .end
         }
 
@@ -124,6 +128,7 @@ struct ActivityCoordinator: Sendable {
 
     private func desiredState(
         snapshot: TodaySnapshot,
+        settings: TimelineSettings,
         now: Date
     ) -> PeckerActivityAttributes.ContentState? {
         guard let primary = primaryItem(snapshot: snapshot, now: now) else {
@@ -137,6 +142,7 @@ struct ActivityCoordinator: Sendable {
                 primary: primary
             ),
             generatedAt: snapshot.generatedAt,
+            language: settings.language
         )
     }
 

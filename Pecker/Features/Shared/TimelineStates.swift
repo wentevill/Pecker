@@ -10,6 +10,7 @@ enum TimelineScreenState: Equatable {
 }
 
 struct TimelineAuthorizationNotice: Equatable {
+    let unavailableSources: [TimelineSource]
     let titleText: String
     let bodyText: String
     let buttonText: String
@@ -23,14 +24,14 @@ struct TimelineAuthorizationNotice: Equatable {
             return nil
         }
 
-        let unavailableSources = [
+        let unavailableSources: [TimelineSource] = [
             noticeSource(
-                name: "\u{65e5}\u{5386}",
+                source: .calendar,
                 enabled: settings.calendarEnabled,
                 status: authorization.calendar
             ),
             noticeSource(
-                name: "\u{63d0}\u{9192}\u{4e8b}\u{9879}",
+                source: .reminder,
                 enabled: settings.remindersEnabled,
                 status: authorization.reminders
             )
@@ -41,24 +42,25 @@ struct TimelineAuthorizationNotice: Equatable {
             return nil
         }
 
-        let bodyText = "\u{5df2}\u{663e}\u{793a}\u{53ef}\u{8bbf}\u{95ee}\u{7684}\u{5185}\u{5bb9}。\u{8981}\u{6062}\u{590d}\u{5168}\u{90e8}\u{65f6}\u{95f4}\u{7ebf}，\u{8bf7}\u{5728}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}\u{4e2d}\u{91cd}\u{65b0}\u{6388}\u{6743}\(unavailableSources.joined(separator: "\u{548c}"))。"
+        let bodyText = "Available content is visible. Restore access in Settings to show the complete timeline."
         return TimelineAuthorizationNotice(
-            titleText: "\u{90e8}\u{5206}\u{6743}\u{9650}\u{53d7}\u{9650}",
+            unavailableSources: unavailableSources,
+            titleText: "Some permissions are limited",
             bodyText: bodyText,
-            buttonText: "\u{53bb}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}",
-            accessibilityLabel: "\u{90e8}\u{5206}\u{6743}\u{9650}\u{53d7}\u{9650}，\(bodyText)"
+            buttonText: "Open Settings",
+            accessibilityLabel: "Some permissions are limited. \(bodyText)"
         )
     }
 
     private static func noticeSource(
-        name: String,
+        source: TimelineSource,
         enabled: Bool,
         status: SourceAuthorizationStatus
-    ) -> String? {
+    ) -> TimelineSource? {
         guard enabled, status != .fullAccess else {
             return nil
         }
-        return name
+        return source
     }
 }
 

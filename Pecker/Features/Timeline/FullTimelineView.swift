@@ -5,21 +5,41 @@ struct FullTimelineView: View {
     @Bindable var model: TimelineManagerModel
     let now: Date
     let settings: TimelineSettings
+    let localizer: AppLocalizer
     let activeOnly: Bool
     let onSelectItem: (TimelineItem) -> Void
     let onTogglePin: (TimelineItem) -> Void
     let onOpenSettings: () -> Void
-    @State private var editingRecord: TimelineRecordEditor?
-    @State private var isEditorPresented = false
     @State private var pendingDelete: TimelineItem?
     @State private var mutationError: String?
+
+    init(
+        model: TimelineManagerModel,
+        now: Date,
+        settings: TimelineSettings,
+        localizer: AppLocalizer = AppLocalizer(language: .system),
+        activeOnly: Bool,
+        onSelectItem: @escaping (TimelineItem) -> Void,
+        onTogglePin: @escaping (TimelineItem) -> Void,
+        onOpenSettings: @escaping () -> Void
+    ) {
+        self.model = model
+        self.now = now
+        self.settings = settings
+        self.localizer = localizer
+        self.activeOnly = activeOnly
+        self.onSelectItem = onSelectItem
+        self.onTogglePin = onTogglePin
+        self.onOpenSettings = onOpenSettings
+    }
 
     var body: some View {
         TimelineView(.periodic(from: now, by: 60)) { context in
             let sections = TimelineGrouping.sections(
                 items: displayedItems(at: context.date),
                 now: context.date,
-                activeOnly: activeOnly
+                activeOnly: activeOnly,
+                localizer: localizer
             )
 
             ZStack {
@@ -33,7 +53,7 @@ struct FullTimelineView: View {
                         kindFilters
 
                         if model.isLoading && model.items.isEmpty {
-                            ProgressView("\u{52a0}\u{8f7d}\u{65f6}\u{95f4}\u{7ebf}…")
+                            ProgressView(localizer.string("timeline.loading"))
                                 .frame(maxWidth: .infinity)
                                 .padding(30)
                         } else if sections.isEmpty {
@@ -53,7 +73,7 @@ struct FullTimelineView: View {
                 await model.load(now: context.date)
             }
             .foregroundStyle(TimelineTheme.textPrimary)
-            .navigationTitle(activeOnly ? "\u{8fdb}\u{884c}\u{4e2d}" : "\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}")
+            .navigationTitle(activeOnly ? localizer.string("timeline.active.title") : localizer.string("timeline.full.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -63,44 +83,38 @@ struct FullTimelineView: View {
                 }
             }
         }
-        .sheet(isPresented: $isEditorPresented) {
-            if let editingRecord {
-                TimelineRecordEditorView(editor: editingRecord) { editor in
-                    try await model.save(editor)
-                }
-            }
-        }
-        .confirmationDialog(
-            "\u{5220}\u{9664}\u{8fd9}\u{4e2a}\u{4e8b}\u{4ef6}？",
+        .alert(
+            localizer.string("delete.confirmation.title"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
             ),
-            titleVisibility: .visible
         ) {
-            Button("\u{5220}\u{9664}", role: .destructive) {
+            Button(localizer.string("common.delete"), role: .destructive) {
                 guard let item = pendingDelete else { return }
                 pendingDelete = nil
                 Task {
                     do {
                         try await model.delete(item)
                     } catch {
-                        mutationError = "\u{5220}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+                        mutationError = localizer.string("delete.error")
                     }
                 }
             }
-            Button("\u{53d6}\u{6d88}", role: .cancel) {
+            Button(localizer.string("common.cancel"), role: .cancel) {
                 pendingDelete = nil
             }
+        } message: {
+            Text(localizer.string("delete.confirmation.message"))
         }
         .alert(
-            "\u{64cd}\u{4f5c}\u{5931}\u{8d25}",
+            localizer.string("operation.failed"),
             isPresented: Binding(
                 get: { mutationError != nil },
                 set: { if !$0 { mutationError = nil } }
             )
         ) {
-            Button("\u{597d}") { mutationError = nil }
+            Button(localizer.string("common.ok")) { mutationError = nil }
         } message: {
             Text(mutationError ?? "")
         }
@@ -108,7 +122,7 @@ struct FullTimelineView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(activeOnly ? "\u{8fdb}\u{884c}\u{4e2d}\u{9879}\u{76ee}" : scopeTitle)
+            Text(activeOnly ? localizer.string("timeline.active.items") : scopeTitle)
                 .font(.largeTitle.weight(.bold))
                 .foregroundStyle(TimelineTheme.textPrimary)
 
@@ -120,25 +134,25 @@ struct FullTimelineView: View {
 
     private var headerSubtitle: String {
         if activeOnly {
-            return "\u{6765}\u{81ea}\u{5f53}\u{524d}\u{5feb}\u{7167}\u{7684}\u{6240}\u{6709}\u{8fdb}\u{884c}\u{4e2d}\u{9879}\u{76ee}。"
+            return localizer.string("timeline.active.subtitle")
         }
 
-        return "\u{6309}\u{65f6}\u{95f4}\u{4e0e}\u{7c7b}\u{578b}\u{7ba1}\u{7406}\u{65e5}\u{5386}、\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{548c} Pecker \u{5361}\u{7247}。"
+        return localizer.string("timeline.full.subtitle")
     }
 
     private var scopeTitle: String {
         switch model.selectedScope {
-        case .today: "\u{4eca}\u{65e5}\u{65f6}\u{95f4}\u{7ebf}"
-        case .future: "\u{672a}\u{6765}\u{65f6}\u{95f4}\u{7ebf}"
-        case .history: "\u{5386}\u{53f2}\u{65f6}\u{95f4}\u{7ebf}"
+        case .today: localizer.string("timeline.scope.today.title")
+        case .future: localizer.string("timeline.scope.future.title")
+        case .history: localizer.string("timeline.scope.history.title")
         }
     }
 
     private var scopeControl: some View {
-        Picker("\u{65f6}\u{95f4}\u{8303}\u{56f4}", selection: $model.selectedScope) {
-            Text("\u{4eca}\u{65e5}").tag(TimelineDateScope.today)
-            Text("\u{672a}\u{6765}").tag(TimelineDateScope.future)
-            Text("\u{5386}\u{53f2}").tag(TimelineDateScope.history)
+        Picker(localizer.string("timeline.scope.label"), selection: $model.selectedScope) {
+            Text(localizer.string("timeline.scope.today")).tag(TimelineDateScope.today)
+            Text(localizer.string("timeline.scope.future")).tag(TimelineDateScope.future)
+            Text(localizer.string("timeline.scope.history")).tag(TimelineDateScope.history)
         }
         .pickerStyle(.segmented)
         .onChange(of: model.selectedScope) { _, scope in
@@ -149,7 +163,7 @@ struct FullTimelineView: View {
     private var kindFilters: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                kindButton(title: "\u{5168}\u{90e8}", kind: nil)
+                kindButton(title: localizer.string("timeline.kind.all"), kind: nil)
                 ForEach(TimelineKind.allCases, id: \.self) { kind in
                     kindButton(title: kindTitle(kind), kind: kind)
                 }
@@ -197,9 +211,9 @@ struct FullTimelineView: View {
     private var emptyState: some View {
         TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(activeOnly ? "\u{5f53}\u{524d}\u{6ca1}\u{6709}\u{8fdb}\u{884c}\u{4e2d}\u{7684}\u{9879}\u{76ee}" : "\u{5f53}\u{524d}\u{6ca1}\u{6709}\u{53ef}\u{663e}\u{793a}\u{7684}\u{9879}\u{76ee}")
+                Text(activeOnly ? localizer.string("timeline.empty.active") : localizer.string("timeline.empty.full"))
                     .font(.headline.weight(.semibold))
-                Text("\u{53ef}\u{4ee5}\u{4e0b}\u{62c9}\u{5237}\u{65b0}，\u{6216}\u{8005}\u{7a0d}\u{540e}\u{518d}\u{770b}。")
+                Text(localizer.string("timeline.empty.body"))
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
             }
@@ -231,6 +245,7 @@ struct FullTimelineView: View {
     ) -> some View {
         SwipeDeleteAction(
             isEnabled: model.isEditable(item),
+            onTap: { onSelectItem(item) },
             onDelete: { pendingDelete = item }
         ) {
             TimelineCard(accent: accent(for: section.kind, item: item)) {
@@ -250,107 +265,37 @@ struct FullTimelineView: View {
                         Text(statusText(for: section.kind, item: item))
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(TimelineTheme.color(for: accent(for: section.kind, item: item)))
-
-                        timelineActions(for: item)
                     }
 
-                    Button {
-                        onSelectItem(item)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(item.title)
-                                .font(.title3.weight(.semibold))
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(item.title)
+                            .font(.title3.weight(.semibold))
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                            Text(timeText(for: item, now: now))
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(TimelineTheme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                        Text(timeText(for: item, now: now))
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(TimelineTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                            if let detailText = detailText(for: item) {
-                                Text(detailText)
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(TimelineTheme.textPrimary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+                        if let detailText = detailText(for: item) {
+                            Text(detailText)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(TimelineTheme.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
         .accessibilityLabel(accessibilityLabel(for: item, section: section, now: now))
-        .contextMenu {
-            if model.isEditable(item) {
-                Button {
-                    openEditor(for: item)
-                } label: {
-                    Label("\u{7f16}\u{8f91}", systemImage: "pencil")
-                }
-
-                Button(role: .destructive) {
-                    pendingDelete = item
-                } label: {
-                    Label("\u{5220}\u{9664}", systemImage: "trash")
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func timelineActions(for item: TimelineItem) -> some View {
-        Button {
-            onTogglePin(item)
-        } label: {
-            Image(systemName: pinSymbol(for: item))
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(pinTint(for: item))
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(TimelineTheme.controlFill))
-                .overlay(Circle().stroke(TimelineTheme.cardStroke, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(pinAccessibilityLabel(for: item))
-
-        if model.isEditable(item) {
-            Menu {
-                Button {
-                    openEditor(for: item)
-                } label: {
-                    Label("\u{7f16}\u{8f91}", systemImage: "pencil")
-                }
-                Button(role: .destructive) {
-                    pendingDelete = item
-                } label: {
-                    Label("\u{5220}\u{9664}", systemImage: "trash")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(TimelineTheme.textSecondary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(TimelineTheme.controlFill))
-                    .overlay(Circle().stroke(TimelineTheme.cardStroke))
-            }
-            .accessibilityLabel("\u{66f4}\u{591a}\u{64cd}\u{4f5c}")
-        }
-    }
-
-    private func openEditor(for item: TimelineItem) {
-        do {
-            editingRecord = try model.editor(for: item)
-            isEditorPresented = true
-        } catch {
-            mutationError = "\u{65e0}\u{6cd5}\u{6253}\u{5f00}\u{7f16}\u{8f91}\u{5668}。"
-        }
     }
 
     private func sourceTitle(for item: TimelineItem) -> String {
         switch item.source {
-        case .calendar: "\u{65e5}\u{5386}"
-        case .reminder: "\u{63d0}\u{9192}\u{4e8b}\u{9879}"
+        case .calendar: localizer.string("source.calendar")
+        case .reminder: localizer.string("source.reminders")
         case .external: "Pecker"
         }
     }
@@ -365,29 +310,29 @@ struct FullTimelineView: View {
 
     private func kindTitle(_ kind: TimelineKind) -> String {
         switch kind {
-        case .meeting: "\u{4f1a}\u{8bae}"
-        case .task: "\u{4efb}\u{52a1}"
-        case .flight: "\u{822a}\u{73ed}"
-        case .train: "\u{706b}\u{8f66}"
-        case .travel: "\u{884c}\u{7a0b}"
-        case .interview: "\u{9762}\u{8bd5}"
-        case .deadline: "\u{622a}\u{6b62}"
-        case .unknown: "\u{672a}\u{5206}\u{7c7b}"
+        case .meeting: localizer.string("timeline.kind.meeting")
+        case .task: localizer.string("timeline.kind.task")
+        case .flight: localizer.string("timeline.kind.flight")
+        case .train: localizer.string("timeline.kind.train")
+        case .travel: localizer.string("timeline.kind.travel")
+        case .interview: localizer.string("timeline.kind.interview")
+        case .deadline: localizer.string("timeline.kind.deadline")
+        case .unknown: localizer.string("timeline.kind.unknown")
         }
     }
 
     private func statusText(for section: TimelineGrouping.Section.Kind, item: TimelineItem) -> String {
         switch section {
         case .overdue:
-            "\u{5df2}\u{903e}\u{671f}"
+            localizer.string("timeline.section.overdue")
         case .allDay:
-            "\u{5168}\u{5929}"
+            localizer.string("timeline.section.allDay")
         case .active:
-            "\u{8fdb}\u{884c}\u{4e2d}"
+            localizer.string("timeline.section.active")
         case .upcoming:
-            "\u{5373}\u{5c06}\u{5f00}\u{59cb}"
+            localizer.string("timeline.section.upcoming")
         case .elapsed:
-            "\u{5df2}\u{7ed3}\u{675f}"
+            localizer.string("timeline.section.elapsed")
         }
     }
 
@@ -395,10 +340,10 @@ struct FullTimelineView: View {
         let formatter = Date.FormatStyle()
             .hour(.defaultDigits(amPM: .omitted))
             .minute()
-            .locale(Locale(identifier: "zh_CN"))
+            .locale(localizer.locale)
 
         if item.isAllDay {
-            return "\u{5168}\u{5929}"
+            return localizer.string("timeline.section.allDay")
         }
 
         guard let end = item.endDate else {
@@ -407,7 +352,7 @@ struct FullTimelineView: View {
 
         let range = "\(item.startDate.formatted(formatter)) – \(end.formatted(formatter))"
         if item.endDate.map({ $0 > now }) == true, item.startDate <= now {
-            return "\(range) · \u{8fdb}\u{884c}\u{4e2d}"
+            return "\(range) · \(localizer.string("timeline.section.active"))"
         }
 
         return range
@@ -455,8 +400,8 @@ struct FullTimelineView: View {
 
     private func pinAccessibilityLabel(for item: TimelineItem) -> String {
         settings.manualPinnedSourceIdentifier == item.sourceIdentifier
-            ? "\u{53d6}\u{6d88}\u{56fa}\u{5b9a}"
-            : "\u{56fa}\u{5b9a}\u{884c}\u{7a0b}"
+            ? localizer.string("pin.action.unpin")
+            : localizer.string("pin.action.pin")
     }
 
     private func accessibilityLabel(
@@ -473,7 +418,7 @@ struct FullTimelineView: View {
             pinAccessibilityLabel(for: item)
         ]
         .filter { !$0.isEmpty }
-        .joined(separator: "，")
+        .joined(separator: ", ")
     }
 }
 

@@ -5,36 +5,42 @@ struct LiveActivityPresentationAdapter: Sendable {
     func makeState(
         item: TimelineItem,
         status: PeckerLiveActivityStatus,
-        generatedAt: Date
+        generatedAt: Date,
+        language: AppLanguage = .system
     ) -> PeckerActivityAttributes.ContentState {
-        switch item.template {
+        let locale = Locale(identifier: language.liveActivityLocaleIdentifier)
+        return switch item.template {
         case let .trainTicket(ticket):
             trainState(
                 item: item,
                 ticket: ticket,
                 status: status,
-                generatedAt: generatedAt
+                generatedAt: generatedAt,
+                locale: locale
             )
         case let .flightTicket(ticket):
             flightState(
                 item: item,
                 ticket: ticket,
                 status: status,
-                generatedAt: generatedAt
+                generatedAt: generatedAt,
+                locale: locale
             )
         case let .generic(event):
             genericState(
                 item: item,
                 event: event,
                 status: status,
-                generatedAt: generatedAt
+                generatedAt: generatedAt,
+                locale: locale
             )
         case nil:
             genericState(
                 item: item,
                 event: nil,
                 status: status,
-                generatedAt: generatedAt
+                generatedAt: generatedAt,
+                locale: locale
             )
         }
     }
@@ -43,15 +49,22 @@ struct LiveActivityPresentationAdapter: Sendable {
         item: TimelineItem,
         ticket: TrainTicketTemplate,
         status: PeckerLiveActivityStatus,
-        generatedAt: Date
+        generatedAt: Date,
+        locale: Locale
     ) -> PeckerActivityAttributes.ContentState {
         let route = [ticket.departureStation, ticket.arrivalStation]
             .compactMap(clean)
             .joined(separator: " → ")
         let metadata = [
-            ticket.carriageNumber.map { "\($0) \u{8f66}" },
-            ticket.seatNumber.map { "\($0) \u{5ea7}" },
-            ticket.checkInGate.map { "\($0) \u{68c0}\u{7968}\u{53e3}" },
+            ticket.carriageNumber.map {
+                localizedValue(label: .car, value: $0, locale: locale)
+            },
+            ticket.seatNumber.map {
+                localizedValue(label: .seat, value: $0, locale: locale)
+            },
+            ticket.checkInGate.map {
+                localizedValue(label: .gate, value: $0, locale: locale)
+            },
             ticket.seatClass
         ]
         .compactMap(clean)
@@ -66,6 +79,7 @@ struct LiveActivityPresentationAdapter: Sendable {
             location: clean(item.location),
             supportingDetail: clean(item.notes),
             metadata: metadata,
+            localeIdentifier: locale.identifier,
             generatedAt: generatedAt
         )
     }
@@ -74,12 +88,17 @@ struct LiveActivityPresentationAdapter: Sendable {
         item: TimelineItem,
         ticket: FlightTicketTemplate,
         status: PeckerLiveActivityStatus,
-        generatedAt: Date
+        generatedAt: Date,
+        locale: Locale
     ) -> PeckerActivityAttributes.ContentState {
         let metadata = [
             ticket.terminal,
-            ticket.gate.map { "Gate \($0)" },
-            ticket.seat.map { "\($0) \u{5ea7}" },
+            ticket.gate.map {
+                localizedValue(label: .gate, value: $0, locale: locale)
+            },
+            ticket.seat.map {
+                localizedValue(label: .seat, value: $0, locale: locale)
+            },
             ticket.travelStatus
         ]
         .compactMap(clean)
@@ -100,6 +119,7 @@ struct LiveActivityPresentationAdapter: Sendable {
             location: clean(item.location),
             supportingDetail: clean(item.notes),
             metadata: metadata,
+            localeIdentifier: locale.identifier,
             generatedAt: generatedAt
         )
     }
@@ -108,14 +128,15 @@ struct LiveActivityPresentationAdapter: Sendable {
         item: TimelineItem,
         event: GenericEventTemplate?,
         status: PeckerLiveActivityStatus,
-        generatedAt: Date
+        generatedAt: Date,
+        locale: Locale
     ) -> PeckerActivityAttributes.ContentState {
         let location = clean(event?.location) ?? clean(item.location)
         let notes = clean(event?.notes) ?? clean(item.notes)
         let preservedDetail = event?.fields
             .sorted { $0.key < $1.key }
             .lazy
-            .filter { !Self.genericIdentityKeys.contains($0.key) }
+            .filter { !isGenericSupportFieldHidden(key: $0.key, value: $0.value) }
             .map(\.value)
             .compactMap(clean)
             .first
@@ -130,6 +151,7 @@ struct LiveActivityPresentationAdapter: Sendable {
             location: location,
             supportingDetail: notes ?? preservedDetail,
             metadata: [],
+            localeIdentifier: locale.identifier,
             generatedAt: generatedAt
         )
     }
@@ -144,6 +166,7 @@ struct LiveActivityPresentationAdapter: Sendable {
         location: String?,
         supportingDetail: String?,
         metadata: [String],
+        localeIdentifier: String?,
         generatedAt: Date
     ) -> PeckerActivityAttributes.ContentState {
         PeckerActivityAttributes.ContentState(
@@ -160,8 +183,32 @@ struct LiveActivityPresentationAdapter: Sendable {
             location: location,
             supportingDetail: supportingDetail,
             metadata: metadata,
+            localeIdentifier: localeIdentifier,
             generatedAt: generatedAt
         )
+    }
+
+    private func localizedValue(
+        label: MetadataLabel,
+        value: String,
+        locale: Locale
+    ) -> String {
+        let cleanValue = clean(value) ?? value
+        let usesChinese = locale.language.languageCode?.identifier == "zh"
+        switch (label, usesChinese) {
+        case (.car, true):
+            return "\(cleanValue)\u{8f66}"
+        case (.seat, true):
+            return "\(cleanValue)\u{5ea7}"
+        case (.gate, true):
+            return "\u{68c0}\u{7968}\u{53e3} \(cleanValue)"
+        case (.car, false):
+            return "Car \(cleanValue)"
+        case (.seat, false):
+            return "Seat \(cleanValue)"
+        case (.gate, false):
+            return "Gate \(cleanValue)"
+        }
     }
 
     private func endpoint(name: String?, code: String?) -> String? {
@@ -203,6 +250,30 @@ struct LiveActivityPresentationAdapter: Sendable {
         return trimmed?.isEmpty == false ? trimmed : nil
     }
 
+    private func isGenericSupportFieldHidden(key: String, value: String) -> Bool {
+        if Self.genericIdentityKeys.contains(key) {
+            return true
+        }
+
+        let normalizedKey = key.lowercased()
+        if Self.genericMachineTimeKeys.contains(normalizedKey) {
+            return true
+        }
+
+        return looksLikeMachineDate(value)
+    }
+
+    private func looksLikeMachineDate(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 16, trimmed.contains("T") else {
+            return false
+        }
+
+        return trimmed.hasSuffix("Z")
+            || trimmed.contains("+")
+            || trimmed.dropFirst().contains("-")
+    }
+
     private static let genericIdentityKeys: Set<String> = [
         "title",
         "eventTitle",
@@ -214,6 +285,40 @@ struct LiveActivityPresentationAdapter: Sendable {
         "details",
         "\u{5907}\u{6ce8}"
     ]
+
+    private static let genericMachineTimeKeys: Set<String> = [
+        "date",
+        "datetime",
+        "duedate",
+        "duedatetime",
+        "enddate",
+        "enddatetime",
+        "endtime",
+        "eventdate",
+        "startdate",
+        "startdatetime",
+        "starttime",
+        "time"
+    ]
+}
+
+private enum MetadataLabel {
+    case car
+    case seat
+    case gate
+}
+
+private extension AppLanguage {
+    var liveActivityLocaleIdentifier: String {
+        switch self {
+        case .system:
+            Locale.preferredLanguages.first ?? "en"
+        case .english:
+            "en"
+        case .simplifiedChinese:
+            "zh-Hans"
+        }
+    }
 }
 
 private extension PeckerLiveActivityStatus {

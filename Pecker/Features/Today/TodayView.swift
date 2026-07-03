@@ -19,14 +19,17 @@ struct TodayView: View {
     @State private var mutationError: String?
 
     var body: some View {
+        let localizer = AppLocalizer(language: settingsStore.value.language)
         NavigationStack(path: $path) {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 TodayScreen(
                     content: content(now: context.date),
                     recognitionActions: TodayScreenContent.recognitionActions(
                         settings: settingsStore.value,
-                        phase: imageRecognitionPhase
+                        phase: imageRecognitionPhase,
+                        localizer: localizer
                     ),
+                    localizer: localizer,
                     selectedPhoto: $selectedPhoto,
                     isCameraPresented: $isCameraPresented,
                     refreshAction: { await model.refresh() },
@@ -100,50 +103,54 @@ struct TodayView: View {
                     )
                 )
             }
-            .confirmationDialog(
-                "\u{5220}\u{9664}\u{8fd9}\u{4e2a}\u{4e8b}\u{4ef6}？",
+            .alert(
+                localizer.string("delete.confirmation.title"),
                 isPresented: Binding(
                     get: { pendingDelete != nil },
                     set: { if !$0 { pendingDelete = nil } }
                 ),
-                titleVisibility: .visible
             ) {
-                Button("\u{5220}\u{9664}", role: .destructive) {
+                Button(localizer.string("common.delete"), role: .destructive) {
                     guard let item = pendingDelete else { return }
                     pendingDelete = nil
                     Task {
                         do {
                             try await model.timelineManager.delete(item)
                         } catch {
-                            mutationError = "\u{5220}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+                            mutationError = localizer.string("delete.error")
                         }
                     }
                 }
-                Button("\u{53d6}\u{6d88}", role: .cancel) {
+                Button(localizer.string("common.cancel"), role: .cancel) {
                     pendingDelete = nil
                 }
+            } message: {
+                Text(localizer.string("delete.confirmation.message"))
             }
             .alert(
-                "\u{64cd}\u{4f5c}\u{5931}\u{8d25}",
+                localizer.string("operation.failed"),
                 isPresented: Binding(
                     get: { mutationError != nil },
                     set: { if !$0 { mutationError = nil } }
                 )
             ) {
-                Button("\u{597d}") { mutationError = nil }
+                Button(localizer.string("common.ok")) { mutationError = nil }
             } message: {
                 Text(mutationError ?? "")
             }
+            .environment(\.locale, localizer.locale)
         }
     }
 
     private func content(now: Date) -> TodayScreenContent {
-        TodayScreenContent.make(
+        let localizer = AppLocalizer(language: settingsStore.value.language)
+        return TodayScreenContent.make(
             from: model.state,
             now: now,
             authorization: model.latestAuthorization,
             settings: settingsStore.value,
-            locale: Locale(identifier: "zh_CN"),
+            localizer: localizer,
+            locale: localizer.locale,
             calendar: calendar
         )
     }
@@ -156,6 +163,7 @@ struct TodayView: View {
                 model: model.timelineManager,
                 now: .now,
                 settings: settingsStore.value,
+                localizer: AppLocalizer(language: settingsStore.value.language),
                 activeOnly: activeOnly,
                 onSelectItem: { item in
                     path.append(.detail(item: item))
@@ -172,6 +180,8 @@ struct TodayView: View {
                 item: item,
                 now: .now,
                 settingsStore: settingsStore,
+                localizer: AppLocalizer(language: settingsStore.value.language),
+                timelineManager: model.timelineManager,
                 onSettingsChanged: onSettingsChanged
             )
         }
@@ -192,7 +202,8 @@ struct TodayView: View {
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
                 imageRecognitionPhase = .failure(.init(
-                    reason: "\u{65e0}\u{6cd5}\u{8bfb}\u{53d6}\u{8fd9}\u{5f20}\u{56fe}\u{7247}。",
+                    reason: AppLocalizer(language: settingsStore.value.language)
+                        .string("recognition.error.photoUnreadable"),
                     technicalDetails: nil
                 ))
                 return
@@ -216,7 +227,8 @@ struct TodayView: View {
         do {
             guard let data = image.jpegData(compressionQuality: 0.88) else {
                 imageRecognitionPhase = .failure(.init(
-                    reason: "\u{65e0}\u{6cd5}\u{8bfb}\u{53d6}\u{76f8}\u{673a}\u{7167}\u{7247}。",
+                    reason: AppLocalizer(language: settingsStore.value.language)
+                        .string("recognition.error.cameraUnreadable"),
                     technicalDetails: nil
                 ))
                 return
@@ -247,14 +259,27 @@ struct TodayView: View {
 
         imageRecognitionPhase = .saving(draft)
         do {
-            _ = try await imageRecognizer.saveRecognizedImage(draft)
-            imageRecognitionPhase = .success("\u{5df2}\u{4fdd}\u{5b58}\u{5230}\u{65f6}\u{95f4}\u{7ebf}")
+            let savedRecord = try await imageRecognizer.saveRecognizedImage(draft)
+            guard await model.timelineManager.revealSavedRecord(savedRecord) else {
+                imageRecognitionPhase = .saveFailure(
+                    draft,
+                    AppLocalizer(language: settingsStore.value.language)
+                        .string("recognition.save.failure")
+                )
+                return
+            }
+            imageRecognitionPhase = .success(
+                AppLocalizer(language: settingsStore.value.language)
+                    .string("recognition.save.success")
+            )
             onSettingsChanged()
             await model.refresh()
+            path.append(.timeline(activeOnly: false))
         } catch {
             imageRecognitionPhase = .saveFailure(
                 draft,
-                "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{91cd}\u{8bd5}\u{6216}\u{53d6}\u{6d88}。"
+                AppLocalizer(language: settingsStore.value.language)
+                    .string("recognition.save.failure")
             )
         }
     }
@@ -279,28 +304,33 @@ struct TodayView: View {
         }
         guard let recognitionError = error as? RecognitionError else {
             return .init(
-                reason: "\u{8bc6}\u{522b}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。",
+                reason: AppLocalizer(language: settingsStore.value.language)
+                    .string("recognition.error.generic"),
                 technicalDetails: error.localizedDescription
             )
         }
 
+        let localizer = AppLocalizer(language: settingsStore.value.language)
         let reason = switch recognitionError {
         case .invalidConfiguration:
-            "API \u{914d}\u{7f6e}\u{65e0}\u{6548}，\u{8bf7}\u{68c0}\u{67e5} Host、Model \u{548c} API Key。"
+            localizer.string("recognition.error.invalidConfiguration")
         case .requestFailed:
-            "API \u{8bf7}\u{6c42}\u{5931}\u{8d25}，\u{8bf7}\u{68c0}\u{67e5} Host、Model \u{6216}\u{7f51}\u{7edc}。"
+            localizer.string("recognition.error.requestFailed")
         case .imageInputUnsupported:
-            "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{4e0d}\u{652f}\u{6301}\u{56fe}\u{7247}\u{8bc6}\u{522b}，\u{8bf7}\u{5728}\u{8bbe}\u{7f6e}\u{4e2d}\u{6539}\u{7528}\u{89c6}\u{89c9}\u{6a21}\u{578b}。"
+            localizer.string("recognition.error.imageUnsupported")
         case .invalidResponse:
-            "\u{8bc6}\u{522b}\u{7ed3}\u{679c}\u{683c}\u{5f0f}\u{5f02}\u{5e38}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+            localizer.string("recognition.error.invalidResponse")
         case .networkExecutionNotImplemented:
-            "\u{5f53}\u{524d}\u{8bc6}\u{522b}\u{670d}\u{52a1}\u{5c1a}\u{672a}\u{5b8c}\u{6210}\u{7f51}\u{7edc}\u{6267}\u{884c}。"
+            localizer.string("recognition.error.networkNotImplemented")
         case .unsupportedInput:
-            "\u{672a}\u{8bc6}\u{522b}\u{5230}\u{53ef}\u{6dfb}\u{52a0}\u{7684}\u{4e8b}\u{4ef6}，\u{8bf7}\u{6362}\u{4e00}\u{5f20}\u{5305}\u{542b}\u{7968}\u{636e}、\u{65e5}\u{7a0b}\u{6216}\u{4efb}\u{52a1}\u{4fe1}\u{606f}\u{7684}\u{56fe}\u{7247}。"
+            localizer.string("recognition.error.unsupportedInput")
         }
         return .init(
             reason: reason,
-            technicalDetails: "\u{9519}\u{8bef}\u{7c7b}\u{578b}：\(recognitionError)"
+            technicalDetails: localizer.string(
+                "recognition.error.type",
+                "\(recognitionError)"
+            )
         )
     }
 
@@ -330,6 +360,7 @@ private enum TodayRoute: Hashable {
 struct TodayScreen: View {
     let content: TodayScreenContent
     let recognitionActions: TodayScreenContent.RecognitionActions?
+    let localizer: AppLocalizer
     @Binding var selectedPhoto: PhotosPickerItem?
     @Binding var isCameraPresented: Bool
     let refreshAction: () async -> Void
@@ -348,6 +379,7 @@ struct TodayScreen: View {
     init(
         content: TodayScreenContent,
         recognitionActions: TodayScreenContent.RecognitionActions? = nil,
+        localizer: AppLocalizer = AppLocalizer(language: .system),
         selectedPhoto: Binding<PhotosPickerItem?> = .constant(nil),
         isCameraPresented: Binding<Bool> = .constant(false),
         refreshAction: @escaping () async -> Void,
@@ -365,6 +397,7 @@ struct TodayScreen: View {
     ) {
         self.content = content
         self.recognitionActions = recognitionActions
+        self.localizer = localizer
         _selectedPhoto = selectedPhoto
         _isCameraPresented = isCameraPresented
         self.refreshAction = refreshAction
@@ -470,7 +503,7 @@ struct TodayScreen: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("\u{8bc6}\u{522b}\u{4e8b}\u{4ef6}")
+                        Text(localizer.string("recognition.title"))
                             .font(.headline.weight(.semibold))
                         Text(actions.statusText)
                             .font(.caption.weight(.medium))
@@ -484,7 +517,7 @@ struct TodayScreen: View {
                     } else if actions.isLoading {
                         ProgressView()
                             .tint(TimelineTheme.now)
-                            .accessibilityLabel("\u{6b63}\u{5728}\u{4fdd}\u{5b58}\u{8bc6}\u{522b}\u{7ed3}\u{679c}")
+                            .accessibilityLabel(localizer.string("recognition.saving.accessibility"))
                     }
                 }
 
@@ -494,8 +527,8 @@ struct TodayScreen: View {
                         matching: .images
                     ) {
                         RecognitionActionLabel(
-                            title: "\u{9009}\u{62e9}\u{56fe}\u{7247}",
-                            subtitle: "\u{4ece}\u{76f8}\u{518c}\u{8bc6}\u{522b}",
+                            title: localizer.string("recognition.photo.title"),
+                            subtitle: localizer.string("recognition.photo.subtitle"),
                             symbol: "photo.on.rectangle.angled",
                             accent: TimelineTheme.now
                         )
@@ -508,8 +541,8 @@ struct TodayScreen: View {
                         isCameraPresented = true
                     } label: {
                         RecognitionActionLabel(
-                            title: "\u{62cd}\u{7167}\u{8bc6}\u{522b}",
-                            subtitle: "\u{73b0}\u{573a}\u{626b}\u{63cf}",
+                            title: localizer.string("recognition.camera.title"),
+                            subtitle: localizer.string("recognition.camera.subtitle"),
                             symbol: "camera.viewfinder",
                             accent: TimelineTheme.pinned
                         )
@@ -536,7 +569,7 @@ struct TodayScreen: View {
 
                 if let details = actions.errorTechnicalDetails,
                    !details.isEmpty {
-                    DisclosureGroup("\u{6280}\u{672f}\u{8be6}\u{60c5}") {
+                    DisclosureGroup(localizer.string("recognition.technicalDetails")) {
                         Text(details)
                             .font(.caption.monospaced())
                             .foregroundStyle(TimelineTheme.textSecondary)
@@ -545,7 +578,7 @@ struct TodayScreen: View {
                             .padding(.top, 4)
                     }
                     .font(.caption.weight(.medium))
-                    .accessibilityLabel("\u{8bc6}\u{522b}\u{5931}\u{8d25}\u{6280}\u{672f}\u{8be6}\u{60c5}")
+                    .accessibilityLabel(localizer.string("recognition.technicalDetails.accessibility"))
                 }
 
                 if let preview = actions.preview {
@@ -563,7 +596,7 @@ struct TodayScreen: View {
                 .overlay(TimelineTheme.cardStroke)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text("\u{8bc6}\u{522b}\u{7ed3}\u{679c}")
+                Text(localizer.string("recognition.preview.title"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(TimelineTheme.now)
 
@@ -653,8 +686,8 @@ struct TodayScreen: View {
     private var loadingState: some View {
         centeredState(
             icon: "clock.arrow.circlepath",
-            title: TodayStateCopy.loadingTitle,
-            message: "\u{6b63}\u{5728}\u{6574}\u{7406}\u{4eca}\u{5929}\u{7684}\u{65e5}\u{7a0b}。"
+            title: TodayStateCopy.loadingTitle(localizer),
+            message: localizer.string("today.loading.message")
         ) {
             ProgressView()
                 .tint(TimelineTheme.now)
@@ -669,10 +702,10 @@ struct TodayScreen: View {
 
             centeredState(
                 icon: "calendar.badge.clock",
-                title: TodayStateCopy.emptyTitle,
-                message: "\u{4e0b}\u{62c9}\u{5373}\u{53ef}\u{5237}\u{65b0}。"
+                title: TodayStateCopy.emptyTitle(localizer),
+                message: localizer.string("today.empty.message")
             ) {
-                Button(TodayStateCopy.staleRetry) {
+                Button(TodayStateCopy.staleRetry(localizer)) {
                     onRetry()
                 }
                 .buttonStyle(.plain)
@@ -691,7 +724,7 @@ struct TodayScreen: View {
         return TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 16) {
                 Label {
-                    Text(permission?.titleText ?? TodayStateCopy.permissionTitle)
+                    Text(permission?.titleText ?? TodayStateCopy.permissionTitle(localizer))
                         .font(.headline.weight(.semibold))
                 } icon: {
                     Image(systemName: "hand.raised.fill")
@@ -699,12 +732,12 @@ struct TodayScreen: View {
                 }
                 .labelStyle(.titleAndIcon)
 
-                Text(permission?.bodyText ?? "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}\u{540e}，Today \u{624d}\u{80fd}\u{663e}\u{793a}\u{4f60}\u{7684}\u{65e5}\u{7a0b}。")
+                Text(permission?.bodyText ?? localizer.string("today.permission.body.noMissing"))
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Button(permission?.buttonText ?? TodayStateCopy.permissionButton) {
+                Button(permission?.buttonText ?? TodayStateCopy.permissionButton(localizer)) {
                     onOpenSettings()
                 }
                 .buttonStyle(.plain)
@@ -721,7 +754,7 @@ struct TodayScreen: View {
         return TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 16) {
                 Label {
-                    Text(failure?.titleText ?? TodayStateCopy.failureTitle)
+                    Text(failure?.titleText ?? TodayStateCopy.failureTitle(localizer))
                         .font(.headline.weight(.semibold))
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
@@ -729,12 +762,12 @@ struct TodayScreen: View {
                 }
                 .labelStyle(.titleAndIcon)
 
-                Text(failure?.bodyText ?? "\u{8bf7}\u{7a0d}\u{540e}\u{518d}\u{8bd5}。")
+                Text(failure?.bodyText ?? localizer.string("today.failure.message"))
                     .font(.body)
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Button(failure?.retryText ?? TodayStateCopy.failureRetry) {
+                Button(failure?.retryText ?? TodayStateCopy.failureRetry(localizer)) {
                     onRetry()
                 }
                 .buttonStyle(.plain)
@@ -761,14 +794,14 @@ struct TodayScreen: View {
                     .foregroundStyle(Color.orange)
                     .accessibilityHidden(true)
 
-                Text(stale?.bannerText ?? TodayStateCopy.staleBanner)
+                Text(stale?.bannerText ?? TodayStateCopy.staleBanner(localizer))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(TimelineTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Spacer(minLength: 8)
 
-                Button(stale?.retryText ?? TodayStateCopy.staleRetry) {
+                Button(stale?.retryText ?? TodayStateCopy.staleRetry(localizer)) {
                     onRetry()
                 }
                 .buttonStyle(.plain)
@@ -858,24 +891,20 @@ struct TodayScreen: View {
     ) -> some View {
         SwipeDeleteAction(
             isEnabled: canDeleteCard(card),
+            onTap: { onOpenCard(card) },
             onDelete: { onDeleteCard(card) }
         ) {
-            Button {
-                onOpenCard(card)
-            } label: {
-                HStack(alignment: .top, spacing: 12) {
-                    TimelineRailMarker(
-                        accent: card.accent,
-                        topLine: topLine,
-                        bottomLine: bottomLine
-                    )
+            HStack(alignment: .top, spacing: 12) {
+                TimelineRailMarker(
+                    accent: card.accent,
+                    topLine: topLine,
+                    bottomLine: bottomLine
+                )
 
-                    TimelineCard(accent: card.accent) {
-                        cardBody(card)
-                    }
+                TimelineCard(accent: card.accent) {
+                    cardBody(card)
                 }
             }
-            .buttonStyle(.plain)
         }
         .accessibilityLabel(card.accessibilityLabel)
     }
@@ -908,15 +937,9 @@ struct TodayScreen: View {
             }
 
             if let secondary = card.secondaryText {
-                Button {
-                    onOpenConcurrentItems()
-                } label: {
-                    Text(secondary)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.color(for: card.accent))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(secondary)
+                Text(secondary)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(TimelineTheme.color(for: card.accent))
             }
 
             if let progress = card.progress {
@@ -1237,7 +1260,7 @@ private struct RecognitionTypingIndicator: View {
         }
         .frame(width: 34, height: 20)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\u{6b63}\u{5728}\u{8bc6}\u{522b}\u{56fe}\u{7247}")
+        .accessibilityLabel("Recognizing image")
     }
 }
 
@@ -1281,7 +1304,7 @@ private struct TimelineProgressBar: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityLabel("\u{8fdb}\u{5ea6} \(Int((progress * 100).rounded()))%")
+        .accessibilityLabel("Progress \(Int((progress * 100).rounded()))%")
     }
 
     private func segmentFill(for index: Int) -> Color {
@@ -1320,18 +1343,18 @@ private struct TodayRoutePlaceholder: View {
     private var title: String {
         switch route {
         case .timeline:
-            "\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}"
+            "Full Timeline"
         case .detail:
-            "\u{65e5}\u{7a0b}\u{8be6}\u{60c5}"
+            "Event Details"
         }
     }
 
     private var message: String {
         switch route {
         case .timeline:
-            "\u{6ca1}\u{6709}\u{53ef}\u{7528}\u{7684}\u{5feb}\u{7167}\u{6765}\u{663e}\u{793a}\u{6b64}\u{9875}\u{9762}。"
+            "No snapshot is available for this page."
         case .detail:
-            "\u{6ca1}\u{6709}\u{53ef}\u{7528}\u{7684}\u{9879}\u{76ee}\u{6765}\u{663e}\u{793a}\u{8be6}\u{60c5}。"
+            "No item is available for details."
         }
     }
 }

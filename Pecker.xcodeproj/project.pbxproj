@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		05398C1CF1C5B6291A4BE200 /* RecognitionPipelineModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1B2FFB5CF155133E43EBA09 /* RecognitionPipelineModelsTests.swift */; };
+		0A09ADC178CC3358DBF13E23 /* SwipeDeleteActionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12D837A7D06FC907F7FA3D22 /* SwipeDeleteActionTests.swift */; };
 		0D0AFC67C0692143924F1E7B /* RecognitionPipelineModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA161CC1358D6E84CDF7DEC /* RecognitionPipelineModels.swift */; };
 		0EDEDC4987F75CEFDE5FA019 /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BFA4D9DA38EC1902F69DCF8 /* SettingsViewModelTests.swift */; };
 		1307FD6CBC0E86085BAF07D8 /* LiveActivityPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAEECB031A5C0E7E350974B9 /* LiveActivityPresentationTests.swift */; };
@@ -162,6 +163,7 @@
 		0CD66C795E57B87001669D03 /* PeckerCoreTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PeckerCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0DD7E2595C59D7468FFFDBED /* TimelineTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineTheme.swift; sourceTree = "<group>"; };
 		11A611540DA5E60CB389AB26 /* RecognitionProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionProvider.swift; sourceTree = "<group>"; };
+		12D837A7D06FC907F7FA3D22 /* SwipeDeleteActionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeDeleteActionTests.swift; sourceTree = "<group>"; };
 		20B446A131697E3ED5E70BA8 /* DynamicIslandLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandLiveActivityView.swift; sourceTree = "<group>"; };
 		29B6BA561EE6F59282828F22 /* EventTemplateFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTemplateFactory.swift; sourceTree = "<group>"; };
 		307BB69E2BCAA2B9B0E62B5F /* TimelineManagerModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimelineManagerModelTests.swift; sourceTree = "<group>"; };
@@ -505,6 +507,7 @@
 				5C25D81314C360E33205A426 /* SettingsStoreTests.swift */,
 				4BFA4D9DA38EC1902F69DCF8 /* SettingsViewModelTests.swift */,
 				43BE19C94616A5319710B74C /* SmokeTests.swift */,
+				12D837A7D06FC907F7FA3D22 /* SwipeDeleteActionTests.swift */,
 				3E939AA89EC67F964F184E9F /* SystemEventRecognitionCoordinatorTests.swift */,
 				994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */,
 				307BB69E2BCAA2B9B0E62B5F /* TimelineManagerModelTests.swift */,
@@ -850,6 +853,7 @@
 				52BDAC3CE8EF089B8200CE10 /* SettingsStoreTests.swift in Sources */,
 				0EDEDC4987F75CEFDE5FA019 /* SettingsViewModelTests.swift in Sources */,
 				5EACAAF411C3677BFBCF8A90 /* SmokeTests.swift in Sources */,
+				0A09ADC178CC3358DBF13E23 /* SwipeDeleteActionTests.swift in Sources */,
 				3F0AFEA4DD2B3336E26BB654 /* SystemEventRecognitionCoordinatorTests.swift in Sources */,
 				98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */,
 				40520A76F7CE37C59F9986E4 /* TimelineManagerModelTests.swift in Sources */,

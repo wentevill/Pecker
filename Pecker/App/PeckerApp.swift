@@ -47,7 +47,7 @@ struct PeckerApp: App {
             )
         } catch {
             root = .configurationFailure(
-                "\u{65e0}\u{6cd5}\u{6253}\u{5f00} Pecker \u{7684}\u{5171}\u{4eab} App Group（\(AppGroup.identifier)）。\u{8bf7}\u{68c0}\u{67e5}\u{7b7e}\u{540d}\u{4e0e} entitlements \u{914d}\u{7f6e}。"
+                "Unable to open Pecker's shared App Group (\(AppGroup.identifier)). Check signing and entitlements."
             )
         }
     }
@@ -155,7 +155,7 @@ private struct FullTimelinePreviewHost: View {
 
     var body: some View {
         NavigationStack {
-            Text("\u{8bf7}\u{4ece}\u{4eca}\u{65e5}\u{9875}\u{6253}\u{5f00}\u{5b8c}\u{6574}\u{65f6}\u{95f4}\u{7ebf}")
+            Text("Open the full timeline from the Today page.")
         }
     }
 
@@ -213,6 +213,7 @@ private struct ItemDetailPreviewHost: View {
                 item: TodayPreviewFixtures.flightItem(),
                 now: TodayPreviewFixtures.makeSampleNow(),
                 settingsStore: settingsStore,
+                localizer: AppLocalizer(language: .english),
                 onSettingsChanged: {}
             )
         }
@@ -251,7 +252,7 @@ private struct ConfigurationFailureView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.orange)
                     .accessibilityHidden(true)
-                Text("\u{914d}\u{7f6e}\u{9519}\u{8bef}")
+                Text("Configuration Error")
                     .font(.title.bold())
                 Text(message)
                     .font(.body)

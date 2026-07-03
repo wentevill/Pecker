@@ -120,6 +120,41 @@ enum PeckerLiveActivityCopy {
         usesChinese(locale) ? "\u{5df2}\u{7ed3}\u{675f}" : "Ended"
     }
 
+    static func timeString(
+        _ date: Date,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        date.formatted(
+            Date.FormatStyle.dateTime
+                .hour()
+                .minute()
+                .locale(locale)
+        )
+    }
+
+    static func timeRangeString(
+        start: Date,
+        end: Date,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        "\(timeString(start, locale: locale))-\(timeString(end, locale: locale))"
+    }
+
+    static func compactRemainingLabel(
+        targetDate: Date,
+        at date: Date,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        let seconds = max(targetDate.timeIntervalSince(date), 0)
+        let minutes = Int(ceil(seconds / 60))
+        let isChinese = usesChinese(locale)
+        if minutes >= 100 {
+            let hours = minutes / 60
+            return isChinese ? "\(hours)\u{65f6}" : "\(hours)h"
+        }
+        return isChinese ? "\(minutes)\u{5206}" : "\(minutes)m"
+    }
+
     private static func usesChinese(_ locale: Locale) -> Bool {
         let languageCode = locale.language.languageCode?.identifier
         return languageCode == "zh"

@@ -475,6 +475,44 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(await repository.records() == [saved])
 }
 
+@Test func confirmedGenericImageDraftPersistsEditableRecordFields() async throws {
+    let repository = RecordingEventRepository()
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: repository,
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test")
+    )
+    let draft = ImageRecognitionDraft(
+        id: "image:draft-1",
+        sourceIdentifier: "draft-1",
+        source: .importedImage,
+        filename: "patrol.jpg",
+        imageData: Data([1, 2, 3]),
+        recognizedAt: Date(timeIntervalSince1970: 5_000),
+        startDate: Date(timeIntervalSince1970: 6_000),
+        endDate: Date(timeIntervalSince1970: 7_000),
+        template: .generic(.init(
+            kind: .task,
+            title: "\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
+            location: "\u{4ed3}\u{5e93}",
+            notes: "\u{68c0}\u{67e5}\u{697c}\u{68af}\u{53e3}",
+            fields: [
+                "title": "\u{5de1}\u{903b}\u{4ed3}\u{5e93}",
+                "location": "\u{4ed3}\u{5e93}",
+                "notes": "\u{68c0}\u{67e5}\u{697c}\u{68af}\u{53e3}"
+            ]
+        ))
+    )
+
+    let saved = try await coordinator.saveRecognizedImage(
+        draft,
+        imageReference: "Images/patrol.jpg"
+    )
+
+    #expect(saved.rawTitle == "\u{5de1}\u{903b}\u{4ed3}\u{5e93}")
+    #expect(saved.rawLocation == "\u{4ed3}\u{5e93}")
+    #expect(saved.rawNotes == "\u{68c0}\u{67e5}\u{697c}\u{68af}\u{53e3}")
+}
+
 @Test func imageCoordinatorRecognitionDoesNotWriteImage() async throws {
     let repository = RecordingEventRepository()
     let provider = RecordingRecognitionProvider(

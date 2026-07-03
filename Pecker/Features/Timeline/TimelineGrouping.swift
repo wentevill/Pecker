@@ -21,7 +21,8 @@ enum TimelineGrouping {
     static func sections(
         items: [TimelineItem],
         now: Date,
-        activeOnly: Bool = false
+        activeOnly: Bool = false,
+        localizer: AppLocalizer = AppLocalizer(language: .system)
     ) -> [Section] {
         let sortedItems = items.sorted(by: sortItems(_:_:))
 
@@ -32,11 +33,11 @@ enum TimelineGrouping {
         let elapsed = sortedItems.filter { isElapsed($0, now: now) }
 
         let sections: [Section] = [
-            makeSection(kind: .overdue, title: "\u{5df2}\u{903e}\u{671f}", items: overdue),
-            makeSection(kind: .allDay, title: "\u{5168}\u{5929}", items: allDay),
-            makeSection(kind: .active, title: "\u{8fdb}\u{884c}\u{4e2d}", items: active),
-            makeSection(kind: .upcoming, title: "\u{5373}\u{5c06}\u{5f00}\u{59cb}", items: upcoming),
-            makeSection(kind: .elapsed, title: "\u{5df2}\u{7ed3}\u{675f}", items: elapsed)
+            makeSection(kind: .overdue, title: localizer.string("timeline.section.overdue"), items: overdue),
+            makeSection(kind: .allDay, title: localizer.string("timeline.section.allDay"), items: allDay),
+            makeSection(kind: .active, title: localizer.string("timeline.section.active"), items: active),
+            makeSection(kind: .upcoming, title: localizer.string("timeline.section.upcoming"), items: upcoming),
+            makeSection(kind: .elapsed, title: localizer.string("timeline.section.elapsed"), items: elapsed)
         ]
 
         return activeOnly
@@ -86,7 +87,7 @@ enum TimelineGrouping {
         }
 
         guard let endDate = item.endDate else {
-            return false
+            return item.source != .reminder && item.startDate <= now
         }
 
         return endDate <= now

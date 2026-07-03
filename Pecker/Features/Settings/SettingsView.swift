@@ -17,7 +17,7 @@ final class SettingsViewModel {
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
-            "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
+            "waiting"
         },
         onSettingsChanged: @escaping @MainActor () -> Void,
         openURL: @escaping (URL) -> Void
@@ -29,71 +29,81 @@ final class SettingsViewModel {
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
     }
-    var openAIAPIKeyStatusText: String {
-        settingsStore.value.openAIAPIKeyConfigured ? "\u{5df2}\u{914d}\u{7f6e}" : "\u{672a}\u{914d}\u{7f6e}"
+    func openAIAPIKeyStatusText(localizer: AppLocalizer) -> String {
+        settingsStore.value.openAIAPIKeyConfigured
+            ? localizer.string("settings.apiKey.configured")
+            : localizer.string("settings.apiKey.notConfigured")
     }
 
-    var liveActivityStatusText: String {
+    func liveActivityStatusText(localizer: AppLocalizer) -> String {
         guard settingsStore.value.liveActivityEnabled else {
-            return "\u{5df2}\u{6682}\u{505c}"
+            return localizer.string("settings.liveActivity.status.paused")
         }
 
-        switch liveActivityStatusProvider() {
-        case "\u{8fd0}\u{884c}\u{4e2d}":
-            return "\u{8fd0}\u{884c}\u{4e2d}"
-        case "\u{6682}\u{4e0d}\u{53ef}\u{7528}":
-            return "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
-        default:
-            return "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
+        let status = liveActivityStatusProvider().lowercased()
+        if status.contains("running") {
+            return localizer.string("settings.liveActivity.status.running")
         }
+        if status.contains("unavailable") {
+            return localizer.string("settings.liveActivity.status.unavailable")
+        }
+        return localizer.string("settings.liveActivity.status.waiting")
     }
 
-    var liveActivityDescriptionText: String {
-        switch liveActivityStatusText {
-        case "\u{5df2}\u{6682}\u{505c}":
-            return "\u{5df2}\u{6682}\u{505c}\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}\u{663e}\u{793a}；\u{518d}\u{6b21}\u{5f00}\u{542f}\u{540e}\u{4f1a}\u{5728}\u{4e0b}\u{6b21}\u{5237}\u{65b0}\u{65f6}\u{6062}\u{590d}。"
-        case "\u{8fd0}\u{884c}\u{4e2d}":
-            return "\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}\u{4f1a}\u{8ddf}\u{968f}\u{65f6}\u{95f4}\u{7ebf}\u{5237}\u{65b0}\u{66f4}\u{65b0}。"
-        case "\u{6682}\u{4e0d}\u{53ef}\u{7528}":
-            return "\u{7cfb}\u{7edf}\u{6682}\u{65f6}\u{65e0}\u{6cd5}\u{66f4}\u{65b0} Live Activity；\u{65f6}\u{95f4}\u{7ebf}\u{4ecd}\u{4f1a}\u{6b63}\u{5e38}\u{663e}\u{793a}。"
-        default:
-            return "\u{5f00}\u{542f}\u{540e}，\u{5237}\u{65b0}\u{51fa}\u{5f53}\u{524d}\u{5b89}\u{6392}\u{65f6}\u{4f1a}\u{663e}\u{793a}\u{5728}\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}。"
+    func liveActivityDescriptionText(localizer: AppLocalizer) -> String {
+        guard settingsStore.value.liveActivityEnabled else {
+            return localizer.string("settings.liveActivity.description.paused")
         }
+        let status = liveActivityStatusProvider().lowercased()
+        if status.contains("running") {
+            return localizer.string("settings.liveActivity.description.running")
+        }
+        if status.contains("unavailable") {
+            return localizer.string("settings.liveActivity.description.unavailable")
+        }
+        return localizer.string("settings.liveActivity.description.waiting")
     }
 
-    func sourceStatusText(for source: TimelineSource) -> String {
-        let status: SourceAuthorizationStatus
+    func sourceStatus(for source: TimelineSource) -> SourceAuthorizationStatus {
         switch source {
         case .calendar:
-            status = authorization.calendar
+            authorization.calendar
         case .reminder:
-            status = authorization.reminders
+            authorization.reminders
         case .external:
-            status = .fullAccess
+            .fullAccess
         }
+    }
 
-        switch status {
+    func sourceStatusText(
+        for source: TimelineSource,
+        localizer: AppLocalizer
+    ) -> String {
+        switch sourceStatus(for: source) {
         case .fullAccess:
-            return "\u{5df2}\u{6388}\u{6743}"
+            return localizer.string("settings.source.status.authorized")
         case .notDetermined:
-            return "\u{672a}\u{8bf7}\u{6c42}"
+            return localizer.string("settings.source.status.notRequested")
         case .denied:
-            return "\u{5df2}\u{62d2}\u{7edd}"
+            return localizer.string("settings.source.status.denied")
         case .restricted:
-            return "\u{53d7}\u{9650}"
+            return localizer.string("settings.source.status.restricted")
         case .writeOnly:
-            return "\u{4ec5}\u{5199}\u{5165}"
+            return localizer.string("settings.source.status.writeOnly")
         }
     }
 
-    func sourceStatusDescription(for source: TimelineSource) -> String {
+    func sourceStatusDescription(
+        for source: TimelineSource,
+        localizer: AppLocalizer
+    ) -> String {
         switch source {
         case .calendar:
-            return "\u{8fc7}\u{6ee4}\u{7ed3}\u{679c}\u{4e0d}\u{4f1a}\u{6539}\u{53d8}\u{7cfb}\u{7edf}\u{6743}\u{9650}。"
+            return localizer.string("settings.source.calendar.description")
         case .reminder:
-            return "\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{6743}\u{9650}\u{4ec5}\u{5f71}\u{54cd}\u{63d0}\u{9192}\u{6765}\u{6e90}。"
+            return localizer.string("settings.source.reminders.description")
         case .external:
-            return "\u{56fe}\u{7247}\u{548c}\u{76f8}\u{673a}\u{8bc6}\u{522b}\u{4fdd}\u{5b58}\u{5728} Pecker \u{81ea}\u{5efa}\u{5b58}\u{50a8}。"
+            return localizer.string("settings.source.external.description")
         }
     }
 
@@ -167,15 +177,7 @@ final class SettingsViewModel {
     }
 
     func openSourceSettings(for source: TimelineSource) {
-        let status: SourceAuthorizationStatus
-        switch source {
-        case .calendar:
-            status = authorization.calendar
-        case .reminder:
-            status = authorization.reminders
-        case .external:
-            status = .fullAccess
-        }
+        let status = sourceStatus(for: source)
 
         guard status == .denied || status == .restricted else {
             return
@@ -196,27 +198,31 @@ struct SettingsView: View {
     @State private var apiKeyDraft = ""
     @State private var apiKeyErrorText: String?
 
+    private var localizer: AppLocalizer {
+        AppLocalizer(language: settingsStore.value.language)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    header
-                    dataSourcesCard
-                    timelineCard
-                    aiRecognitionCard
-                    liveActivityCard
+                    generalSection
+                    dataSourcesSection
+                    recognitionSection
+                    storageSection
+                    liveActivitySection
                 }
                 .frame(maxWidth: 760, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
             }
-            .navigationTitle("\u{8bbe}\u{7f6e}")
+            .navigationTitle(localizer.string("settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .background(TimelineTheme.backgroundGradient.ignoresSafeArea())
             .foregroundStyle(TimelineTheme.textPrimary)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("\u{5b8c}\u{6210}") {
+                    Button(localizer.string("settings.done")) {
                         dismiss()
                     }
                 }
@@ -224,44 +230,17 @@ struct SettingsView: View {
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("\u{8bbe}\u{7f6e}")
-                .font(.largeTitle.weight(.bold))
-            Text("\u{63a7}\u{5236}\u{6570}\u{636e}\u{6e90}、\u{663e}\u{793a}\u{504f}\u{597d}、AI \u{8bc6}\u{522b}\u{548c} Live Activity \u{72b6}\u{6001}。")
-                .font(.subheadline)
-                .foregroundStyle(TimelineTheme.textSecondary)
-        }
-    }
-
-    private var dataSourcesCard: some View {
-        TimelineCard(accent: .neutral) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("\u{6570}\u{636e}\u{6e90}")
-                    .font(.headline.weight(.semibold))
-
-                sourceRow(
-                    title: "\u{65e5}\u{5386}",
-                    source: .calendar,
-                    toggleAction: viewModel.setCalendarEnabled(_:)
-                )
-
-                sourceRow(
-                    title: "\u{63d0}\u{9192}\u{4e8b}\u{9879}",
-                    source: .reminder,
-                    toggleAction: viewModel.setRemindersEnabled(_:)
-                )
-            }
-        }
-    }
-
-    private var timelineCard: some View {
-        let localizer = AppLocalizer(language: settingsStore.value.language)
-        return TimelineCard(accent: .next) {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("\u{65f6}\u{95f4}\u{7ebf}")
-                    .font(.headline.weight(.semibold))
-
+    private var generalSection: some View {
+        settingsSection(
+            title: localizer.string("settings.general.title"),
+            systemImage: "slider.horizontal.3",
+            accent: .neutral
+        ) {
+            settingRow(
+                title: localizer.string("settings.language"),
+                systemImage: "globe",
+                accent: .neutral
+            ) {
                 Picker(
                     localizer.string("settings.language"),
                     selection: Binding(
@@ -274,33 +253,59 @@ struct SettingsView: View {
                             .tag(language)
                     }
                 }
+                .labelsHidden()
                 .pickerStyle(.menu)
-
-                Toggle(
-                    "\u{663e}\u{793a}\u{65c5}\u{884c}\u{4e8b}\u{4ef6}",
-                    isOn: Binding(
-                        get: { settingsStore.value.showTravelEvents },
-                        set: { viewModel.setShowTravelEvents($0) }
-                    )
-                )
             }
+
+            rowDivider
+
+            toggleRow(
+                title: localizer.string("settings.timeline.showTravelEvents"),
+                systemImage: "suitcase.fill",
+                accent: .neutral,
+                isOn: Binding(
+                    get: { settingsStore.value.showTravelEvents },
+                    set: { viewModel.setShowTravelEvents($0) }
+                )
+            )
         }
     }
 
-    private var aiRecognitionCard: some View {
-        TimelineCard(accent: .now) {
-            VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("AI \u{8bc6}\u{522b}")
-                        .font(.headline.weight(.semibold))
-                    Text("\u{4ece}\u{65e5}\u{5386}、\u{63d0}\u{9192}\u{4e8b}\u{9879}、\u{56fe}\u{7247}\u{6216}\u{76f8}\u{673a}\u{5185}\u{5bb9}\u{8bc6}\u{522b}\u{7ed3}\u{6784}\u{5316}\u{4e8b}\u{4ef6}。")
-                        .font(.subheadline)
-                        .foregroundStyle(TimelineTheme.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    private var dataSourcesSection: some View {
+        settingsSection(
+            title: localizer.string("settings.dataSources.title"),
+            systemImage: "tray.2.fill",
+            accent: .next
+        ) {
+            sourceRow(
+                title: localizer.string("source.calendar"),
+                source: .calendar,
+                systemImage: "calendar",
+                accent: .next,
+                toggleAction: viewModel.setCalendarEnabled(_:)
+            )
 
+            rowDivider
+
+            sourceRow(
+                title: localizer.string("source.reminders"),
+                source: .reminder,
+                systemImage: "checklist",
+                accent: .next,
+                toggleAction: viewModel.setRemindersEnabled(_:)
+            )
+        }
+    }
+
+    private var recognitionSection: some View {
+        settingsSection(
+            title: localizer.string("settings.ai.title"),
+            systemImage: "sparkles",
+            accent: .now
+        ) {
+            VStack(alignment: .leading, spacing: 12) {
                 Picker(
-                    "\u{8bc6}\u{522b}\u{6a21}\u{5f0f}",
+                    localizer.string("settings.ai.mode"),
                     selection: Binding(
                         get: { settingsStore.value.aiRecognitionMode },
                         set: { viewModel.setAIRecognitionMode($0) }
@@ -314,80 +319,89 @@ struct SettingsView: View {
 
                 switch settingsStore.value.aiRecognitionMode {
                 case .off:
-                    Text("\u{5173}\u{95ed}\u{540e}\u{4e0d}\u{4f1a}\u{5411}\u{5916}\u{90e8}\u{6a21}\u{578b}\u{53d1}\u{9001}\u{5185}\u{5bb9}；\u{672c}\u{5730}\u{5b58}\u{50a8}\u{540c}\u{6b65}\u{4ecd}\u{7531}\u{4e0b}\u{65b9}\u{5f00}\u{5173}\u{63a7}\u{5236}。")
-                        .font(.subheadline)
-                        .foregroundStyle(TimelineTheme.textSecondary)
+                    Text(localizer.string("settings.ai.offDescription"))
+                        .font(.caption)
+                        .foregroundStyle(TimelineTheme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 case .openAI:
                     openAIConfiguration
                 }
-
-                Divider()
-                    .overlay(TimelineTheme.cardStroke)
-
-                Toggle(
-                    "\u{540c}\u{6b65}\u{65e5}\u{5386}\u{5230}\u{672c}\u{5730}\u{4e8b}\u{4ef6}\u{5b58}\u{50a8}",
-                    isOn: Binding(
-                        get: { settingsStore.value.syncCalendarToStorage },
-                        set: { viewModel.setSyncCalendarToStorage($0) }
-                    )
-                )
-                Toggle(
-                    "\u{540c}\u{6b65}\u{63d0}\u{9192}\u{4e8b}\u{9879}\u{5230}\u{672c}\u{5730}\u{4e8b}\u{4ef6}\u{5b58}\u{50a8}",
-                    isOn: Binding(
-                        get: { settingsStore.value.syncRemindersToStorage },
-                        set: { viewModel.setSyncRemindersToStorage($0) }
-                    )
-                )
-
-                Text("\u{540c}\u{6b65}\u{5f00}\u{5173}\u{53ea}\u{51b3}\u{5b9a}\u{662f}\u{5426}\u{628a}\u{7cfb}\u{7edf}\u{6765}\u{6e90}\u{590d}\u{5236}\u{8fdb} Pecker \u{81ea}\u{5efa}\u{5b58}\u{50a8}；\u{4e0d}\u{4f1a}\u{4fee}\u{6539}\u{539f}\u{59cb}\u{65e5}\u{5386}\u{6216}\u{63d0}\u{9192}\u{4e8b}\u{9879}。")
-                    .font(.caption)
-                    .foregroundStyle(TimelineTheme.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+        }
+    }
+
+    private var storageSection: some View {
+        settingsSection(
+            title: localizer.string("settings.storage.title"),
+            systemImage: "externaldrive.fill",
+            accent: .pinned
+        ) {
+            toggleRow(
+                title: localizer.string("settings.storage.calendarCopy"),
+                systemImage: "calendar.badge.plus",
+                accent: .pinned,
+                isOn: Binding(
+                    get: { settingsStore.value.syncCalendarToStorage },
+                    set: { viewModel.setSyncCalendarToStorage($0) }
+                )
+            )
+
+            rowDivider
+
+            toggleRow(
+                title: localizer.string("settings.storage.remindersCopy"),
+                systemImage: "checklist.checked",
+                accent: .pinned,
+                isOn: Binding(
+                    get: { settingsStore.value.syncRemindersToStorage },
+                    set: { viewModel.setSyncRemindersToStorage($0) }
+                )
+            )
+
+            Text(localizer.string("settings.storage.description"))
+                .font(.caption)
+                .foregroundStyle(TimelineTheme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
         }
     }
 
     private var openAIConfiguration: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            VStack(spacing: 0) {
-                settingsTextFieldRow(
-                    title: "Host",
-                    placeholder: "https://api.openai.com",
-                    text: Binding(
-                        get: { settingsStore.value.openAIHost },
-                        set: { viewModel.setOpenAIHost($0) }
-                    ),
-                    keyboardType: .URL
-                )
+        VStack(alignment: .leading, spacing: 0) {
+            settingsTextFieldRow(
+                title: "Host",
+                placeholder: "https://api.openai.com",
+                text: Binding(
+                    get: { settingsStore.value.openAIHost },
+                    set: { viewModel.setOpenAIHost($0) }
+                ),
+                keyboardType: .URL
+            )
 
-                formDivider
+            rowDivider
 
-                settingsTextFieldRow(
-                    title: "Model",
-                    placeholder: "gpt-5.4-mini",
-                    text: Binding(
-                        get: { settingsStore.value.openAIModel },
-                        set: { viewModel.setOpenAIModel($0) }
-                    ),
-                    keyboardType: .default
-                )
-            }
-            .settingsFormBackground()
+            settingsTextFieldRow(
+                title: "Model",
+                placeholder: "gpt-5.4-mini",
+                text: Binding(
+                    get: { settingsStore.value.openAIModel },
+                    set: { viewModel.setOpenAIModel($0) }
+                ),
+                keyboardType: .default
+            )
+
+            rowDivider
 
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline) {
+                HStack(alignment: .center, spacing: 12) {
+                    rowIcon("key.fill", accent: .now)
                     Text("API Key")
                         .font(.subheadline.weight(.semibold))
-
                     Spacer(minLength: 8)
-
-                    Text(viewModel.openAIAPIKeyStatusText)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.textSecondary)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(TimelineTheme.controlFill))
-                        .overlay(Capsule().stroke(TimelineTheme.cardStroke, lineWidth: 1))
+                    statusBadge(viewModel.openAIAPIKeyStatusText(localizer: localizer))
                 }
 
                 SecureField("sk-...", text: $apiKeyDraft)
@@ -407,7 +421,7 @@ struct SettingsView: View {
                     )
 
                 HStack(spacing: 10) {
-                    Button("\u{4fdd}\u{5b58}") {
+                    Button(localizer.string("common.save")) {
                         saveOpenAIAPIKey()
                     }
                     .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.now, filled: true))
@@ -416,7 +430,7 @@ struct SettingsView: View {
                             .isEmpty
                     )
 
-                    Button("\u{6e05}\u{9664}") {
+                    Button(localizer.string("common.clear")) {
                         clearOpenAIAPIKey()
                     }
                     .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.textPrimary, filled: false))
@@ -430,18 +444,15 @@ struct SettingsView: View {
                         .foregroundStyle(TimelineTheme.now)
                 }
 
-                Text("API Key \u{4f1a}\u{4fdd}\u{5b58}\u{5230}\u{7cfb}\u{7edf} Keychain；\u{8bbe}\u{7f6e}\u{6587}\u{4ef6}\u{53ea}\u{8bb0}\u{5f55}\u{662f}\u{5426}\u{5df2}\u{914d}\u{7f6e}。")
+                Text(localizer.string("settings.apiKey.description"))
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
         }
-    }
-
-    private var formDivider: some View {
-        Rectangle()
-            .fill(TimelineTheme.cardStroke)
-            .frame(height: 1)
-            .padding(.leading, 92)
+        .background(nestedFill)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private func settingsTextFieldRow(
@@ -451,6 +462,8 @@ struct SettingsView: View {
         keyboardType: UIKeyboardType
     ) -> some View {
         HStack(alignment: .center, spacing: 14) {
+            rowIcon(title == "Host" ? "network" : "cpu", accent: .now)
+
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .frame(width: 68, alignment: .leading)
@@ -467,43 +480,68 @@ struct SettingsView: View {
         .padding(.horizontal, 12)
     }
 
-    private var liveActivityCard: some View {
-        TimelineCard(accent: .pinned) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Live Activity")
-                    .font(.headline.weight(.semibold))
+    private var liveActivitySection: some View {
+        settingsSection(
+            title: "Live Activity",
+            systemImage: "livephoto",
+            accent: .pinned
+        ) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .center, spacing: 12) {
+                    rowIcon("iphone.radiowaves.left.and.right", accent: .pinned)
 
-                Toggle(
-                    "\u{9501}\u{5b9a}\u{5c4f}\u{5e55}\u{4e0e}\u{7075}\u{52a8}\u{5c9b}",
-                    isOn: Binding(
-                        get: { settingsStore.value.liveActivityEnabled },
-                        set: { viewModel.setLiveActivityEnabled($0) }
-                    )
-                )
-
-                HStack {
-                    Text("\u{72b6}\u{6001}")
-                        .foregroundStyle(TimelineTheme.textSecondary)
-                    Spacer(minLength: 8)
-                    Text(viewModel.liveActivityStatusText)
+                    Text(localizer.string("settings.liveActivity.toggle"))
                         .font(.subheadline.weight(.semibold))
+
+                    Spacer(minLength: 12)
+
+                    Toggle(
+                        localizer.string("settings.liveActivity.toggle"),
+                        isOn: Binding(
+                            get: { settingsStore.value.liveActivityEnabled },
+                            set: { viewModel.setLiveActivityEnabled($0) }
+                        )
+                    )
+                    .labelsHidden()
                 }
 
-                Text(viewModel.liveActivityDescriptionText)
-                    .font(.subheadline)
-                    .foregroundStyle(TimelineTheme.textSecondary)
+                Text(viewModel.liveActivityDescriptionText(localizer: localizer))
+                    .font(.caption)
+                    .foregroundStyle(TimelineTheme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .padding(.leading, 52)
+
+                HStack(alignment: .center, spacing: 12) {
+                    rowIcon("waveform.path.ecg", accent: .pinned)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(localizer.string("settings.liveActivity.statusLabel"))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(TimelineTheme.textSecondary)
+                        statusBadge(viewModel.liveActivityStatusText(localizer: localizer))
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(12)
+                .background(nestedFill)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
         }
     }
 
     private func sourceRow(
         title: String,
         source: TimelineSource,
+        systemImage: String,
+        accent: TimelineAccent,
         toggleAction: @escaping (Bool) -> Void
     ) -> some View {
-        let status = viewModel.sourceStatusText(for: source)
-        let needsSettings = status == "\u{5df2}\u{62d2}\u{7edd}" || status == "\u{53d7}\u{9650}"
+        let status = viewModel.sourceStatusText(for: source, localizer: localizer)
+        let authorizationStatus = viewModel.sourceStatus(for: source)
+        let needsSettings = authorizationStatus == .denied || authorizationStatus == .restricted
         let isEnabledBinding: Binding<Bool>
         switch source {
         case .calendar:
@@ -520,38 +558,153 @@ struct SettingsView: View {
             isEnabledBinding = .constant(true)
         }
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 12) {
-                Toggle(
-                    title,
-                    isOn: isEnabledBinding
-                )
+        return HStack(alignment: .center, spacing: 12) {
+            rowIcon(systemImage, accent: accent)
 
-                if needsSettings {
-                    Button(status) {
-                        viewModel.openSourceSettings(for: source)
-                    }
-                    .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.next)
-                } else {
-                    Text(status)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.textSecondary)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(viewModel.sourceStatusDescription(for: source, localizer: localizer))
+                    .font(.caption)
+                    .foregroundStyle(TimelineTheme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            if needsSettings {
+                Button(status) {
+                    viewModel.openSourceSettings(for: source)
+                }
+                .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.color(for: accent), filled: false))
+            } else {
+                statusBadge(status)
+            }
+
+            Toggle(title, isOn: isEnabledBinding)
+                .labelsHidden()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private func toggleRow(
+        title: String,
+        detail: String? = nil,
+        systemImage: String,
+        accent: TimelineAccent,
+        isOn: Binding<Bool>
+    ) -> some View {
+        settingRow(
+            title: title,
+            detail: detail,
+            systemImage: systemImage,
+            accent: accent
+        ) {
+            Toggle(title, isOn: isOn)
+                .labelsHidden()
+        }
+    }
+
+    private func settingRow<Trailing: View>(
+        title: String,
+        detail: String? = nil,
+        systemImage: String,
+        accent: TimelineAccent,
+        @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            rowIcon(systemImage, accent: accent)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                if let detail {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(TimelineTheme.textTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
-            Text(viewModel.sourceStatusDescription(for: source))
-                .font(.caption)
-                .foregroundStyle(TimelineTheme.textTertiary)
-            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            trailing()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private func settingsSection<Content: View>(
+        title: String,
+        systemImage: String,
+        accent: TimelineAccent,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(TimelineTheme.color(for: accent))
+                .textCase(.uppercase)
+                .labelStyle(.titleAndIcon)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                content()
+            }
+            .background(sectionFill)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(TimelineTheme.cardStroke, lineWidth: 1)
+            )
+            .shadow(color: TimelineTheme.cardShadow.opacity(0.55), radius: 14, x: 0, y: 8)
+        }
+    }
+
+    private var rowDivider: some View {
+        Rectangle()
+            .fill(TimelineTheme.cardStroke.opacity(0.82))
+            .frame(height: 1)
+            .padding(.leading, 52)
+    }
+
+    private var sectionFill: some ShapeStyle {
+        TimelineTheme.cardWarmFill
+    }
+
+    private var nestedFill: some ShapeStyle {
+        TimelineTheme.controlFill
+    }
+
+    private func rowIcon(
+        _ systemImage: String,
+        accent: TimelineAccent
+    ) -> some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(TimelineTheme.color(for: accent))
+            .frame(width: 28, height: 28)
+            .background(
+                RoundedRectangle(cornerRadius: 7, style: .continuous)
+                    .fill(TimelineTheme.color(for: accent).opacity(0.12))
+            )
+    }
+
+    private func statusBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(TimelineTheme.textSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(Capsule().fill(TimelineTheme.controlFill))
+            .overlay(Capsule().stroke(TimelineTheme.cardStroke, lineWidth: 1))
     }
 
     private func label(for mode: AIRecognitionMode) -> String {
         switch mode {
         case .off:
-            return "\u{5173}\u{95ed}"
+            return localizer.string("settings.ai.mode.off")
         case .openAI:
             return "OpenAI"
         }
@@ -563,7 +716,7 @@ struct SettingsView: View {
             apiKeyDraft = ""
             apiKeyErrorText = nil
         } catch {
-            apiKeyErrorText = "\u{4fdd}\u{5b58}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+            apiKeyErrorText = localizer.string("settings.apiKey.saveError")
         }
     }
 
@@ -573,7 +726,7 @@ struct SettingsView: View {
             apiKeyDraft = ""
             apiKeyErrorText = nil
         } catch {
-            apiKeyErrorText = "\u{6e05}\u{9664}\u{5931}\u{8d25}，\u{8bf7}\u{7a0d}\u{540e}\u{91cd}\u{8bd5}。"
+            apiKeyErrorText = localizer.string("settings.apiKey.clearError")
         }
     }
 

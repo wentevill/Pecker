@@ -98,7 +98,6 @@ private struct CompactIdentity: View {
 }
 
 private struct CompactCountdown: View {
-    @Environment(\.locale) private var locale
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
@@ -108,14 +107,14 @@ private struct CompactCountdown: View {
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(PeckerLiveActivityPalette.textSecondary.color)
             } else if let target = state.countdownTargetDate(at: timeline.date) {
-                RemainingMinutesText(targetDate: target)
+                RemainingMinutesText(targetDate: target, locale: state.locale)
             } else {
                 Text(
                     PeckerLiveActivityCopy.statusLabel(
                         for: PeckerLiveActivityStyle.status(
                             for: state.statusRawValue
                         ),
-                        locale: locale
+                        locale: state.locale
                     )
                 )
                 .font(.caption2.weight(.heavy))
@@ -126,7 +125,6 @@ private struct CompactCountdown: View {
 }
 
 private struct ExpandedIdentity: View {
-    @Environment(\.locale) private var locale
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
@@ -141,10 +139,10 @@ private struct ExpandedIdentity: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(
                         state.hasEnded(at: timeline.date)
-                            ? PeckerLiveActivityCopy.endedLabel(locale: locale)
+                            ? PeckerLiveActivityCopy.endedLabel(locale: state.locale)
                             : PeckerLiveActivityCopy.statusLabel(
                                 for: status,
-                                locale: locale
+                                locale: state.locale
                             )
                     )
                     .font(.caption2.weight(.heavy))
@@ -191,14 +189,13 @@ private struct ExpandedIdentity: View {
 }
 
 private struct ExpandedCountdown: View {
-    @Environment(\.locale) private var locale
     let state: PeckerActivityAttributes.ContentState
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
             VStack(alignment: .trailing, spacing: 3) {
                 if state.hasEnded(at: timeline.date) {
-                    Text(PeckerLiveActivityCopy.endedLabel(locale: locale))
+                    Text(PeckerLiveActivityCopy.endedLabel(locale: state.locale))
                         .font(.caption.weight(.bold))
                         .foregroundStyle(
                             PeckerLiveActivityPalette.textSecondary.color
@@ -217,7 +214,7 @@ private struct ExpandedCountdown: View {
                     Text(
                         PeckerLiveActivityCopy.countdownHint(
                             isRunning: state.isPrimaryRunning(at: timeline.date),
-                            locale: locale
+                            locale: state.locale
                         )
                     )
                     .font(.caption2.weight(.semibold))
@@ -308,6 +305,7 @@ private struct ExpandedDetails: View {
 
 private struct RemainingMinutesText: View {
     let targetDate: Date
+    let locale: Locale
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { timeline in
@@ -318,12 +316,11 @@ private struct RemainingMinutesText: View {
     }
 
     private func label(at date: Date) -> String {
-        let seconds = max(targetDate.timeIntervalSince(date), 0)
-        let minutes = Int(ceil(seconds / 60))
-        if minutes >= 100 {
-            return "\(minutes / 60)h"
-        }
-        return "\(minutes)m"
+        PeckerLiveActivityCopy.compactRemainingLabel(
+            targetDate: targetDate,
+            at: date,
+            locale: locale
+        )
     }
 }
 

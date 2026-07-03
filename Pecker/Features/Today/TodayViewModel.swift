@@ -16,7 +16,7 @@ final class TodayViewModel {
     let timelineManager: TimelineManagerModel
     private(set) var state: TimelineScreenState = .loading
     private(set) var latestAuthorization: SourceAuthorization?
-    private(set) var liveActivityStatusText = "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
+    private(set) var liveActivityStatusText = "waiting"
     private(set) var nextLiveActivityBoundary: Date?
 
     init(dependencies: AppDependencies) {
@@ -252,7 +252,7 @@ final class TodayViewModel {
             )
             nextBoundary = result.nextBoundary
         } catch {
-            statusText = "\u{6682}\u{4e0d}\u{53ef}\u{7528}"
+            statusText = "unavailable"
             nextBoundary = nil
         }
 
@@ -268,14 +268,14 @@ final class TodayViewModel {
         settings: TimelineSettings
     ) -> String {
         guard settings.liveActivityEnabled else {
-            return "\u{5df2}\u{6682}\u{505c}"
+            return "paused"
         }
 
         switch decision {
         case .none, .start, .update:
-            return "\u{8fd0}\u{884c}\u{4e2d}"
+            return "running"
         case .end:
-            return "\u{7b49}\u{5f85}\u{5185}\u{5bb9}"
+            return "waiting"
         }
     }
 

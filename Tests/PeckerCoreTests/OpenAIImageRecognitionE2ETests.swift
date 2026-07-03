@@ -147,15 +147,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .train,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "中国铁路电子客票",
-            subtitle: "G123 上海虹桥站 -> 北京南站",
+            title: "\u{4e2d}\u{56fd}\u{94c1}\u{8def}\u{7535}\u{5b50}\u{5ba2}\u{7968}",
+            subtitle: "G123 \u{4e0a}\u{6d77}\u{8679}\u{6865}\u{7ad9} -> \u{5317}\u{4eac}\u{5357}\u{7ad9}",
             lines: [
-                "乘车日期: 2026-07-03 08:00",
-                "到达时间: 2026-07-03 12:28",
-                "车厢/座位: 08车 03A",
-                "检票口: B7  票价: ¥553.00"
+                "\u{4e58}\u{8f66}\u{65e5}\u{671f}: 2026-07-03 08:00",
+                "\u{5230}\u{8fbe}\u{65f6}\u{95f4}: 2026-07-03 12:28",
+                "\u{8f66}\u{53a2}/\u{5ea7}\u{4f4d}: 08\u{8f66} 03A",
+                "\u{68c0}\u{7968}\u{53e3}: B7  \u{7968}\u{4ef7}: ¥553.00"
             ],
-            footer: "乘车人: 王小明  订单号: E123456789",
+            footer: "\u{4e58}\u{8f66}\u{4eba}: \u{738b}\u{5c0f}\u{660e}  \u{8ba2}\u{5355}\u{53f7}: E123456789",
             requiredFields: ["trainNumber", "departureStation", "arrivalStation", "departureDateTime"]
         ),
         .init(
@@ -163,14 +163,14 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .flight,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "登机牌 BOARDING PASS",
-            subtitle: "MU5101 上海虹桥 SHA -> 北京首都 PEK",
+            title: "\u{767b}\u{673a}\u{724c} BOARDING PASS",
+            subtitle: "MU5101 \u{4e0a}\u{6d77}\u{8679}\u{6865} SHA -> \u{5317}\u{4eac}\u{9996}\u{90fd} PEK",
             lines: [
-                "日期: 2026-07-04  起飞: 09:30  到达: 11:45",
-                "航站楼: T2  登机口: 28  座位: 12A",
-                "旅客: 李华  舱位: 经济舱"
+                "\u{65e5}\u{671f}: 2026-07-04  \u{8d77}\u{98de}: 09:30  \u{5230}\u{8fbe}: 11:45",
+                "\u{822a}\u{7ad9}\u{697c}: T2  \u{767b}\u{673a}\u{53e3}: 28  \u{5ea7}\u{4f4d}: 12A",
+                "\u{65c5}\u{5ba2}: \u{674e}\u{534e}  \u{8231}\u{4f4d}: \u{7ecf}\u{6d4e}\u{8231}"
             ],
-            footer: "请于 08:50 前完成登机",
+            footer: "\u{8bf7}\u{4e8e} 08:50 \u{524d}\u{5b8c}\u{6210}\u{767b}\u{673a}",
             requiredFields: ["flightNumber", "departureAirportCode", "arrivalAirportCode", "departureDateTime"]
         ),
         .init(
@@ -178,15 +178,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .meeting,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "会议邀请",
-            subtitle: "产品路线图评审",
+            title: "\u{4f1a}\u{8bae}\u{9080}\u{8bf7}",
+            subtitle: "\u{4ea7}\u{54c1}\u{8def}\u{7ebf}\u{56fe}\u{8bc4}\u{5ba1}",
             lines: [
-                "时间: 2026-07-05 14:00-15:30",
-                "地点: 上海办公室 12F 会议室 A",
-                "组织者: 陈雨",
-                "议程: Q3 优先级与发布节奏"
+                "\u{65f6}\u{95f4}: 2026-07-05 14:00-15:30",
+                "\u{5730}\u{70b9}: \u{4e0a}\u{6d77}\u{529e}\u{516c}\u{5ba4} 12F \u{4f1a}\u{8bae}\u{5ba4} A",
+                "\u{7ec4}\u{7ec7}\u{8005}: \u{9648}\u{96e8}",
+                "\u{8bae}\u{7a0b}: Q3 \u{4f18}\u{5148}\u{7ea7}\u{4e0e}\u{53d1}\u{5e03}\u{8282}\u{594f}"
             ],
-            footer: "参会人: 产品、设计、工程",
+            footer: "\u{53c2}\u{4f1a}\u{4eba}: \u{4ea7}\u{54c1}、\u{8bbe}\u{8ba1}、\u{5de5}\u{7a0b}",
             requiredFields: ["title", "startDateTime"]
         ),
         .init(
@@ -194,15 +194,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .task,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "任务卡",
-            subtitle: "巡检仓库冷链设备",
+            title: "\u{4efb}\u{52a1}\u{5361}",
+            subtitle: "\u{5de1}\u{68c0}\u{4ed3}\u{5e93}\u{51b7}\u{94fe}\u{8bbe}\u{5907}",
             lines: [
-                "执行时间: 2026-07-06 23:30",
-                "地点: 苏州一号仓库",
-                "负责人: 赵磊",
-                "优先级: 高"
+                "\u{6267}\u{884c}\u{65f6}\u{95f4}: 2026-07-06 23:30",
+                "\u{5730}\u{70b9}: \u{82cf}\u{5dde}\u{4e00}\u{53f7}\u{4ed3}\u{5e93}",
+                "\u{8d1f}\u{8d23}\u{4eba}: \u{8d75}\u{78ca}",
+                "\u{4f18}\u{5148}\u{7ea7}: \u{9ad8}"
             ],
-            footer: "记录温度并拍照上传",
+            footer: "\u{8bb0}\u{5f55}\u{6e29}\u{5ea6}\u{5e76}\u{62cd}\u{7167}\u{4e0a}\u{4f20}",
             requiredFields: ["title", "dueDateTime"]
         ),
         .init(
@@ -210,15 +210,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .travel,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "酒店预订确认",
-            subtitle: "杭州西湖国宾馆",
+            title: "\u{9152}\u{5e97}\u{9884}\u{8ba2}\u{786e}\u{8ba4}",
+            subtitle: "\u{676d}\u{5dde}\u{897f}\u{6e56}\u{56fd}\u{5bbe}\u{9986}",
             lines: [
-                "入住: 2026-07-08 15:00",
-                "退房: 2026-07-10 12:00",
-                "地址: 杭州市西湖区杨公堤18号",
-                "预订号: CNHZ8891"
+                "\u{5165}\u{4f4f}: 2026-07-08 15:00",
+                "\u{9000}\u{623f}: 2026-07-10 12:00",
+                "\u{5730}\u{5740}: \u{676d}\u{5dde}\u{5e02}\u{897f}\u{6e56}\u{533a}\u{6768}\u{516c}\u{5824}18\u{53f7}",
+                "\u{9884}\u{8ba2}\u{53f7}: CNHZ8891"
             ],
-            footer: "房型: 湖景大床房",
+            footer: "\u{623f}\u{578b}: \u{6e56}\u{666f}\u{5927}\u{5e8a}\u{623f}",
             requiredFields: ["title", "startDateTime"]
         ),
         .init(
@@ -226,15 +226,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .interview,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "面试安排",
-            subtitle: "字节跳动 iOS 工程师",
+            title: "\u{9762}\u{8bd5}\u{5b89}\u{6392}",
+            subtitle: "\u{5b57}\u{8282}\u{8df3}\u{52a8} iOS \u{5de5}\u{7a0b}\u{5e08}",
             lines: [
-                "时间: 2026-07-09 10:00-11:00",
-                "地点: 飞书会议",
-                "面试官: 刘娜",
-                "联系人: hr-cn@example.com"
+                "\u{65f6}\u{95f4}: 2026-07-09 10:00-11:00",
+                "\u{5730}\u{70b9}: \u{98de}\u{4e66}\u{4f1a}\u{8bae}",
+                "\u{9762}\u{8bd5}\u{5b98}: \u{5218}\u{5a1c}",
+                "\u{8054}\u{7cfb}\u{4eba}: hr-cn@example.com"
             ],
-            footer: "请提前 5 分钟进入会议",
+            footer: "\u{8bf7}\u{63d0}\u{524d} 5 \u{5206}\u{949f}\u{8fdb}\u{5165}\u{4f1a}\u{8bae}",
             requiredFields: ["title", "startDateTime"]
         ),
         .init(
@@ -242,15 +242,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .deadline,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "截止提醒",
-            subtitle: "提交增值税申报材料",
+            title: "\u{622a}\u{6b62}\u{63d0}\u{9192}",
+            subtitle: "\u{63d0}\u{4ea4}\u{589e}\u{503c}\u{7a0e}\u{7533}\u{62a5}\u{6750}\u{6599}",
             lines: [
-                "截止时间: 2026-07-15 18:00",
-                "项目: 财务月结",
-                "提交渠道: 电子税务局",
-                "负责人: 财务部"
+                "\u{622a}\u{6b62}\u{65f6}\u{95f4}: 2026-07-15 18:00",
+                "\u{9879}\u{76ee}: \u{8d22}\u{52a1}\u{6708}\u{7ed3}",
+                "\u{63d0}\u{4ea4}\u{6e20}\u{9053}: \u{7535}\u{5b50}\u{7a0e}\u{52a1}\u{5c40}",
+                "\u{8d1f}\u{8d23}\u{4eba}: \u{8d22}\u{52a1}\u{90e8}"
             ],
-            footer: "逾期会影响本月结账",
+            footer: "\u{903e}\u{671f}\u{4f1a}\u{5f71}\u{54cd}\u{672c}\u{6708}\u{7ed3}\u{8d26}",
             requiredFields: ["title", "deadlineDateTime"]
         ),
         .init(
@@ -258,15 +258,15 @@ private func imageE2ECases() -> [ImageE2ECase] {
             region: "China",
             expectedKind: .unknown,
             timeZoneIdentifier: "Asia/Shanghai",
-            title: "咖啡店会员卡",
-            subtitle: "本卡仅用于积分与折扣",
+            title: "\u{5496}\u{5561}\u{5e97}\u{4f1a}\u{5458}\u{5361}",
+            subtitle: "\u{672c}\u{5361}\u{4ec5}\u{7528}\u{4e8e}\u{79ef}\u{5206}\u{4e0e}\u{6298}\u{6263}",
             lines: [
-                "会员号: 8866 1024",
-                "余额: ¥120.00",
-                "等级: 金卡",
-                "无预约、任务或日期安排"
+                "\u{4f1a}\u{5458}\u{53f7}: 8866 1024",
+                "\u{4f59}\u{989d}: ¥120.00",
+                "\u{7b49}\u{7ea7}: \u{91d1}\u{5361}",
+                "\u{65e0}\u{9884}\u{7ea6}、\u{4efb}\u{52a1}\u{6216}\u{65e5}\u{671f}\u{5b89}\u{6392}"
             ],
-            footer: "服务热线: 400-800-1234",
+            footer: "\u{670d}\u{52a1}\u{70ed}\u{7ebf}: 400-800-1234",
             requiredFields: []
         ),
         .init(

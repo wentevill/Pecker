@@ -1,5 +1,27 @@
 import Foundation
 
+public struct EventCustomField:
+    Codable, Sendable, Equatable, Hashable, Identifiable
+{
+    public let id: String
+    public var name: String
+    public var value: String
+
+    public init(
+        id: String = UUID().uuidString,
+        name: String,
+        value: String
+    ) {
+        self.id = id
+        self.name = name
+        self.value = value
+    }
+
+    public static func legacy(name: String, value: String) -> Self {
+        .init(id: "legacy:\(name)", name: name, value: value)
+    }
+}
+
 public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identifiable {
     public let id: String
     public let source: RecognitionSource
@@ -14,6 +36,7 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
     public let template: TimelineEventTemplate?
     public let recognitionStatus: RecognitionStatus
     public let updatedAt: Date
+    public let customFields: [EventCustomField]
 
     public init(
         id: String,
@@ -28,7 +51,8 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
         isAllDay: Bool = false,
         template: TimelineEventTemplate?,
         recognitionStatus: RecognitionStatus,
-        updatedAt: Date
+        updatedAt: Date,
+        customFields: [EventCustomField] = []
     ) {
         self.id = id
         self.source = source
@@ -43,6 +67,7 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
         self.template = template
         self.recognitionStatus = recognitionStatus
         self.updatedAt = updatedAt
+        self.customFields = customFields
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -59,6 +84,7 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
         case template
         case recognitionStatus
         case updatedAt
+        case customFields
     }
 
     public init(from decoder: any Decoder) throws {
@@ -94,6 +120,10 @@ public struct StoredEventRecord: Codable, Sendable, Equatable, Hashable, Identif
             forKey: .recognitionStatus
         )
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        customFields = try container.decodeIfPresent(
+            [EventCustomField].self,
+            forKey: .customFields
+        ) ?? []
     }
 }
 

@@ -133,9 +133,46 @@ import Testing
     #expect(!decoded.isAllDay)
 }
 
+@Test func storedEventRecordRoundTripsOrderedCustomFields() throws {
+    let fields = [
+        EventCustomField(id: "booking", name: "Booking", value: "K8X2PL"),
+        EventCustomField(id: "loyalty", name: "Loyalty", value: "KF 882019")
+    ]
+    let current = record(
+        id: "image:custom-fields",
+        source: .importedImage,
+        customFields: fields
+    )
+
+    let decoded = try JSONDecoder().decode(
+        StoredEventRecord.self,
+        from: JSONEncoder().encode(current)
+    )
+
+    #expect(decoded.customFields == fields)
+}
+
+@Test func storedEventRecordDefaultsLegacyCustomFieldsToEmpty() throws {
+    let current = record(id: "image:legacy-fields", source: .importedImage)
+    let data = try JSONEncoder().encode(current)
+    var object = try #require(
+        JSONSerialization.jsonObject(with: data) as? [String: Any]
+    )
+    object.removeValue(forKey: "customFields")
+    let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+    let decoded = try JSONDecoder().decode(
+        StoredEventRecord.self,
+        from: legacyData
+    )
+
+    #expect(decoded.customFields.isEmpty)
+}
+
 private func record(
     id: String,
-    source: RecognitionSource
+    source: RecognitionSource,
+    customFields: [EventCustomField] = []
 ) -> StoredEventRecord {
     StoredEventRecord(
         id: id,
@@ -149,7 +186,8 @@ private func record(
         endDate: nil,
         template: nil,
         recognitionStatus: .pending,
-        updatedAt: Date(timeIntervalSince1970: 100)
+        updatedAt: Date(timeIntervalSince1970: 100),
+        customFields: customFields
     )
 }
 

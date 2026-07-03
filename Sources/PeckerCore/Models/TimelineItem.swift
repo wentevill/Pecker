@@ -23,6 +23,7 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
     public let notes: String?
     public let template: TimelineEventTemplate?
     public let isCompleted: Bool
+    public let customFields: [EventCustomField]
 
     public init(
         id: String,
@@ -36,7 +37,8 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
         location: String?,
         notes: String?,
         template: TimelineEventTemplate? = nil,
-        isCompleted: Bool = false
+        isCompleted: Bool = false,
+        customFields: [EventCustomField] = []
     ) {
         self.id = id
         self.sourceIdentifier = sourceIdentifier
@@ -50,6 +52,7 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
         self.notes = notes
         self.template = template
         self.isCompleted = isCompleted
+        self.customFields = customFields
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -65,6 +68,7 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
         case notes
         case template
         case isCompleted
+        case customFields
     }
 
     public init(from decoder: any Decoder) throws {
@@ -87,5 +91,9 @@ public struct TimelineItem: Codable, Identifiable, Hashable, Sendable {
             Bool.self,
             forKey: .isCompleted
         ) ?? false
+        customFields = try container.decodeIfPresent(
+            [EventCustomField].self,
+            forKey: .customFields
+        ) ?? []
     }
 }

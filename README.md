@@ -76,11 +76,3 @@ The Recognition module integrates with vision models to provide intelligent even
 ### License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-<p align="center">
-<br/><br/>
-Made with ❤️ by <a href="https://github.com/wentevill">wentevill</a>
-<br/><br/>
-</p>

@@ -1,8 +1,61 @@
+# Xcode
 .DS_Store
-.superpowers/
-.worktrees/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/
+*.playground
+*.xcworkspace
+xcuserdata/
 DerivedData/
 .build/
+
+# Swift Package Manager
 .swiftpm/
-*.xcuserstate
-xcuserdata/
+Package.resolved
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/
+*.carthage
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Build artifacts
+build/
+*.app
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Project specific
+.superpowers/
+.worktrees/

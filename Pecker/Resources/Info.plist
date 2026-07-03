@@ -41,15 +41,8 @@
 		<key>UISceneConfigurations</key>
 		<dict/>
 	</dict>
-	<key>UILaunchScreen</key>
-	<dict>
-		<key>UIColorName</key>
-		<string>PeckerLaunchBackground</string>
-		<key>UIImageName</key>
-		<string>PeckerLaunchTimeline</string>
-		<key>UIImageRespectsSafeAreaInsets</key>
-		<true/>
-	</dict>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

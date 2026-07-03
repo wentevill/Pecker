@@ -59,6 +59,7 @@
 		917EE517930932DF07D3B0CC /* RecognitionFunctionContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CB6B6F9C7893B2465E06914 /* RecognitionFunctionContractTests.swift */; };
 		98A5BEBF213A883687E630B4 /* TimelineGroupingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 994A69FA475759C21AF81606 /* TimelineGroupingTests.swift */; };
 		9DDEEFD02099D01BF5B9AB0F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */; };
+		F0A11B1E3D8A4B19A1D9C001 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F0A11B1E3D8A4B19A1D9C002 /* LaunchScreen.storyboard */; };
 		A22A10AAC05921E73634805E /* TodaySnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 573E42B49B1C6CFDA4A5CB0B /* TodaySnapshot.swift */; };
 		A83E8F5A004C4A655E16BA9B /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE836F09322111FAF97F46BD /* ItemDetailView.swift */; };
 		ADA29F053B0A1C6190387FAA /* AppGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C45B689809643A0E569744 /* AppGroup.swift */; };
@@ -233,6 +234,7 @@
 		DFFA24CB4A84FFD20D7317CC /* SnapshotStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotStore.swift; sourceTree = "<group>"; };
 		E125643CB612C366015BCD60 /* OnboardingStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingStateTests.swift; sourceTree = "<group>"; };
 		E376ECD8DD9B8567E5DAF48A /* PeckerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeckerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F0A11B1E3D8A4B19A1D9C002 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		E7C45B689809643A0E569744 /* AppGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroup.swift; sourceTree = "<group>"; };
 		E7CB769B36F0251786BE6C84 /* PeckerActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerActivityAttributes.swift; sourceTree = "<group>"; };
 		E80A158B72D538CE0B38C7E5 /* PeckerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeckerApp.swift; sourceTree = "<group>"; };
@@ -402,6 +404,7 @@
 			isa = PBXGroup;
 			children = (
 				C5DA4F9B608C3853BD5C7C55 /* Assets.xcassets */,
+				F0A11B1E3D8A4B19A1D9C002 /* LaunchScreen.storyboard */,
 				D56F4A37A505E97DC9940C81 /* Localizable.strings */,
 			);
 			name = Resources;
@@ -737,6 +740,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9DDEEFD02099D01BF5B9AB0F /* Assets.xcassets in Resources */,
+				F0A11B1E3D8A4B19A1D9C001 /* LaunchScreen.storyboard in Resources */,
 				C38DECC274E98989FE2A09D7 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

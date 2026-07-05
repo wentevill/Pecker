@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 
-**Status:** Approved in conversation; pending written-spec review
+**Status:** Approved
 
 ## Goal
 

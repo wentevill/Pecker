@@ -89,6 +89,7 @@ struct TodayView: View {
                     settingsStore: settingsStore,
                     viewModel: Self.makeSettingsViewModel(
                         settingsStore: settingsStore,
+                        gateway: model.eventKitGateway,
                         authorization: model.latestAuthorization ?? .init(
                             calendar: .notDetermined,
                             reminders: .notDetermined
@@ -337,6 +338,7 @@ struct TodayView: View {
     @MainActor
     static func makeSettingsViewModel(
         settingsStore: SettingsStore,
+        gateway: (any EventKitGatewayProtocol)? = nil,
         authorization: SourceAuthorization,
         liveActivityStatusText: @escaping @MainActor () -> String,
         onSettingsChanged: @escaping @MainActor () -> Void,
@@ -344,6 +346,7 @@ struct TodayView: View {
     ) -> SettingsViewModel {
         SettingsViewModel(
             settingsStore: settingsStore,
+            gateway: gateway,
             authorization: authorization,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,

@@ -19,4 +19,24 @@ final class AppLocalizerTests: XCTestCase {
             "language.simplifiedChinese"
         )
     }
+
+    func testPermissionRecoveryStringsExistInBothLanguages() {
+        let keys = [
+            "settings.permission.allow",
+            "settings.permission.openSettings",
+            "settings.permission.calendar.error",
+            "settings.permission.reminders.error"
+        ]
+
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            let localizer = AppLocalizer(language: language)
+            for key in keys {
+                XCTAssertNotEqual(
+                    localizer.string(key),
+                    key,
+                    "Missing \(key) for \(language)"
+                )
+            }
+        }
+    }
 }

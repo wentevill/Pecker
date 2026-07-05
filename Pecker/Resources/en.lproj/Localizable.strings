@@ -154,6 +154,11 @@
 "settings.done" = "Done";
 "settings.general.title" = "General";
 "settings.language" = "Language";
+"settings.permission.allow" = "Allow Access";
+"settings.permission.calendar.error" = "Unable to request Calendar access. Try again.";
+"settings.permission.openSettings" = "Open Settings";
+"settings.permission.openSettings.error" = "Unable to open system Settings.";
+"settings.permission.reminders.error" = "Unable to request Reminders access. Try again.";
 "settings.liveActivity.description.paused" = "Lock Screen and Dynamic Island display is paused. Enable it again to resume on the next refresh.";
 "settings.liveActivity.description.running" = "The Lock Screen and Dynamic Island update as the timeline refreshes.";
 "settings.liveActivity.description.unavailable" = "The system cannot update Live Activity right now; the timeline still displays normally.";

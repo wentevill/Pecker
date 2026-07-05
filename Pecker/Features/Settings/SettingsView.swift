@@ -1,12 +1,22 @@
 import SwiftUI
 import UIKit
+import Observation
 import PeckerCore
 
+enum SourcePermissionAction: Equatable {
+    case requestAccess
+    case openSettings
+}
+
 @MainActor
+@Observable
 final class SettingsViewModel {
     let settingsStore: SettingsStore
-    let authorization: SourceAuthorization
+    private(set) var authorization: SourceAuthorization
+    private(set) var permissionErrorText: String?
+    private(set) var isRequestingPermission = false
 
+    private let gateway: (any EventKitGatewayProtocol)?
     private let apiKeyStore: any APIKeyStoring
     private let liveActivityStatusProvider: @MainActor () -> String
     private let onSettingsChanged: @MainActor () -> Void
@@ -14,6 +24,7 @@ final class SettingsViewModel {
 
     init(
         settingsStore: SettingsStore,
+        gateway: (any EventKitGatewayProtocol)?,
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
@@ -23,12 +34,108 @@ final class SettingsViewModel {
         openURL: @escaping (URL) -> Void
     ) {
         self.settingsStore = settingsStore
+        self.gateway = gateway
         self.authorization = authorization
         self.apiKeyStore = apiKeyStore
         liveActivityStatusProvider = liveActivityStatusText
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
     }
+
+    convenience init(
+        settingsStore: SettingsStore,
+        authorization: SourceAuthorization,
+        apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
+        liveActivityStatusText: @escaping @MainActor () -> String = {
+            "waiting"
+        },
+        onSettingsChanged: @escaping @MainActor () -> Void,
+        openURL: @escaping (URL) -> Void
+    ) {
+        self.init(
+            settingsStore: settingsStore,
+            gateway: nil,
+            authorization: authorization,
+            apiKeyStore: apiKeyStore,
+            liveActivityStatusText: liveActivityStatusText,
+            onSettingsChanged: onSettingsChanged,
+            openURL: openURL
+        )
+    }
+
+    func permissionAction(
+        for source: TimelineSource
+    ) -> SourcePermissionAction? {
+        switch sourceStatus(for: source) {
+        case .notDetermined:
+            .requestAccess
+        case .denied, .restricted, .writeOnly:
+            .openSettings
+        case .fullAccess:
+            nil
+        }
+    }
+
+    func permissionActionTitle(
+        for source: TimelineSource,
+        localizer: AppLocalizer
+    ) -> String? {
+        switch permissionAction(for: source) {
+        case .requestAccess:
+            localizer.string("settings.permission.allow")
+        case .openSettings:
+            localizer.string("settings.permission.openSettings")
+        case nil:
+            nil
+        }
+    }
+
+    func refreshAuthorization() async {
+        guard let gateway else { return }
+        authorization = await gateway.authorization()
+    }
+
+    func performPermissionAction(
+        for source: TimelineSource,
+        localizer: AppLocalizer
+    ) async {
+        permissionErrorText = nil
+
+        switch permissionAction(for: source) {
+        case .requestAccess:
+            guard let gateway else { return }
+            isRequestingPermission = true
+            defer { isRequestingPermission = false }
+
+            do {
+                switch source {
+                case .calendar:
+                    _ = try await gateway.requestCalendarAccess()
+                case .reminder:
+                    _ = try await gateway.requestReminderAccess()
+                case .external:
+                    return
+                }
+                authorization = await gateway.authorization()
+                notifySettingsChanged()
+            } catch {
+                permissionErrorText = localizer.string(
+                    source == .calendar
+                        ? "settings.permission.calendar.error"
+                        : "settings.permission.reminders.error"
+                )
+            }
+        case .openSettings:
+            openURL(URL(string: UIApplication.openSettingsURLString)!)
+        case nil:
+            break
+        }
+    }
+
+    func clearPermissionError() {
+        permissionErrorText = nil
+    }
+
     func openAIAPIKeyStatusText(localizer: AppLocalizer) -> String {
         settingsStore.value.openAIAPIKeyConfigured
             ? localizer.string("settings.apiKey.configured")
@@ -177,9 +284,7 @@ final class SettingsViewModel {
     }
 
     func openSourceSettings(for source: TimelineSource) {
-        let status = sourceStatus(for: source)
-
-        guard status == .denied || status == .restricted else {
+        guard permissionAction(for: source) == .openSettings else {
             return
         }
 
@@ -193,6 +298,8 @@ final class SettingsViewModel {
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.scenePhase) private var scenePhase
     @Bindable var settingsStore: SettingsStore
     let viewModel: SettingsViewModel
     @State private var apiKeyDraft = ""
@@ -226,6 +333,30 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+        }
+        .task {
+            await viewModel.refreshAuthorization()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task {
+                await viewModel.refreshAuthorization()
+            }
+        }
+        .alert(
+            localizer.string("operation.failed"),
+            isPresented: Binding(
+                get: { viewModel.permissionErrorText != nil },
+                set: { if !$0 { viewModel.clearPermissionError() } }
+            )
+        ) {
+            Button(localizer.string("common.ok")) {
+                viewModel.clearPermissionError()
+            }
+        } message: {
+            if let message = viewModel.permissionErrorText {
+                Text(message)
             }
         }
     }
@@ -540,8 +671,6 @@ struct SettingsView: View {
         toggleAction: @escaping (Bool) -> Void
     ) -> some View {
         let status = viewModel.sourceStatusText(for: source, localizer: localizer)
-        let authorizationStatus = viewModel.sourceStatus(for: source)
-        let needsSettings = authorizationStatus == .denied || authorizationStatus == .restricted
         let isEnabledBinding: Binding<Bool>
         switch source {
         case .calendar:
@@ -558,7 +687,59 @@ struct SettingsView: View {
             isEnabledBinding = .constant(true)
         }
 
-        return HStack(alignment: .center, spacing: 12) {
+        return Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    sourceLabel(
+                        title: title,
+                        status: status,
+                        source: source,
+                        systemImage: systemImage,
+                        accent: accent
+                    )
+                    sourceControls(
+                        title: title,
+                        source: source,
+                        status: status,
+                        isEnabled: isEnabledBinding,
+                        accent: accent
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    sourceLabel(
+                        title: title,
+                        status: status,
+                        source: source,
+                        systemImage: systemImage,
+                        accent: accent
+                    )
+
+                    Spacer(minLength: 8)
+
+                    sourceControls(
+                        title: title,
+                        source: source,
+                        status: status,
+                        isEnabled: isEnabledBinding,
+                        accent: accent
+                    )
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+    }
+
+    private func sourceLabel(
+        title: String,
+        status: String,
+        source: TimelineSource,
+        systemImage: String,
+        accent: TimelineAccent
+    ) -> some View {
+        HStack(alignment: .top, spacing: 12) {
             rowIcon(systemImage, accent: accent)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -568,24 +749,56 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(TimelineTheme.textTertiary)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 8)
-
-            if needsSettings {
-                Button(status) {
-                    viewModel.openSourceSettings(for: source)
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(status)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(TimelineTheme.textSecondary)
                 }
-                .buttonStyle(SettingsPillButtonStyle(accent: TimelineTheme.color(for: accent), filled: false))
-            } else {
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sourceControls(
+        title: String,
+        source: TimelineSource,
+        status: String,
+        isEnabled: Binding<Bool>,
+        accent: TimelineAccent
+    ) -> some View {
+        HStack(spacing: 10) {
+            if let actionTitle = viewModel.permissionActionTitle(
+                for: source,
+                localizer: localizer
+            ) {
+                Button(actionTitle) {
+                    Task {
+                        await viewModel.performPermissionAction(
+                            for: source,
+                            localizer: localizer
+                        )
+                    }
+                }
+                .buttonStyle(
+                    SettingsPillButtonStyle(
+                        accent: TimelineTheme.color(for: accent),
+                        filled: false
+                    )
+                )
+                .disabled(viewModel.isRequestingPermission)
+            } else if !dynamicTypeSize.isAccessibilitySize {
                 statusBadge(status)
             }
 
-            Toggle(title, isOn: isEnabledBinding)
+            Toggle(title, isOn: isEnabled)
                 .labelsHidden()
+                .accessibilityHint(
+                    viewModel.sourceStatusDescription(
+                        for: source,
+                        localizer: localizer
+                    )
+                )
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
     }
 
     private func toggleRow(

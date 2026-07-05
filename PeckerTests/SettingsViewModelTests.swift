@@ -5,6 +5,167 @@ import UIKit
 
 final class SettingsViewModelTests: XCTestCase {
     @MainActor
+    func testRequestingCalendarAccessRefreshesAuthorizationAndNotifiesOnce() async {
+        let store = makeStore()
+        let gateway = SettingsGateway(
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .denied
+            )
+        )
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            gateway: gateway,
+            authorization: await gateway.authorization(),
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        await viewModel.performPermissionAction(
+            for: .calendar,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertEqual(viewModel.authorization.calendar, .fullAccess)
+        let calendarRequestCount = await gateway.calendarRequestCount()
+        XCTAssertEqual(calendarRequestCount, 1)
+        XCTAssertEqual(refreshCount, 1)
+        XCTAssertNil(viewModel.permissionErrorText)
+        XCTAssertFalse(viewModel.isRequestingPermission)
+    }
+
+    @MainActor
+    func testPermissionRequestFailurePreservesPreferenceAndShowsLocalizedError() async {
+        let store = makeStore()
+        let gateway = SettingsGateway(
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .fullAccess
+            ),
+            failingSource: .calendar
+        )
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            gateway: gateway,
+            authorization: await gateway.authorization(),
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+
+        await viewModel.performPermissionAction(
+            for: .calendar,
+            localizer: AppLocalizer(language: .simplifiedChinese)
+        )
+
+        XCTAssertTrue(store.value.calendarEnabled)
+        XCTAssertEqual(viewModel.authorization.calendar, .notDetermined)
+        XCTAssertEqual(
+            viewModel.permissionErrorText,
+            "无法请求日历访问权限，请重试。"
+        )
+        XCTAssertFalse(viewModel.isRequestingPermission)
+    }
+
+    @MainActor
+    func testRefreshAuthorizationReadsCurrentGatewayState() async {
+        let gateway = SettingsGateway(
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .denied
+            )
+        )
+        let viewModel = SettingsViewModel(
+            settingsStore: makeStore(),
+            gateway: gateway,
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .denied
+            ),
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+        await gateway.setAuthorization(
+            .init(calendar: .fullAccess, reminders: .restricted)
+        )
+
+        await viewModel.refreshAuthorization()
+
+        XCTAssertEqual(
+            viewModel.authorization,
+            .init(calendar: .fullAccess, reminders: .restricted)
+        )
+    }
+
+    @MainActor
+    func testPermissionActionTitlesAreLocalized() {
+        let viewModel = makeViewModel(
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .denied
+            )
+        )
+        let localizer = AppLocalizer(language: .simplifiedChinese)
+
+        XCTAssertEqual(
+            viewModel.permissionActionTitle(
+                for: .calendar,
+                localizer: localizer
+            ),
+            "允许访问"
+        )
+        XCTAssertEqual(
+            viewModel.permissionActionTitle(
+                for: .reminder,
+                localizer: localizer
+            ),
+            "打开系统设置"
+        )
+    }
+
+    @MainActor
+    func testPermissionActionMatchesEveryAuthorizationState() {
+        let notDetermined = makeViewModel(
+            authorization: .init(
+                calendar: .notDetermined,
+                reminders: .writeOnly
+            )
+        )
+        XCTAssertEqual(
+            notDetermined.permissionAction(for: .calendar),
+            .requestAccess
+        )
+        XCTAssertEqual(
+            notDetermined.permissionAction(for: .reminder),
+            .openSettings
+        )
+
+        let authorized = makeViewModel(
+            authorization: .init(
+                calendar: .fullAccess,
+                reminders: .denied
+            )
+        )
+        XCTAssertNil(authorized.permissionAction(for: .calendar))
+        XCTAssertEqual(
+            authorized.permissionAction(for: .reminder),
+            .openSettings
+        )
+
+        let restricted = makeViewModel(
+            authorization: .init(
+                calendar: .restricted,
+                reminders: .fullAccess
+            )
+        )
+        XCTAssertEqual(
+            restricted.permissionAction(for: .calendar),
+            .openSettings
+        )
+        XCTAssertNil(restricted.permissionAction(for: .reminder))
+    }
+
+    @MainActor
     func testTogglingSourceAndTimelineSettingsPersistsAndNotifiesOnce() {
         let store = makeStore()
         var refreshCount = 0
@@ -217,6 +378,88 @@ final class SettingsViewModelTests: XCTestCase {
             )!
         )
     }
+
+    @MainActor
+    private func makeViewModel(
+        authorization: SourceAuthorization
+    ) -> SettingsViewModel {
+        SettingsViewModel(
+            settingsStore: makeStore(),
+            gateway: SettingsGateway(authorization: authorization),
+            authorization: authorization,
+            onSettingsChanged: {},
+            openURL: { _ in }
+        )
+    }
+}
+
+private actor SettingsGateway: EventKitGatewayProtocol {
+    private var currentAuthorization: SourceAuthorization
+    private let failingSource: TimelineSource?
+    private(set) var calendarRequests = 0
+    private(set) var reminderRequests = 0
+
+    init(
+        authorization: SourceAuthorization,
+        failingSource: TimelineSource? = nil
+    ) {
+        currentAuthorization = authorization
+        self.failingSource = failingSource
+    }
+
+    func authorization() -> SourceAuthorization {
+        currentAuthorization
+    }
+
+    func requestCalendarAccess() async throws -> Bool {
+        calendarRequests += 1
+        if failingSource == .calendar {
+            throw SettingsGatewayError.requestFailed
+        }
+        currentAuthorization = .init(
+            calendar: .fullAccess,
+            reminders: currentAuthorization.reminders
+        )
+        return true
+    }
+
+    func requestReminderAccess() async throws -> Bool {
+        reminderRequests += 1
+        if failingSource == .reminder {
+            throw SettingsGatewayError.requestFailed
+        }
+        currentAuthorization = .init(
+            calendar: currentAuthorization.calendar,
+            reminders: .fullAccess
+        )
+        return true
+    }
+
+    func fetchToday(
+        calendar: Calendar,
+        now: Date
+    ) async throws -> [EventRecord] {
+        []
+    }
+
+    func fetchReminders(
+        calendar: Calendar,
+        now: Date
+    ) async throws -> [ReminderRecord] {
+        []
+    }
+
+    func calendarRequestCount() -> Int {
+        calendarRequests
+    }
+
+    func setAuthorization(_ authorization: SourceAuthorization) {
+        currentAuthorization = authorization
+    }
+}
+
+private enum SettingsGatewayError: Error {
+    case requestFailed
 }
 
 private final class InMemoryAPIKeyStore: APIKeyStoring, @unchecked Sendable {

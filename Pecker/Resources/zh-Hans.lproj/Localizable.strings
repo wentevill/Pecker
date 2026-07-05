@@ -154,6 +154,11 @@
 "settings.done" = "完成";
 "settings.general.title" = "通用";
 "settings.language" = "语言";
+"settings.permission.allow" = "允许访问";
+"settings.permission.calendar.error" = "无法请求日历访问权限，请重试。";
+"settings.permission.openSettings" = "打开系统设置";
+"settings.permission.openSettings.error" = "无法打开系统设置。";
+"settings.permission.reminders.error" = "无法请求提醒事项访问权限，请重试。";
 "settings.liveActivity.description.paused" = "已暂停锁定屏幕与灵动岛显示；再次开启后会在下次刷新时恢复。";
 "settings.liveActivity.description.running" = "锁定屏幕与灵动岛会跟随时间线刷新更新。";
 "settings.liveActivity.description.unavailable" = "系统暂时无法更新 Live Activity；时间线仍会正常显示。";

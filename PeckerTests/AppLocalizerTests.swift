@@ -39,4 +39,19 @@ final class AppLocalizerTests: XCTestCase {
             }
         }
     }
+
+    func testRecognitionImageFailureCopyExistsInBothLanguages() {
+        let keys = [
+            "recognition.image.decodeFailed",
+            "recognition.image.encodeFailed",
+            "recognition.image.tooLarge"
+        ]
+
+        for language in [AppLanguage.english, .simplifiedChinese] {
+            let localizer = AppLocalizer(language: language)
+            for key in keys {
+                XCTAssertNotEqual(localizer.string(key), key)
+            }
+        }
+    }
 }

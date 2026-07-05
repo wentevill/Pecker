@@ -122,6 +122,9 @@
 "recognition.error.requestFailed" = "The API request failed. Check Host, Model, or network access.";
 "recognition.error.type" = "Error type: %@";
 "recognition.error.unsupportedInput" = "No event could be recognized. Try an image with a ticket, schedule, or task.";
+"recognition.image.decodeFailed" = "This image could not be read.";
+"recognition.image.encodeFailed" = "This image could not be prepared for recognition.";
+"recognition.image.tooLarge" = "This image is too large to recognize.";
 "recognition.photo.subtitle" = "Recognize from album";
 "recognition.photo.title" = "Choose photo";
 "recognition.preview.title" = "Recognition Result";

@@ -10,6 +10,7 @@ struct TodayView: View {
     @Bindable var settingsStore: SettingsStore
     let imageRecognizer: any ImageRecognizing
     let onSettingsChanged: @MainActor @Sendable () -> Void
+    private let imagePreprocessor = RecognitionImagePreprocessor()
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -210,10 +211,10 @@ struct TodayView: View {
                 return
             }
 
+            let preparedImage = try imagePreprocessor.prepare(data)
             let draft = try await imageRecognizer.recognizeImage(
-                data: data,
+                preparedImage,
                 source: .importedImage,
-                filename: item.itemIdentifier,
                 settings: settingsStore.value,
                 now: .now
             )
@@ -226,7 +227,7 @@ struct TodayView: View {
     private func recognizeCameraImage(_ image: UIImage) async {
         imageRecognitionPhase = .recognizing
         do {
-            guard let data = image.jpegData(compressionQuality: 0.88) else {
+            guard let data = image.pngData() else {
                 imageRecognitionPhase = .failure(.init(
                     reason: AppLocalizer(language: settingsStore.value.language)
                         .string("recognition.error.cameraUnreadable"),
@@ -235,10 +236,10 @@ struct TodayView: View {
                 return
             }
 
+            let preparedImage = try imagePreprocessor.prepare(data)
             let draft = try await imageRecognizer.recognizeImage(
-                data: data,
+                preparedImage,
                 source: .cameraImage,
-                filename: "camera.jpg",
                 settings: settingsStore.value,
                 now: .now
             )
@@ -297,6 +298,24 @@ struct TodayView: View {
     private func issuePresentation(
         for error: Error
     ) -> RecognitionIssuePresentation {
+        if let error = error as? RecognitionImagePreparationError {
+            let key: String
+            switch error {
+            case .decodeFailed:
+                key = "recognition.image.decodeFailed"
+            case .encodeFailed:
+                key = "recognition.image.encodeFailed"
+            case .exceedsSizeLimit:
+                key = "recognition.image.tooLarge"
+            }
+            return .init(
+                reason: AppLocalizer(
+                    language: settingsStore.value.language
+                ).string(key),
+                technicalDetails: nil
+            )
+        }
+
         if let failure = error as? RecognitionPipelineFailure {
             return .init(
                 reason: failure.reason,

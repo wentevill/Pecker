@@ -115,6 +115,29 @@ import Testing
     #expect(text.contains("data:image/jpeg;base64,/9j/"))
 }
 
+@Test func openAIProviderUsesExplicitImageMIMEType() throws {
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://example.com",
+            apiKey: "key",
+            model: "vision"
+        )
+    )
+    let request = try provider.makeRequest(
+        for: .importedImage(
+            id: "image-1",
+            imageData: Data([0xFF, 0xD8, 0xFF]),
+            filename: "misleading.png",
+            mimeType: "image/jpeg"
+        )
+    )
+    let httpBody = try #require(request.httpBody)
+    let body = try #require(String(data: httpBody, encoding: .utf8))
+
+    #expect(body.contains("data:image/jpeg;base64,/9j/"))
+    #expect(!body.contains("data:image/png"))
+}
+
 @Test func openAIProviderReportsWhenModelDoesNotSupportImages() async throws {
     let client = StubRecognitionHTTPClient(
         data: Data(

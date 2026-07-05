@@ -53,6 +53,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
     let sourceIdentifier: String
     let source: RecognitionSource
     let filename: String?
+    let mimeType: String
     let imageData: Data
     let recognizedAt: Date
     let startDate: Date
@@ -65,6 +66,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
         sourceIdentifier: String,
         source: RecognitionSource,
         filename: String?,
+        mimeType: String = "image/jpeg",
         imageData: Data,
         recognizedAt: Date,
         startDate: Date,
@@ -76,6 +78,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
         self.sourceIdentifier = sourceIdentifier
         self.source = source
         self.filename = filename
+        self.mimeType = mimeType
         self.imageData = imageData
         self.recognizedAt = recognizedAt
         self.startDate = startDate
@@ -188,19 +191,52 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         settings: TimelineSettings,
         now: Date
     ) async throws -> ImageRecognitionDraft {
+        let canonicalFilename = filename ?? "recognition.jpg"
+        let lowercasedFilename = canonicalFilename.lowercased()
+        let mimeType: String
+        if lowercasedFilename.hasSuffix(".png") {
+            mimeType = "image/png"
+        } else if lowercasedFilename.hasSuffix(".webp") {
+            mimeType = "image/webp"
+        } else {
+            mimeType = "image/jpeg"
+        }
+        return try await recognizeImage(
+            PreparedRecognitionImage(
+                data: data,
+                filename: canonicalFilename,
+                mimeType: mimeType,
+                pixelWidth: 0,
+                pixelHeight: 0
+            ),
+            source: source,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func recognizeImage(
+        _ image: PreparedRecognitionImage,
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
         let input: RecognitionInput = source == .cameraImage
             ? .cameraImage(
                 id: sourceIdentifier,
-                imageData: data,
+                imageData: image.data,
+                filename: image.filename,
+                mimeType: image.mimeType,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
             : .importedImage(
                 id: sourceIdentifier,
-                imageData: data,
-                filename: filename,
+                imageData: image.data,
+                filename: image.filename,
+                mimeType: image.mimeType,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
@@ -233,8 +269,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             id: "\(idPrefix):\(sourceIdentifier)",
             sourceIdentifier: sourceIdentifier,
             source: source,
-            filename: filename,
-            imageData: data,
+            filename: image.filename,
+            mimeType: image.mimeType,
+            imageData: image.data,
             recognizedAt: now,
             startDate: validation.startDate,
             endDate: validation.endDate,

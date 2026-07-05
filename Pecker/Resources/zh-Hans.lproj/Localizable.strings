@@ -122,6 +122,9 @@
 "recognition.error.requestFailed" = "API 请求失败，请检查 Host、Model 或网络。";
 "recognition.error.type" = "错误类型：%@";
 "recognition.error.unsupportedInput" = "未识别到可添加的事件，请换一张包含票据、日程或任务信息的图片。";
+"recognition.image.decodeFailed" = "无法读取这张图片。";
+"recognition.image.encodeFailed" = "无法处理这张图片用于识别。";
+"recognition.image.tooLarge" = "图片过大，无法识别。";
 "recognition.photo.subtitle" = "从相册识别";
 "recognition.photo.title" = "选择图片";
 "recognition.preview.title" = "识别结果";

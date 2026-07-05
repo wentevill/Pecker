@@ -238,10 +238,15 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         ]
 
         if let imageData = input.imageData {
+            let mimeType = input.imageMIMEType ?? "image/jpeg"
+            guard ["image/jpeg", "image/png", "image/webp"].contains(mimeType)
+            else {
+                throw RecognitionError.invalidConfiguration
+            }
             content.append([
                 "type": "image_url",
                 "image_url": [
-                    "url": "data:\(mimeType(for: input.filename));base64,\(imageData.base64EncodedString())"
+                    "url": "data:\(mimeType);base64,\(imageData.base64EncodedString())"
                 ]
             ])
         }
@@ -277,19 +282,6 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             .withFractionalSeconds
         ]
         return formatter.string(from: date)
-    }
-
-    private func mimeType(for filename: String?) -> String {
-        guard let filename = filename?.lowercased() else {
-            return "image/jpeg"
-        }
-        if filename.hasSuffix(".png") {
-            return "image/png"
-        }
-        if filename.hasSuffix(".webp") {
-            return "image/webp"
-        }
-        return "image/jpeg"
     }
 
     private var systemPrompt: String {

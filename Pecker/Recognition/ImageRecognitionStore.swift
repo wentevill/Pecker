@@ -22,9 +22,11 @@ struct ImageRecognitionStore: ImageFileStoring {
         filename: String?,
         source: RecognitionSource
     ) throws -> String {
-        let extensionText = Self.fileExtension(from: filename)
+        guard filename?.lowercased().hasSuffix(".jpg") == true else {
+            throw ImageRecognitionStoreError.invalidImageReference
+        }
         let imageID = UUID().uuidString
-        let relativePath = "Images/\(source.rawValue)-\(imageID).\(extensionText)"
+        let relativePath = "Images/\(source.rawValue)-\(imageID).jpg"
         let fileURL = directoryURL.appendingPathComponent(relativePath)
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
@@ -46,19 +48,6 @@ struct ImageRecognitionStore: ImageFileStoring {
             try FileManager.default.removeItem(at: fileURL)
         }
     }
-
-    private static func fileExtension(from filename: String?) -> String {
-        guard let filename else {
-            return "jpg"
-        }
-        let value = URL(fileURLWithPath: filename).pathExtension.lowercased()
-        switch value {
-        case "png", "webp", "jpg", "jpeg":
-            return value
-        default:
-            return "jpg"
-        }
-    }
 }
 
 protocol ImageRecognizing: Sendable {
@@ -70,9 +59,33 @@ protocol ImageRecognizing: Sendable {
         now: Date
     ) async throws -> ImageRecognitionDraft
 
+    func recognizeImage(
+        _ image: PreparedRecognitionImage,
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft
+
     func saveRecognizedImage(
         _ draft: ImageRecognitionDraft
     ) async throws -> StoredEventRecord
+}
+
+extension ImageRecognizing {
+    func recognizeImage(
+        _ image: PreparedRecognitionImage,
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
+        try await recognizeImage(
+            data: image.data,
+            source: source,
+            filename: image.filename,
+            settings: settings,
+            now: now
+        )
+    }
 }
 
 actor NoopImageRecognizer: ImageRecognizing {
@@ -116,6 +129,20 @@ struct ImageRecognitionCoordinator: ImageRecognizing {
             data: data,
             source: source,
             filename: filename,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func recognizeImage(
+        _ image: PreparedRecognitionImage,
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
+        try await systemCoordinator.recognizeImage(
+            image,
+            source: source,
             settings: settings,
             now: now
         )

@@ -141,6 +141,8 @@
 "recognition.technicalDetails.accessibility" = "识别失败技术详情";
 "recognition.title" = "识别事件";
 "settings.ai.description" = "从日历、提醒事项、图片或相机内容识别结构化事件。";
+"settings.ai.host" = "服务地址";
+"settings.ai.model" = "模型";
 "settings.ai.mode" = "识别模式";
 "settings.ai.mode.off" = "关闭";
 "settings.ai.offDescription" = "关闭后不会向外部模型发送内容；本地存储同步仍由下方开关控制。";
@@ -153,9 +155,11 @@
 "settings.apiKey.description" = "API Key 会保存到系统 Keychain；设置文件只记录是否已配置。";
 "settings.apiKey.notConfigured" = "未配置";
 "settings.apiKey.saveError" = "保存失败，请稍后重试。";
+"settings.apiKey.title" = "API Key";
 "settings.dataSources.title" = "数据源";
 "settings.done" = "完成";
 "settings.general.title" = "通用";
+"settings.host.invalid" = "请输入不含凭据、查询参数和补全接口路径的安全 HTTPS 基础地址。";
 "settings.language" = "语言";
 "settings.permission.allow" = "允许访问";
 "settings.permission.calendar.error" = "无法请求日历访问权限，请重试。";

@@ -4,6 +4,60 @@ import XCTest
 @testable import Pecker
 
 final class TimelineManagerModelTests: XCTestCase {
+    @MainActor
+    func testLoadUsesCachedSystemTemplateBeforeLocalClassification() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let template = TimelineEventTemplate.trainTicket(.init(
+            trainNumber: "G123",
+            departureStation: "Shanghai",
+            arrivalStation: "Beijing",
+            departureTimeText: nil,
+            arrivalTimeText: nil,
+            carriageNumber: nil,
+            seatNumber: nil,
+            checkInGate: nil,
+            passengerName: nil,
+            ticketNumber: nil
+        ))
+        let suiteName = "TimelineTemplateTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        addTeardownBlock {
+            UserDefaults(suiteName: suiteName)?
+                .removePersistentDomain(forName: suiteName)
+        }
+        let model = TimelineManagerModel(
+            gateway: TimelineManagerTestGateway(events: [
+                EventRecord(
+                    identifier: "event-1",
+                    title: "Ordinary title",
+                    startDate: now,
+                    endDate: now.addingTimeInterval(3_600),
+                    isAllDay: false,
+                    location: nil,
+                    notes: nil
+                )
+            ]),
+            mapper: EventKitMapper(),
+            recognizer: TimelineManagerTestRecognizer(
+                items: [],
+                templates: ["calendar:event-1": template]
+            ),
+            localCards: TimelineManagerTestLocalCards(
+                records: [],
+                loadError: nil
+            ),
+            settingsStore: SettingsStore(defaults: defaults),
+            calendar: Calendar(identifier: .gregorian)
+        )
+
+        let didLoad = await model.load(now: now)
+        XCTAssertTrue(didLoad)
+
+        let item = try XCTUnwrap(model.items.first)
+        XCTAssertEqual(item.kind, .train)
+        XCTAssertEqual(item.template, template)
+    }
+
     func testScopeAndKindFiltersComposeWithoutDateLeakage() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         var calendar = Calendar(identifier: .gregorian)
@@ -223,8 +277,17 @@ private enum TimelineManagerTestError: Error {
 }
 
 private actor TimelineManagerTestGateway: EventKitGatewayProtocol {
+    let events: [EventRecord]
+
+    init(events: [EventRecord] = []) {
+        self.events = events
+    }
+
     func authorization() -> SourceAuthorization {
-        .init(calendar: .denied, reminders: .denied)
+        .init(
+            calendar: events.isEmpty ? .denied : .fullAccess,
+            reminders: .denied
+        )
     }
 
     func requestCalendarAccess() throws -> Bool { false }
@@ -234,7 +297,14 @@ private actor TimelineManagerTestGateway: EventKitGatewayProtocol {
         calendar: Calendar,
         now: Date
     ) throws -> [EventRecord] {
-        []
+        events
+    }
+
+    func fetchEvents(
+        in interval: DateInterval,
+        calendar: Calendar
+    ) throws -> [EventRecord] {
+        events
     }
 
     func fetchReminders(
@@ -247,9 +317,18 @@ private actor TimelineManagerTestGateway: EventKitGatewayProtocol {
 
 private actor TimelineManagerTestRecognizer: SystemEventRecognizing {
     let items: [TimelineItem]
+    let templates: [String: TimelineEventTemplate]
 
-    init(items: [TimelineItem]) {
+    init(
+        items: [TimelineItem],
+        templates: [String: TimelineEventTemplate] = [:]
+    ) {
         self.items = items
+        self.templates = templates
+    }
+
+    func cachedSystemTemplates() -> [String: TimelineEventTemplate] {
+        templates
     }
 
     func synchronize(

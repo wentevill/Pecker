@@ -141,6 +141,8 @@
 "recognition.technicalDetails.accessibility" = "Recognition failure technical details";
 "recognition.title" = "Recognize Event";
 "settings.ai.description" = "Recognize structured events from calendar, reminders, photos, or camera content.";
+"settings.ai.host" = "Host";
+"settings.ai.model" = "Model";
 "settings.ai.mode" = "Recognition mode";
 "settings.ai.mode.off" = "Off";
 "settings.ai.offDescription" = "When off, no content is sent to external models; local storage sync is controlled below.";
@@ -153,9 +155,11 @@
 "settings.apiKey.description" = "The API Key is saved in the system Keychain; settings only record whether it is configured.";
 "settings.apiKey.notConfigured" = "Not configured";
 "settings.apiKey.saveError" = "Save failed. Please try again later.";
+"settings.apiKey.title" = "API Key";
 "settings.dataSources.title" = "Data Sources";
 "settings.done" = "Done";
 "settings.general.title" = "General";
+"settings.host.invalid" = "Enter a secure HTTPS base URL without credentials, query parameters, or a completion endpoint.";
 "settings.language" = "Language";
 "settings.permission.allow" = "Allow Access";
 "settings.permission.calendar.error" = "Unable to request Calendar access. Try again.";

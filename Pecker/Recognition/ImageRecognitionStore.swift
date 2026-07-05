@@ -4,6 +4,27 @@ import PeckerCore
 protocol ImageFileStoring: Sendable {
     func saveImage(data: Data, filename: String?, source: RecognitionSource) throws -> String
     func deleteImage(at relativePath: String) throws
+    func quarantineImage(at relativePath: String) throws -> QuarantinedImage
+    func restoreImage(_ image: QuarantinedImage) throws
+    func removeQuarantinedImage(_ image: QuarantinedImage) throws
+}
+
+struct QuarantinedImage: Sendable, Equatable {
+    let originalPath: String
+    let quarantinePath: String
+}
+
+extension ImageFileStoring {
+    func quarantineImage(at relativePath: String) throws -> QuarantinedImage {
+        try deleteImage(at: relativePath)
+        return .init(
+            originalPath: relativePath,
+            quarantinePath: relativePath
+        )
+    }
+
+    func restoreImage(_ image: QuarantinedImage) throws {}
+    func removeQuarantinedImage(_ image: QuarantinedImage) throws {}
 }
 
 enum ImageRecognitionStoreError: Error {
@@ -37,6 +58,49 @@ struct ImageRecognitionStore: ImageFileStoring {
     }
 
     func deleteImage(at relativePath: String) throws {
+        let fileURL = try validatedFileURL(for: relativePath)
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
+    func quarantineImage(
+        at relativePath: String
+    ) throws -> QuarantinedImage {
+        let sourceURL = try validatedFileURL(for: relativePath)
+        let quarantinePath =
+            "Images/.Trash/\(UUID().uuidString)-\(sourceURL.lastPathComponent)"
+        let quarantineURL = try validatedFileURL(for: quarantinePath)
+        try FileManager.default.createDirectory(
+            at: quarantineURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        if FileManager.default.fileExists(atPath: sourceURL.path) {
+            try FileManager.default.moveItem(at: sourceURL, to: quarantineURL)
+        }
+        return .init(
+            originalPath: relativePath,
+            quarantinePath: quarantinePath
+        )
+    }
+
+    func restoreImage(_ image: QuarantinedImage) throws {
+        let sourceURL = try validatedFileURL(for: image.quarantinePath)
+        let destinationURL = try validatedFileURL(for: image.originalPath)
+        guard FileManager.default.fileExists(atPath: sourceURL.path) else {
+            return
+        }
+        try FileManager.default.moveItem(at: sourceURL, to: destinationURL)
+    }
+
+    func removeQuarantinedImage(_ image: QuarantinedImage) throws {
+        let fileURL = try validatedFileURL(for: image.quarantinePath)
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+    }
+
+    private func validatedFileURL(for relativePath: String) throws -> URL {
         let rootURL = directoryURL.standardizedFileURL
         let fileURL = directoryURL
             .appendingPathComponent(relativePath)
@@ -44,9 +108,7 @@ struct ImageRecognitionStore: ImageFileStoring {
         guard fileURL.path.hasPrefix(rootURL.path + "/") else {
             throw ImageRecognitionStoreError.invalidImageReference
         }
-        if FileManager.default.fileExists(atPath: fileURL.path) {
-            try FileManager.default.removeItem(at: fileURL)
-        }
+        return fileURL
     }
 }
 
@@ -171,7 +233,6 @@ struct ImageRecognitionCoordinator: ImageRecognizing {
 enum LocalTimelineCardError: Error, Equatable {
     case recordNotFound
     case readOnlySource
-    case imageCleanupFailed
 }
 
 protocol LocalTimelineCardManaging: Sendable {
@@ -222,13 +283,19 @@ struct LocalTimelineCardService: LocalTimelineCardManaging {
         guard Self.isMutable(record) else {
             throw LocalTimelineCardError.readOnlySource
         }
-        try await repository.delete(id: id)
-        if let imageReference = record.imageReference {
-            do {
-                try imageStore.deleteImage(at: imageReference)
-            } catch {
-                throw LocalTimelineCardError.imageCleanupFailed
+        let quarantined = try record.imageReference.map {
+            try imageStore.quarantineImage(at: $0)
+        }
+        do {
+            try await repository.delete(id: id)
+        } catch {
+            if let quarantined {
+                try? imageStore.restoreImage(quarantined)
             }
+            throw error
+        }
+        if let quarantined {
+            try? imageStore.removeQuarantinedImage(quarantined)
         }
     }
 

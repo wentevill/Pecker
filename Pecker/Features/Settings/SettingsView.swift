@@ -283,6 +283,18 @@ final class SettingsViewModel {
         notifySettingsChanged()
     }
 
+    func reconcileAPIKeyStatus() {
+        let configured =
+            (try? apiKeyStore.loadOpenAIAPIKey())?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .isEmpty == false
+        if settingsStore.value.openAIAPIKeyConfigured != configured {
+            settingsStore.update {
+                $0.openAIAPIKeyConfigured = configured
+            }
+        }
+    }
+
     func openSourceSettings(for source: TimelineSource) {
         guard permissionAction(for: source) == .openSettings else {
             return
@@ -304,6 +316,8 @@ struct SettingsView: View {
     let viewModel: SettingsViewModel
     @State private var apiKeyDraft = ""
     @State private var apiKeyErrorText: String?
+    @State private var hostDraft = ""
+    @State private var hostErrorText: String?
 
     private var localizer: AppLocalizer {
         AppLocalizer(language: settingsStore.value.language)
@@ -336,6 +350,8 @@ struct SettingsView: View {
             }
         }
         .task {
+            viewModel.reconcileAPIKeyStatus()
+            hostDraft = settingsStore.value.openAIHost
             await viewModel.refreshAuthorization()
         }
         .onChange(of: scenePhase) { _, phase in
@@ -503,19 +519,36 @@ struct SettingsView: View {
     private var openAIConfiguration: some View {
         VStack(alignment: .leading, spacing: 0) {
             settingsTextFieldRow(
-                title: "Host",
+                title: localizer.string("settings.ai.host"),
                 placeholder: "https://api.openai.com",
-                text: Binding(
-                    get: { settingsStore.value.openAIHost },
-                    set: { viewModel.setOpenAIHost($0) }
-                ),
+                text: $hostDraft,
                 keyboardType: .URL
             )
+
+            HStack(spacing: 10) {
+                Button(localizer.string("common.save")) {
+                    saveOpenAIHost()
+                }
+                .buttonStyle(
+                    SettingsPillButtonStyle(
+                        accent: TimelineTheme.now,
+                        filled: true
+                    )
+                )
+                Spacer(minLength: 8)
+                if let hostErrorText {
+                    Text(hostErrorText)
+                        .font(.caption)
+                        .foregroundStyle(TimelineTheme.now)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.bottom, 10)
 
             rowDivider
 
             settingsTextFieldRow(
-                title: "Model",
+                title: localizer.string("settings.ai.model"),
                 placeholder: "gpt-5.4-mini",
                 text: Binding(
                     get: { settingsStore.value.openAIModel },
@@ -529,7 +562,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 12) {
                     rowIcon("key.fill", accent: .now)
-                    Text("API Key")
+                    Text(localizer.string("settings.apiKey.title"))
                         .font(.subheadline.weight(.semibold))
                     Spacer(minLength: 8)
                     statusBadge(viewModel.openAIAPIKeyStatusText(localizer: localizer))
@@ -593,7 +626,12 @@ struct SettingsView: View {
         keyboardType: UIKeyboardType
     ) -> some View {
         HStack(alignment: .center, spacing: 14) {
-            rowIcon(title == "Host" ? "network" : "cpu", accent: .now)
+            rowIcon(
+                title == localizer.string("settings.ai.host")
+                    ? "network"
+                    : "cpu",
+                accent: .now
+            )
 
             Text(title)
                 .font(.subheadline.weight(.semibold))
@@ -930,6 +968,17 @@ struct SettingsView: View {
             apiKeyErrorText = nil
         } catch {
             apiKeyErrorText = localizer.string("settings.apiKey.saveError")
+        }
+    }
+
+    private func saveOpenAIHost() {
+        do {
+            let host = try RecognitionHostValidator.validate(hostDraft)
+            viewModel.setOpenAIHost(host)
+            hostDraft = host
+            hostErrorText = nil
+        } catch {
+            hostErrorText = localizer.string("settings.host.invalid")
         }
     }
 

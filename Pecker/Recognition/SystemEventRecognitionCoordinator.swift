@@ -6,6 +6,7 @@ protocol EventRepositoryStoring: Sendable {
     func upsert(_ record: StoredEventRecord) async throws
     func delete(source: RecognitionSource) async throws
     func delete(id: String) async throws
+    func delete(ids: Set<String>) async throws
 }
 
 extension EventRepository: EventRepositoryStoring {}
@@ -14,9 +15,17 @@ extension EventRepositoryStoring {
     func delete(id: String) async throws {
         throw RecognitionError.unsupportedInput
     }
+
+    func delete(ids: Set<String>) async throws {
+        for id in ids {
+            try await delete(id: id)
+        }
+    }
 }
 
 protocol SystemEventRecognizing: Sendable {
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate]
+
     func synchronize(
         events: [EventRecord],
         reminders: [ReminderRecord],
@@ -28,6 +37,12 @@ protocol SystemEventRecognizing: Sendable {
         settings: TimelineSettings,
         now: Date
     ) async -> [TimelineItem]
+}
+
+extension SystemEventRecognizing {
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate] {
+        [:]
+    }
 }
 
 actor NoopSystemEventRecognizer: SystemEventRecognizing {
@@ -122,6 +137,10 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         self.providerFactory = providerFactory
     }
 
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate] {
+        (try? await recognizedTemplates()) ?? [:]
+    }
+
     func synchronize(
         events: [EventRecord],
         reminders: [ReminderRecord],
@@ -131,8 +150,22 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         do {
             let existingTemplates = try await recognizedTemplates()
             var templates = existingTemplates
+            let dayStart = calendar.startOfDay(for: now)
+            let dayEnd = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: dayStart
+            ) ?? dayStart.addingTimeInterval(86_400)
+            let interval = DateInterval(start: dayStart, end: dayEnd)
 
             if settings.syncCalendarToStorage {
+                try await removeMissingRecords(
+                    source: .calendar,
+                    presentIDs: Set(
+                        events.map { "calendar:\($0.identifier)" }
+                    ),
+                    interval: interval
+                )
                 for event in events {
                     if let template = try? await synchronize(
                         record: storedRecord(from: event, status: .pending, updatedAt: now),
@@ -155,6 +188,13 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             }
 
             if settings.syncRemindersToStorage {
+                try await removeMissingRecords(
+                    source: .reminder,
+                    presentIDs: Set(
+                        reminders.map { "reminder:\($0.identifier)" }
+                    ),
+                    interval: interval
+                )
                 for reminder in reminders {
                     if let template = try? await synchronize(
                         record: storedRecord(
@@ -397,6 +437,25 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 return (record.id, template)
             }
         )
+    }
+
+    private func removeMissingRecords(
+        source: RecognitionSource,
+        presentIDs: Set<String>,
+        interval: DateInterval
+    ) async throws {
+        let records = try await repository.loadAll()
+        let staleIDs: [String] = records.compactMap { record in
+            guard record.source == source,
+                  let start = record.startDate,
+                  interval.contains(start),
+                  !presentIDs.contains(record.id)
+            else {
+                return nil
+            }
+            return record.id
+        }
+        try await repository.delete(ids: Set(staleIDs))
     }
 
     private func timelineItem(

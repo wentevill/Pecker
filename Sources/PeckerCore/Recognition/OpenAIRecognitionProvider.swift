@@ -547,7 +547,19 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         summary: String,
         excerpt: String? = nil
     ) -> RecognitionPipelineFailure {
-        RecognitionPipelineFailure(
+        let code: RecognitionFailureCode
+        if reason.contains("\u{672a}\u{8c03}\u{7528}") {
+            code = .missingFunctionCall
+        } else if reason.contains("\u{591a}\u{4e2a}") {
+            code = .multipleFunctionCalls
+        } else if reason.contains("\u{4e0d}\u{5141}\u{8bb8}") {
+            code = .unexpectedFunctionCall
+        } else if reason.contains("\u{53c2}\u{6570}\u{683c}\u{5f0f}") {
+            code = .malformedFunctionArguments
+        } else {
+            code = .malformedResponse
+        }
+        return RecognitionPipelineFailure(
             stage: stage,
             reason: reason,
             technicalSummary: summary,
@@ -555,7 +567,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             serviceCode: nil,
             serviceMessage: nil,
             missingFields: [],
-            responseExcerpt: excerpt
+            responseExcerpt: excerpt,
+            code: code
         )
     }
 
@@ -565,15 +578,20 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     ) -> RecognitionPipelineFailure {
         let urlError = error as? URLError
         let reason: String
+        let code: RecognitionFailureCode
         switch urlError?.code {
         case .timedOut:
             reason = "\u{7f51}\u{7edc}\u{8fde}\u{63a5}\u{8d85}\u{65f6}"
+            code = .timedOut
         case .notConnectedToInternet:
             reason = "\u{8bbe}\u{5907}\u{672a}\u{8fde}\u{63a5}\u{7f51}\u{7edc}"
+            code = .offline
         case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
             reason = "\u{65e0}\u{6cd5}\u{8fde}\u{63a5}\u{8bc6}\u{522b}\u{670d}\u{52a1}"
+            code = .hostUnreachable
         default:
             reason = "\u{7f51}\u{7edc}\u{8bf7}\u{6c42}\u{5931}\u{8d25}"
+            code = .networkFailed
         }
         let summary: String
         if let urlError {
@@ -589,7 +607,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             serviceCode: nil,
             serviceMessage: nil,
             missingFields: [],
-            responseExcerpt: nil
+            responseExcerpt: nil,
+            code: code
         )
     }
 
@@ -621,16 +640,22 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                     )
             )
         let reason: String
+        let code: RecognitionFailureCode
         if imageUnsupported {
             reason = "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{4e0d}\u{652f}\u{6301}\u{56fe}\u{7247}\u{8bc6}\u{522b}"
+            code = .imageUnsupported
         } else if functionCallingUnsupported {
             reason = "\u{5f53}\u{524d}\u{6a21}\u{578b}\u{6216}\u{670d}\u{52a1}\u{4e0d}\u{652f}\u{6301}\u{51fd}\u{6570}\u{8c03}\u{7528}"
+            code = .functionCallingUnsupported
         } else if statusCode == 401 || statusCode == 403 {
             reason = "API \u{9274}\u{6743}\u{5931}\u{8d25}（HTTP \(statusCode)）"
+            code = .authenticationFailed
         } else if statusCode == 429 {
             reason = "\u{670d}\u{52a1}\u{8fd4}\u{56de} 429：\u{8bf7}\u{6c42}\u{8fc7}\u{4e8e}\u{9891}\u{7e41}"
+            code = .rateLimited
         } else {
             reason = "\u{8bc6}\u{522b}\u{670d}\u{52a1}\u{8fd4}\u{56de} HTTP \(statusCode)"
+            code = .serviceFailed
         }
         return RecognitionPipelineFailure(
             stage: stage,
@@ -640,7 +665,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             serviceCode: details.code,
             serviceMessage: details.message ?? rawText,
             missingFields: [],
-            responseExcerpt: nil
+            responseExcerpt: nil,
+            code: code
         )
     }
 

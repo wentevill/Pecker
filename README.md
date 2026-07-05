@@ -35,14 +35,14 @@ With Pecker, you can:
 - **Live Activities** - Real-time updates on your Lock Screen and Dynamic Island
 - **Dark Theme UI** - Beautiful, modern interface with a dark color scheme
 - **Smart Notifications** - Stay informed about your current priorities
-- **Seamless Integration** - Native iOS 16+ support with latest Apple frameworks
+- **Seamless Integration** - Native iOS 26+ support with latest Apple frameworks
 - **Event Detection** - Recognize various event types including meetings, travel, deadlines, interviews, and more
 
 ### System Requirements
 
-- **iOS** 16.0+
-- **Swift** 5.0+
-- **Xcode** 14.0+
+- **iOS** 26.0+
+- **Swift** 6.0+
+- **Xcode** 26.0+
 
 ### Installation
 

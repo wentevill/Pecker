@@ -25,7 +25,8 @@ struct RecognizedEventValidator {
                 serviceCode: nil,
                 serviceMessage: nil,
                 missingFields: missing,
-                responseExcerpt: nil
+                responseExcerpt: nil,
+                code: .validationMissingContent
             )
         }
 
@@ -162,7 +163,8 @@ struct RecognizedEventValidator {
             serviceCode: nil,
             serviceMessage: nil,
             missingFields: fields,
-            responseExcerpt: nil
+            responseExcerpt: nil,
+            code: .validationMissingContent
         )
     }
 }

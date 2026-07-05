@@ -16,6 +16,24 @@ public enum RecognitionPipelineStage: String, Codable, Sendable, Equatable {
     }
 }
 
+public enum RecognitionFailureCode: String, Sendable, Equatable {
+    case validationMissingContent
+    case imageUnsupported
+    case functionCallingUnsupported
+    case authenticationFailed
+    case rateLimited
+    case serviceFailed
+    case timedOut
+    case offline
+    case hostUnreachable
+    case networkFailed
+    case malformedResponse
+    case missingFunctionCall
+    case multipleFunctionCalls
+    case unexpectedFunctionCall
+    case malformedFunctionArguments
+}
+
 public struct RecognitionPipelineFailure: Error, Sendable, Equatable {
     public let stage: RecognitionPipelineStage
     public let reason: String
@@ -25,6 +43,7 @@ public struct RecognitionPipelineFailure: Error, Sendable, Equatable {
     public let serviceMessage: String?
     public let missingFields: [String]
     public let responseExcerpt: String?
+    public let code: RecognitionFailureCode
 
     public init(
         stage: RecognitionPipelineStage,
@@ -34,7 +53,8 @@ public struct RecognitionPipelineFailure: Error, Sendable, Equatable {
         serviceCode: String?,
         serviceMessage: String?,
         missingFields: [String],
-        responseExcerpt: String?
+        responseExcerpt: String?,
+        code: RecognitionFailureCode = .serviceFailed
     ) {
         self.stage = stage
         self.reason = reason
@@ -43,6 +63,7 @@ public struct RecognitionPipelineFailure: Error, Sendable, Equatable {
         self.serviceCode = serviceCode
         self.serviceMessage = serviceMessage
         self.missingFields = missingFields
+        self.code = code
         self.responseExcerpt = responseExcerpt.map {
             String($0.prefix(Self.responseExcerptLimit))
         }

@@ -68,6 +68,7 @@ struct TimelineCard<Content: View>: View {
 
 struct SwipeDeleteAction<Content: View>: View {
     private let isEnabled: Bool
+    private let deleteLabel: String
     private let onTap: () -> Void
     private let onDelete: () -> Void
     private let content: Content
@@ -77,11 +78,13 @@ struct SwipeDeleteAction<Content: View>: View {
 
     init(
         isEnabled: Bool,
+        deleteLabel: String = "Delete",
         onTap: @escaping () -> Void = {},
         onDelete: @escaping () -> Void,
         @ViewBuilder content: () -> Content
     ) {
         self.isEnabled = isEnabled
+        self.deleteLabel = deleteLabel
         self.onTap = onTap
         self.onDelete = onDelete
         self.content = content()
@@ -97,7 +100,7 @@ struct SwipeDeleteAction<Content: View>: View {
                     VStack(spacing: 5) {
                         Image(systemName: "trash.fill")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("common.delete")
+                        Text(deleteLabel)
                             .font(.caption2.weight(.semibold))
                     }
                     .foregroundStyle(.white)
@@ -128,7 +131,10 @@ struct SwipeDeleteAction<Content: View>: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text("common.delete"))
+                .accessibilityLabel(deleteLabel)
+                .accessibilityHidden(
+                    !swipeState.deleteActionReceivesHitTesting
+                )
                 .allowsHitTesting(swipeState.deleteActionReceivesHitTesting)
                 .zIndex(swipeState.deleteActionReceivesHitTesting ? 1 : -1)
             }

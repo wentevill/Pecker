@@ -54,4 +54,17 @@ final class AppLocalizerTests: XCTestCase {
             }
         }
     }
+
+    func testTimelineRangeExplanationIsLocalized() {
+        XCTAssertEqual(
+            AppLocalizer(language: .english)
+                .string("timeline.range.explanation"),
+            "History and future events are loaded up to one year from today."
+        )
+        XCTAssertEqual(
+            AppLocalizer(language: .simplifiedChinese)
+                .string("timeline.range.explanation"),
+            "历史和未来日程最多加载今天前后一年。"
+        )
+    }
 }

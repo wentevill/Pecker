@@ -651,7 +651,7 @@ struct SettingsView: View {
 
     private var liveActivitySection: some View {
         settingsSection(
-            title: "Live Activity",
+            title: localizer.string("settings.liveActivity.title"),
             systemImage: "livephoto",
             accent: .pinned
         ) {
@@ -819,7 +819,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(
                     SettingsPillButtonStyle(
-                        accent: TimelineTheme.color(for: accent),
+                        accent: TimelineTheme.textColor(for: accent),
                         filled: false
                     )
                 )
@@ -894,7 +894,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.footnote.weight(.bold))
-                .foregroundStyle(TimelineTheme.color(for: accent))
+                .foregroundStyle(TimelineTheme.textColor(for: accent))
                 .textCase(.uppercase)
                 .labelStyle(.titleAndIcon)
                 .padding(.horizontal, 4)

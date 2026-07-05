@@ -7,6 +7,8 @@
 "common.ok" = "OK";
 "common.save" = "Save";
 "common.time" = "Time";
+"configuration.error.appGroup" = "Unable to open Pecker's shared App Group (%@). Check signing and entitlements.";
+"configuration.error.title" = "Configuration Error";
 "delete.confirmation.message" = "This only removes the Pecker timeline card. It will not change your Calendar or Reminders.";
 "delete.confirmation.title" = "Delete this event?";
 "delete.error" = "Delete failed. Please try again later.";
@@ -81,6 +83,7 @@
 "onboarding.calendar.message" = "Read today's events to show time, location, and upcoming plans. Denying or skipping will not block setup.";
 "onboarding.calendar.note" = "The permission request appears only after you tap the button below.";
 "onboarding.calendar.title" = "Connect your calendar";
+"onboarding.calendar.error" = "Unable to access Calendar. Try again later in system Settings.";
 "onboarding.enableLater" = "Enable later";
 "onboarding.enableLater.hint" = "Finish setup without enabling Live Activity for now.";
 "onboarding.hint.calendar" = "Request system calendar access.";
@@ -98,6 +101,7 @@
 "onboarding.reminders.message" = "Put tasks due today into the timeline alongside your calendar schedule.";
 "onboarding.reminders.note" = "You can keep using calendar features even without granting reminders access.";
 "onboarding.reminders.title" = "Add reminders";
+"onboarding.reminders.error" = "Unable to access Reminders. Try again later in system Settings.";
 "onboarding.skipSource" = "Skip this source";
 "onboarding.skipSource.hint" = "Continue without requesting this permission.";
 "onboarding.welcome.bullet.device" = "Your schedule stays on this device and in the private App Group.";
@@ -122,6 +126,21 @@
 "recognition.error.requestFailed" = "The API request failed. Check Host, Model, or network access.";
 "recognition.error.type" = "Error type: %@";
 "recognition.error.unsupportedInput" = "No event could be recognized. Try an image with a ticket, schedule, or task.";
+"recognition.failure.authenticationFailed" = "The recognition service rejected the API credentials.";
+"recognition.failure.functionCallingUnsupported" = "The selected model does not support structured recognition.";
+"recognition.failure.hostUnreachable" = "The recognition service could not be reached.";
+"recognition.failure.imageUnsupported" = "The selected model does not support image recognition.";
+"recognition.failure.malformedFunctionArguments" = "The model returned invalid event fields.";
+"recognition.failure.malformedResponse" = "The recognition service returned an unreadable response.";
+"recognition.failure.missingFunctionCall" = "The model did not return structured event data.";
+"recognition.failure.multipleFunctionCalls" = "The model returned more than one event result.";
+"recognition.failure.networkFailed" = "The recognition request failed.";
+"recognition.failure.offline" = "Connect to the internet and try again.";
+"recognition.failure.rateLimited" = "The recognition service is busy. Try again later.";
+"recognition.failure.serviceFailed" = "The recognition service returned an error.";
+"recognition.failure.timedOut" = "The recognition request timed out.";
+"recognition.failure.unexpectedFunctionCall" = "The model returned an unexpected event format.";
+"recognition.failure.validationMissingContent" = "The image does not contain enough event information.";
 "recognition.image.decodeFailed" = "This image could not be read.";
 "recognition.image.encodeFailed" = "This image could not be prepared for recognition.";
 "recognition.image.tooLarge" = "This image is too large to recognize.";
@@ -175,6 +194,7 @@
 "settings.liveActivity.status.unavailable" = "Unavailable";
 "settings.liveActivity.status.waiting" = "Waiting";
 "settings.liveActivity.statusLabel" = "Status";
+"settings.liveActivity.title" = "Live Activity";
 "settings.liveActivity.toggle" = "Lock Screen and Dynamic Island";
 "settings.source.calendar.description" = "Filtering results does not change system permissions.";
 "settings.source.external.description" = "Photo and camera recognition are saved in Pecker's own storage.";
@@ -214,6 +234,7 @@
 "timeline.kind.travel" = "Travel";
 "timeline.kind.unknown" = "Uncategorized";
 "timeline.loading" = "Loading timeline...";
+"timeline.range.explanation" = "History and future events are loaded up to one year from today.";
 "timeline.scope.future" = "Future";
 "timeline.scope.future.title" = "Future Timeline";
 "timeline.scope.history" = "History";

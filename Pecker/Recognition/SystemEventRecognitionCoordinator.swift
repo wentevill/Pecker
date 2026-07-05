@@ -301,7 +301,8 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 serviceCode: nil,
                 serviceMessage: nil,
                 missingFields: [],
-                responseExcerpt: nil
+                responseExcerpt: nil,
+                code: .validationMissingContent
             )
         }
 

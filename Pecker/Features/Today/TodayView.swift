@@ -318,7 +318,11 @@ struct TodayView: View {
 
         if let failure = error as? RecognitionPipelineFailure {
             return .init(
-                reason: failure.reason,
+                reason: AppLocalizer(
+                    language: settingsStore.value.language
+                ).string(
+                    "recognition.failure.\(failure.code.rawValue)"
+                ),
                 technicalDetails: failure.technicalDetails
             )
         }
@@ -913,6 +917,7 @@ struct TodayScreen: View {
     ) -> some View {
         SwipeDeleteAction(
             isEnabled: canDeleteCard(card),
+            deleteLabel: localizer.string("common.delete"),
             onTap: { onOpenCard(card) },
             onDelete: { onDeleteCard(card) }
         ) {
@@ -961,7 +966,7 @@ struct TodayScreen: View {
             if let secondary = card.secondaryText {
                 Text(secondary)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.color(for: card.accent))
+                    .foregroundStyle(TimelineTheme.textColor(for: card.accent))
             }
 
             if let progress = card.progress {
@@ -1004,7 +1009,7 @@ struct TodayScreen: View {
                 if let secondary = card.secondaryText {
                     Text(secondary)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.color(for: card.accent))
+                        .foregroundStyle(TimelineTheme.textColor(for: card.accent))
                 }
             }
         }
@@ -1015,7 +1020,7 @@ struct TodayScreen: View {
             HStack(alignment: .top) {
                 Text(card.statusText)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.color(for: card.accent))
+                    .foregroundStyle(TimelineTheme.textColor(for: card.accent))
 
                 Spacer(minLength: 8)
 
@@ -1056,7 +1061,7 @@ struct TodayScreen: View {
                     if let tertiary = card.tertiaryText {
                         Text(tertiary)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(TimelineTheme.color(for: card.accent))
+                            .foregroundStyle(TimelineTheme.textColor(for: card.accent))
                     }
                 }
             }
@@ -1105,7 +1110,7 @@ struct TodayScreen: View {
         HStack(alignment: .top) {
             Text(card.statusText)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(TimelineTheme.color(for: card.accent))
+                .foregroundStyle(TimelineTheme.textColor(for: card.accent))
 
             Spacer(minLength: 8)
 

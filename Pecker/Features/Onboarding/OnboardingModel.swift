@@ -133,7 +133,9 @@ final class OnboardingModel {
                 : .denied
         } catch {
             calendarStatus = .failed
-            errorMessage = "Unable to access Calendar. Try again later in system Settings."
+            errorMessage = AppLocalizer(
+                language: settingsStore.value.language
+            ).string("onboarding.calendar.error")
         }
 
         return true
@@ -156,7 +158,9 @@ final class OnboardingModel {
                 : .denied
         } catch {
             reminderStatus = .failed
-            errorMessage = "Unable to access Reminders. Try again later in system Settings."
+            errorMessage = AppLocalizer(
+                language: settingsStore.value.language
+            ).string("onboarding.reminders.error")
         }
 
         return true

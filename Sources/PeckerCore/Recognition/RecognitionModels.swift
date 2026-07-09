@@ -24,6 +24,7 @@ public struct RecognitionInput: Sendable, Equatable {
     public let isAllDay: Bool
     public let imageData: Data?
     public let filename: String?
+    public let imageMIMEType: String?
     public let referenceDate: Date?
     public let timeZoneIdentifier: String?
 
@@ -39,6 +40,7 @@ public struct RecognitionInput: Sendable, Equatable {
         isAllDay: Bool,
         imageData: Data?,
         filename: String?,
+        imageMIMEType: String? = nil,
         referenceDate: Date? = nil,
         timeZoneIdentifier: String? = nil
     ) {
@@ -53,6 +55,7 @@ public struct RecognitionInput: Sendable, Equatable {
         self.isAllDay = isAllDay
         self.imageData = imageData
         self.filename = filename
+        self.imageMIMEType = imageMIMEType
         self.referenceDate = referenceDate
         self.timeZoneIdentifier = timeZoneIdentifier
     }
@@ -107,6 +110,7 @@ public struct RecognitionInput: Sendable, Equatable {
         id: String,
         imageData: Data,
         filename: String?,
+        mimeType: String = "image/jpeg",
         referenceDate: Date? = nil,
         timeZoneIdentifier: String? = nil
     ) -> RecognitionInput {
@@ -122,6 +126,7 @@ public struct RecognitionInput: Sendable, Equatable {
             isAllDay: false,
             imageData: imageData,
             filename: filename,
+            imageMIMEType: mimeType,
             referenceDate: referenceDate,
             timeZoneIdentifier: timeZoneIdentifier
         )
@@ -130,6 +135,8 @@ public struct RecognitionInput: Sendable, Equatable {
     public static func cameraImage(
         id: String,
         imageData: Data,
+        filename: String = "recognition.jpg",
+        mimeType: String = "image/jpeg",
         referenceDate: Date? = nil,
         timeZoneIdentifier: String? = nil
     ) -> RecognitionInput {
@@ -144,7 +151,8 @@ public struct RecognitionInput: Sendable, Equatable {
             endDate: nil,
             isAllDay: false,
             imageData: imageData,
-            filename: nil,
+            filename: filename,
+            imageMIMEType: mimeType,
             referenceDate: referenceDate,
             timeZoneIdentifier: timeZoneIdentifier
         )

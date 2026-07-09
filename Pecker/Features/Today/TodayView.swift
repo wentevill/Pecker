@@ -10,6 +10,7 @@ struct TodayView: View {
     @Bindable var settingsStore: SettingsStore
     let imageRecognizer: any ImageRecognizing
     let onSettingsChanged: @MainActor @Sendable () -> Void
+    private let imagePreprocessor = RecognitionImagePreprocessor()
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -89,6 +90,7 @@ struct TodayView: View {
                     settingsStore: settingsStore,
                     viewModel: Self.makeSettingsViewModel(
                         settingsStore: settingsStore,
+                        gateway: model.eventKitGateway,
                         authorization: model.latestAuthorization ?? .init(
                             calendar: .notDetermined,
                             reminders: .notDetermined
@@ -209,10 +211,10 @@ struct TodayView: View {
                 return
             }
 
+            let preparedImage = try imagePreprocessor.prepare(data)
             let draft = try await imageRecognizer.recognizeImage(
-                data: data,
+                preparedImage,
                 source: .importedImage,
-                filename: item.itemIdentifier,
                 settings: settingsStore.value,
                 now: .now
             )
@@ -225,7 +227,7 @@ struct TodayView: View {
     private func recognizeCameraImage(_ image: UIImage) async {
         imageRecognitionPhase = .recognizing
         do {
-            guard let data = image.jpegData(compressionQuality: 0.88) else {
+            guard let data = image.pngData() else {
                 imageRecognitionPhase = .failure(.init(
                     reason: AppLocalizer(language: settingsStore.value.language)
                         .string("recognition.error.cameraUnreadable"),
@@ -234,10 +236,10 @@ struct TodayView: View {
                 return
             }
 
+            let preparedImage = try imagePreprocessor.prepare(data)
             let draft = try await imageRecognizer.recognizeImage(
-                data: data,
+                preparedImage,
                 source: .cameraImage,
-                filename: "camera.jpg",
                 settings: settingsStore.value,
                 now: .now
             )
@@ -296,9 +298,31 @@ struct TodayView: View {
     private func issuePresentation(
         for error: Error
     ) -> RecognitionIssuePresentation {
+        if let error = error as? RecognitionImagePreparationError {
+            let key: String
+            switch error {
+            case .decodeFailed:
+                key = "recognition.image.decodeFailed"
+            case .encodeFailed:
+                key = "recognition.image.encodeFailed"
+            case .exceedsSizeLimit:
+                key = "recognition.image.tooLarge"
+            }
+            return .init(
+                reason: AppLocalizer(
+                    language: settingsStore.value.language
+                ).string(key),
+                technicalDetails: nil
+            )
+        }
+
         if let failure = error as? RecognitionPipelineFailure {
             return .init(
-                reason: failure.reason,
+                reason: AppLocalizer(
+                    language: settingsStore.value.language
+                ).string(
+                    "recognition.failure.\(failure.code.rawValue)"
+                ),
                 technicalDetails: failure.technicalDetails
             )
         }
@@ -337,6 +361,7 @@ struct TodayView: View {
     @MainActor
     static func makeSettingsViewModel(
         settingsStore: SettingsStore,
+        gateway: (any EventKitGatewayProtocol)? = nil,
         authorization: SourceAuthorization,
         liveActivityStatusText: @escaping @MainActor () -> String,
         onSettingsChanged: @escaping @MainActor () -> Void,
@@ -344,6 +369,7 @@ struct TodayView: View {
     ) -> SettingsViewModel {
         SettingsViewModel(
             settingsStore: settingsStore,
+            gateway: gateway,
             authorization: authorization,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,
@@ -891,6 +917,7 @@ struct TodayScreen: View {
     ) -> some View {
         SwipeDeleteAction(
             isEnabled: canDeleteCard(card),
+            deleteLabel: localizer.string("common.delete"),
             onTap: { onOpenCard(card) },
             onDelete: { onDeleteCard(card) }
         ) {
@@ -939,7 +966,7 @@ struct TodayScreen: View {
             if let secondary = card.secondaryText {
                 Text(secondary)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.color(for: card.accent))
+                    .foregroundStyle(TimelineTheme.textColor(for: card.accent))
             }
 
             if let progress = card.progress {
@@ -982,7 +1009,7 @@ struct TodayScreen: View {
                 if let secondary = card.secondaryText {
                     Text(secondary)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(TimelineTheme.color(for: card.accent))
+                        .foregroundStyle(TimelineTheme.textColor(for: card.accent))
                 }
             }
         }
@@ -993,7 +1020,7 @@ struct TodayScreen: View {
             HStack(alignment: .top) {
                 Text(card.statusText)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(TimelineTheme.color(for: card.accent))
+                    .foregroundStyle(TimelineTheme.textColor(for: card.accent))
 
                 Spacer(minLength: 8)
 
@@ -1034,7 +1061,7 @@ struct TodayScreen: View {
                     if let tertiary = card.tertiaryText {
                         Text(tertiary)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(TimelineTheme.color(for: card.accent))
+                            .foregroundStyle(TimelineTheme.textColor(for: card.accent))
                     }
                 }
             }
@@ -1083,7 +1110,7 @@ struct TodayScreen: View {
         HStack(alignment: .top) {
             Text(card.statusText)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(TimelineTheme.color(for: card.accent))
+                .foregroundStyle(TimelineTheme.textColor(for: card.accent))
 
             Spacer(minLength: 8)
 

@@ -7,6 +7,12 @@ enum TimelineAccent: String, Equatable {
     case neutral
 }
 
+struct TimelineRGB: Sendable, Equatable {
+    let red: Double
+    let green: Double
+    let blue: Double
+}
+
 enum TimelineTheme {
     static let backgroundGradient = LinearGradient(
         colors: [
@@ -37,7 +43,37 @@ enum TimelineTheme {
 
     static let textPrimary = Color(red: 0.105, green: 0.075, blue: 0.055)
     static let textSecondary = Color(red: 0.105, green: 0.075, blue: 0.055).opacity(0.66)
-    static let textTertiary = Color(red: 0.105, green: 0.075, blue: 0.055).opacity(0.42)
+    static let textTertiaryRGB = TimelineRGB(
+        red: 0.36,
+        green: 0.31,
+        blue: 0.27
+    )
+    static let nowTextRGB = TimelineRGB(
+        red: 0.68,
+        green: 0.13,
+        blue: 0.10
+    )
+    static let pinnedTextRGB = TimelineRGB(
+        red: 0.56,
+        green: 0.30,
+        blue: 0.04
+    )
+    static let textTertiary = Color(
+        red: textTertiaryRGB.red,
+        green: textTertiaryRGB.green,
+        blue: textTertiaryRGB.blue
+    )
+    static let nowText = Color(
+        red: nowTextRGB.red,
+        green: nowTextRGB.green,
+        blue: nowTextRGB.blue
+    )
+    static let pinnedText = Color(
+        red: pinnedTextRGB.red,
+        green: pinnedTextRGB.green,
+        blue: pinnedTextRGB.blue
+    )
+    static let nextText = Color(red: 0.12, green: 0.32, blue: 0.52)
 
     static let now = Color(red: 1.0, green: 0.38, blue: 0.34)
     static let next = Color(red: 0.21, green: 0.47, blue: 0.72)
@@ -54,6 +90,19 @@ enum TimelineTheme {
             pinned
         case .neutral:
             neutral
+        }
+    }
+
+    static func textColor(for accent: TimelineAccent) -> Color {
+        switch accent {
+        case .now:
+            nowText
+        case .next:
+            nextText
+        case .pinned:
+            pinnedText
+        case .neutral:
+            textPrimary
         }
     }
 

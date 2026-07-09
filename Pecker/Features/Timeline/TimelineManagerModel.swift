@@ -73,19 +73,41 @@ final class TimelineManagerModel {
                 now: now
             )
             async let localRecords = localCards.loadAll()
+            async let cachedTemplates = recognizer.cachedSystemTemplates()
 
-            let (eventRecords, reminderRecords, externalItems, records) = try await (
+            let (
+                eventRecords,
+                reminderRecords,
+                externalItems,
+                records,
+                templates
+            ) = try await (
                 events,
                 reminders,
                 localItems,
-                localRecords
+                localRecords,
+                cachedTemplates
             )
             recordsByID = Dictionary(
                 uniqueKeysWithValues: records.map { ($0.id, $0) }
             )
-            var merged = eventRecords.map { normalize(mapper.mapEvent($0)) }
-            merged += reminderRecords.compactMap {
-                mapper.mapReminder($0).map(normalize)
+            var merged = eventRecords.map { event in
+                normalize(
+                    mapper.mapEvent(
+                        event,
+                        template: templates[
+                            "calendar:\(event.identifier)"
+                        ]
+                    )
+                )
+            }
+            merged += reminderRecords.compactMap { reminder in
+                mapper.mapReminder(
+                    reminder,
+                    template: templates[
+                        "reminder:\(reminder.identifier)"
+                    ]
+                ).map(normalize)
             }
             merged += externalItems
             items = Dictionary(
@@ -210,7 +232,7 @@ final class TimelineManagerModel {
     }
 
     private func normalize(_ item: TimelineItem) -> TimelineItem {
-        let kind = classifier.classify(
+        let kind = item.template?.kind ?? classifier.classify(
             title: item.title,
             location: item.location,
             notes: item.notes,

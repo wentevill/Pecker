@@ -6,6 +6,7 @@ protocol EventRepositoryStoring: Sendable {
     func upsert(_ record: StoredEventRecord) async throws
     func delete(source: RecognitionSource) async throws
     func delete(id: String) async throws
+    func delete(ids: Set<String>) async throws
 }
 
 extension EventRepository: EventRepositoryStoring {}
@@ -14,9 +15,17 @@ extension EventRepositoryStoring {
     func delete(id: String) async throws {
         throw RecognitionError.unsupportedInput
     }
+
+    func delete(ids: Set<String>) async throws {
+        for id in ids {
+            try await delete(id: id)
+        }
+    }
 }
 
 protocol SystemEventRecognizing: Sendable {
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate]
+
     func synchronize(
         events: [EventRecord],
         reminders: [ReminderRecord],
@@ -28,6 +37,12 @@ protocol SystemEventRecognizing: Sendable {
         settings: TimelineSettings,
         now: Date
     ) async -> [TimelineItem]
+}
+
+extension SystemEventRecognizing {
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate] {
+        [:]
+    }
 }
 
 actor NoopSystemEventRecognizer: SystemEventRecognizing {
@@ -53,6 +68,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
     let sourceIdentifier: String
     let source: RecognitionSource
     let filename: String?
+    let mimeType: String
     let imageData: Data
     let recognizedAt: Date
     let startDate: Date
@@ -65,6 +81,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
         sourceIdentifier: String,
         source: RecognitionSource,
         filename: String?,
+        mimeType: String = "image/jpeg",
         imageData: Data,
         recognizedAt: Date,
         startDate: Date,
@@ -76,6 +93,7 @@ struct ImageRecognitionDraft: Sendable, Equatable, Identifiable {
         self.sourceIdentifier = sourceIdentifier
         self.source = source
         self.filename = filename
+        self.mimeType = mimeType
         self.imageData = imageData
         self.recognizedAt = recognizedAt
         self.startDate = startDate
@@ -119,6 +137,10 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         self.providerFactory = providerFactory
     }
 
+    func cachedSystemTemplates() async -> [String: TimelineEventTemplate] {
+        (try? await recognizedTemplates()) ?? [:]
+    }
+
     func synchronize(
         events: [EventRecord],
         reminders: [ReminderRecord],
@@ -128,8 +150,22 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         do {
             let existingTemplates = try await recognizedTemplates()
             var templates = existingTemplates
+            let dayStart = calendar.startOfDay(for: now)
+            let dayEnd = calendar.date(
+                byAdding: .day,
+                value: 1,
+                to: dayStart
+            ) ?? dayStart.addingTimeInterval(86_400)
+            let interval = DateInterval(start: dayStart, end: dayEnd)
 
             if settings.syncCalendarToStorage {
+                try await removeMissingRecords(
+                    source: .calendar,
+                    presentIDs: Set(
+                        events.map { "calendar:\($0.identifier)" }
+                    ),
+                    interval: interval
+                )
                 for event in events {
                     if let template = try? await synchronize(
                         record: storedRecord(from: event, status: .pending, updatedAt: now),
@@ -152,6 +188,13 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             }
 
             if settings.syncRemindersToStorage {
+                try await removeMissingRecords(
+                    source: .reminder,
+                    presentIDs: Set(
+                        reminders.map { "reminder:\($0.identifier)" }
+                    ),
+                    interval: interval
+                )
                 for reminder in reminders {
                     if let template = try? await synchronize(
                         record: storedRecord(
@@ -188,19 +231,52 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         settings: TimelineSettings,
         now: Date
     ) async throws -> ImageRecognitionDraft {
+        let canonicalFilename = filename ?? "recognition.jpg"
+        let lowercasedFilename = canonicalFilename.lowercased()
+        let mimeType: String
+        if lowercasedFilename.hasSuffix(".png") {
+            mimeType = "image/png"
+        } else if lowercasedFilename.hasSuffix(".webp") {
+            mimeType = "image/webp"
+        } else {
+            mimeType = "image/jpeg"
+        }
+        return try await recognizeImage(
+            PreparedRecognitionImage(
+                data: data,
+                filename: canonicalFilename,
+                mimeType: mimeType,
+                pixelWidth: 0,
+                pixelHeight: 0
+            ),
+            source: source,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func recognizeImage(
+        _ image: PreparedRecognitionImage,
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
         let input: RecognitionInput = source == .cameraImage
             ? .cameraImage(
                 id: sourceIdentifier,
-                imageData: data,
+                imageData: image.data,
+                filename: image.filename,
+                mimeType: image.mimeType,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
             : .importedImage(
                 id: sourceIdentifier,
-                imageData: data,
-                filename: filename,
+                imageData: image.data,
+                filename: image.filename,
+                mimeType: image.mimeType,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
@@ -225,7 +301,8 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 serviceCode: nil,
                 serviceMessage: nil,
                 missingFields: [],
-                responseExcerpt: nil
+                responseExcerpt: nil,
+                code: .validationMissingContent
             )
         }
 
@@ -233,8 +310,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             id: "\(idPrefix):\(sourceIdentifier)",
             sourceIdentifier: sourceIdentifier,
             source: source,
-            filename: filename,
-            imageData: data,
+            filename: image.filename,
+            mimeType: image.mimeType,
+            imageData: image.data,
             recognizedAt: now,
             startDate: validation.startDate,
             endDate: validation.endDate,
@@ -360,6 +438,25 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
                 return (record.id, template)
             }
         )
+    }
+
+    private func removeMissingRecords(
+        source: RecognitionSource,
+        presentIDs: Set<String>,
+        interval: DateInterval
+    ) async throws {
+        let records = try await repository.loadAll()
+        let staleIDs: [String] = records.compactMap { record in
+            guard record.source == source,
+                  let start = record.startDate,
+                  interval.contains(start),
+                  !presentIDs.contains(record.id)
+            else {
+                return nil
+            }
+            return record.id
+        }
+        try await repository.delete(ids: Set(staleIDs))
     }
 
     private func timelineItem(

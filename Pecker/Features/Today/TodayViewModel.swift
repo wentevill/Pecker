@@ -19,6 +19,10 @@ final class TodayViewModel {
     private(set) var liveActivityStatusText = "waiting"
     private(set) var nextLiveActivityBoundary: Date?
 
+    var eventKitGateway: any EventKitGatewayProtocol {
+        dependencies.gateway
+    }
+
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
         timelineManager = TimelineManagerModel(

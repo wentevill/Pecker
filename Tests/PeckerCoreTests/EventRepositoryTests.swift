@@ -86,6 +86,26 @@ import Testing
     #expect(try await repository.loadAll() == [other])
 }
 
+@Test func eventRepositoryDeletesOnlyRequestedIDs() async throws {
+    let repository = EventRepository(directoryURL: temporaryDirectory())
+    try await repository.upsert(
+        record(id: "calendar:keep", source: .calendar)
+    )
+    try await repository.upsert(
+        record(id: "calendar:remove", source: .calendar)
+    )
+    try await repository.upsert(
+        record(id: "image:keep", source: .importedImage)
+    )
+
+    try await repository.delete(ids: ["calendar:remove"])
+
+    #expect(try await repository.loadAll().map(\.id).sorted() == [
+        "calendar:keep",
+        "image:keep"
+    ])
+}
+
 @Test func storedEventRecordRoundTripsAllDayState() throws {
     let allDay = StoredEventRecord(
         id: "image:all-day",

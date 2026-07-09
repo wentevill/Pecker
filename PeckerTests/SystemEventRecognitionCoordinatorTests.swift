@@ -413,12 +413,18 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
         providerFactory: { _, _ in provider }
     )
     let imageData = Data([0xFF, 0xD8, 0xFF])
+    let preparedImage = PreparedRecognitionImage(
+        data: imageData,
+        filename: "recognition.jpg",
+        mimeType: "image/jpeg",
+        pixelWidth: 1_200,
+        pixelHeight: 800
+    )
     let now = Date(timeIntervalSince1970: 5_000)
 
     let draft = try await coordinator.recognizeImage(
-        data: imageData,
+        preparedImage,
         source: .importedImage,
-        filename: "ticket.jpg",
         settings: TimelineSettings(
             aiRecognitionMode: .openAI,
             openAIAPIKeyConfigured: true
@@ -428,10 +434,12 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
 
     #expect(draft.imageData == imageData)
     #expect(draft.source == .importedImage)
-    #expect(draft.filename == "ticket.jpg")
+    #expect(draft.filename == "recognition.jpg")
+    #expect(draft.mimeType == "image/jpeg")
     #expect(draft.recognizedAt == now)
     #expect(draft.template.presentation.title == "C5770")
     #expect(draft.template.presentation.subtitle == "\u{91cd}\u{5e86}\u{5317}\u{7ad9} → \u{6210}\u{90fd}\u{4e1c}\u{7ad9}")
+    #expect(await provider.inputs().first?.imageMIMEType == "image/jpeg")
     #expect(await repository.records().isEmpty)
 }
 

@@ -63,6 +63,22 @@ struct FullTimelineView: View {
                                 sectionView(section, now: context.date)
                             }
                         }
+
+                        if !activeOnly {
+                            Text(
+                                localizer.string(
+                                    "timeline.range.explanation"
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(TimelineTheme.textTertiary)
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                            .padding(.horizontal, 4)
+                            .padding(.top, 6)
+                        }
                     }
                     .frame(maxWidth: 760, alignment: .leading)
                     .padding(.horizontal, 16)
@@ -245,6 +261,7 @@ struct FullTimelineView: View {
     ) -> some View {
         SwipeDeleteAction(
             isEnabled: model.isEditable(item),
+            deleteLabel: localizer.string("common.delete"),
             onTap: { onSelectItem(item) },
             onDelete: { pendingDelete = item }
         ) {
@@ -264,7 +281,28 @@ struct FullTimelineView: View {
 
                         Text(statusText(for: section.kind, item: item))
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(TimelineTheme.color(for: accent(for: section.kind, item: item)))
+                            .foregroundStyle(
+                                TimelineTheme.textColor(
+                                    for: accent(
+                                        for: section.kind,
+                                        item: item
+                                    )
+                                )
+                            )
+
+                        Button {
+                            onTogglePin(item)
+                        } label: {
+                            Image(systemName: pinSymbol(for: item))
+                                .font(.system(size: 15, weight: .semibold))
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(pinTint(for: item))
+                        .accessibilityLabel(
+                            pinAccessibilityLabel(for: item)
+                        )
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -394,7 +432,7 @@ struct FullTimelineView: View {
 
     private func pinTint(for item: TimelineItem) -> Color {
         settings.manualPinnedSourceIdentifier == item.sourceIdentifier
-            ? TimelineTheme.color(for: .pinned)
+            ? TimelineTheme.textColor(for: .pinned)
             : TimelineTheme.textSecondary
     }
 
@@ -414,8 +452,7 @@ struct FullTimelineView: View {
             section.title,
             item.title,
             timeText(for: item, now: now),
-            detailText(for: item) ?? "",
-            pinAccessibilityLabel(for: item)
+            detailText(for: item) ?? ""
         ]
         .filter { !$0.isEmpty }
         .joined(separator: ", ")

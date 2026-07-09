@@ -53,5 +53,17 @@ import Testing
     #expect(reminder.endDate == endDate)
     #expect(reminder.isAllDay == false)
     #expect(image.imageData == Data([1, 2, 3]))
-    #expect(camera.filename == nil)
+    #expect(camera.filename == "recognition.jpg")
+    #expect(camera.imageMIMEType == "image/jpeg")
+}
+
+@Test func imageRecognitionInputCarriesExplicitMIMEType() {
+    let input = RecognitionInput.importedImage(
+        id: "image-1",
+        imageData: Data([0xFF, 0xD8, 0xFF]),
+        filename: "recognition.jpg",
+        mimeType: "image/jpeg"
+    )
+
+    #expect(input.imageMIMEType == "image/jpeg")
 }

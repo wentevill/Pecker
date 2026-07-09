@@ -46,8 +46,12 @@ struct PeckerApp: App {
                 )
             )
         } catch {
+            let localizer = AppLocalizer(language: .system)
             root = .configurationFailure(
-                "Unable to open Pecker's shared App Group (\(AppGroup.identifier)). Check signing and entitlements."
+                localizer.string(
+                    "configuration.error.appGroup",
+                    AppGroup.identifier
+                )
             )
         }
     }
@@ -242,6 +246,7 @@ private struct SettingsPreviewHost: View {
 
 private struct ConfigurationFailureView: View {
     let message: String
+    private let localizer = AppLocalizer(language: .system)
 
     var body: some View {
         ZStack {
@@ -252,7 +257,7 @@ private struct ConfigurationFailureView: View {
                     .font(.largeTitle)
                     .foregroundStyle(.orange)
                     .accessibilityHidden(true)
-                Text("Configuration Error")
+                Text(localizer.string("configuration.error.title"))
                     .font(.title.bold())
                 Text(message)
                     .font(.body)

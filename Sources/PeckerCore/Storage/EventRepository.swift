@@ -170,6 +170,11 @@ public actor EventRepository {
         try save(loadAll().filter { $0.id != id })
     }
 
+    public func delete(ids: Set<String>) throws {
+        guard !ids.isEmpty else { return }
+        try save(loadAll().filter { !ids.contains($0.id) })
+    }
+
     public func deleteAll() throws {
         try save([])
     }

@@ -6,12 +6,26 @@ public enum AppLanguage: String, Codable, CaseIterable, Sendable, Hashable {
     case simplifiedChinese
 }
 
+public enum TimelineNotificationLeadTime: Int, Codable, CaseIterable, Sendable, Hashable {
+    case atStart = 0
+    case fiveMinutes = 5
+    case tenMinutes = 10
+    case thirtyMinutes = 30
+    case oneHour = 60
+
+    public var interval: TimeInterval {
+        TimeInterval(rawValue * 60)
+    }
+}
+
 public struct TimelineSettings: Codable, Equatable, Sendable {
     public var calendarEnabled: Bool
     public var remindersEnabled: Bool
     public var showTravelEvents: Bool
     public var manualPinnedSourceIdentifier: String?
     public var liveActivityEnabled: Bool
+    public var notificationsEnabled: Bool
+    public var notificationLeadTime: TimelineNotificationLeadTime
     public var aiRecognitionMode: AIRecognitionMode
     public var openAIHost: String
     public var openAIModel: String
@@ -26,6 +40,8 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         showTravelEvents: Bool = true,
         manualPinnedSourceIdentifier: String? = nil,
         liveActivityEnabled: Bool = false,
+        notificationsEnabled: Bool = false,
+        notificationLeadTime: TimelineNotificationLeadTime = .tenMinutes,
         aiRecognitionMode: AIRecognitionMode = .off,
         openAIHost: String = "https://api.openai.com",
         openAIModel: String = "gpt-5.4-mini",
@@ -39,6 +55,8 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         self.showTravelEvents = showTravelEvents
         self.manualPinnedSourceIdentifier = manualPinnedSourceIdentifier
         self.liveActivityEnabled = liveActivityEnabled
+        self.notificationsEnabled = notificationsEnabled
+        self.notificationLeadTime = notificationLeadTime
         self.aiRecognitionMode = aiRecognitionMode
         self.openAIHost = openAIHost
         self.openAIModel = openAIModel
@@ -54,6 +72,8 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
         case showTravelEvents
         case manualPinnedSourceIdentifier
         case liveActivityEnabled
+        case notificationsEnabled
+        case notificationLeadTime
         case aiRecognitionMode
         case openAIHost
         case openAIModel
@@ -71,6 +91,11 @@ public struct TimelineSettings: Codable, Equatable, Sendable {
             showTravelEvents: try container.decodeIfPresent(Bool.self, forKey: .showTravelEvents) ?? true,
             manualPinnedSourceIdentifier: try container.decodeIfPresent(String.self, forKey: .manualPinnedSourceIdentifier),
             liveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .liveActivityEnabled) ?? false,
+            notificationsEnabled: try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? false,
+            notificationLeadTime: try container.decodeIfPresent(
+                TimelineNotificationLeadTime.self,
+                forKey: .notificationLeadTime
+            ) ?? .tenMinutes,
             aiRecognitionMode: try container.decodeIfPresent(AIRecognitionMode.self, forKey: .aiRecognitionMode) ?? .off,
             openAIHost: try container.decodeIfPresent(String.self, forKey: .openAIHost) ?? "https://api.openai.com",
             openAIModel: try container.decodeIfPresent(String.self, forKey: .openAIModel) ?? "gpt-5.4-mini",

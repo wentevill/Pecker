@@ -34,6 +34,8 @@ final class SettingsStoreTests: XCTestCase {
             showTravelEvents: false,
             manualPinnedSourceIdentifier: "calendar:event-1",
             liveActivityEnabled: true,
+            notificationsEnabled: true,
+            notificationLeadTime: .thirtyMinutes,
             language: .simplifiedChinese
         )
         let store = SettingsStore(defaults: defaults)
@@ -62,6 +64,8 @@ final class SettingsStoreTests: XCTestCase {
         let store = SettingsStore(defaults: defaults)
 
         XCTAssertEqual(store.value.language, .system)
+        XCTAssertFalse(store.value.notificationsEnabled)
+        XCTAssertEqual(store.value.notificationLeadTime, .tenMinutes)
         XCTAssertFalse(store.value.calendarEnabled)
     }
 

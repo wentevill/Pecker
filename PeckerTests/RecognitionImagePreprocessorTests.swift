@@ -62,7 +62,9 @@ final class RecognitionImagePreprocessorTests: XCTestCase {
     }
 
     private func solidImage(size: CGSize) -> UIImage {
-        UIGraphicsImageRenderer(size: size).image { context in
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
             UIColor.systemBlue.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }

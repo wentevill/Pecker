@@ -5,11 +5,12 @@ enum OnboardingStep: Int, CaseIterable, Equatable {
     case welcome
     case calendar
     case reminders
+    case notifications
     case liveActivityIntroduction
     case complete
 
     var progress: Int {
-        min(rawValue + 1, 4)
+        min(rawValue + 1, 5)
     }
 }
 
@@ -29,19 +30,23 @@ final class OnboardingModel {
     private(set) var isBusy = false
     private(set) var calendarStatus: PermissionRequestStatus = .notRequested
     private(set) var reminderStatus: PermissionRequestStatus = .notRequested
+    private(set) var notificationStatus: PermissionRequestStatus = .notRequested
     private(set) var errorMessage: String?
 
     private let gateway: any EventKitGatewayProtocol
+    private let notificationScheduler: any TimelineNotificationScheduling
     private let settingsStore: SettingsStore
     private let defaults: UserDefaults
 
     init(
         gateway: any EventKitGatewayProtocol,
+        notificationScheduler: any TimelineNotificationScheduling = UserNotificationScheduler(),
         settingsStore: SettingsStore,
         defaults: UserDefaults,
         completionOverride: Bool? = nil
     ) {
         self.gateway = gateway
+        self.notificationScheduler = notificationScheduler
         self.settingsStore = settingsStore
         self.defaults = defaults
         let isComplete = completionOverride
@@ -71,6 +76,8 @@ final class OnboardingModel {
             return await requestCalendar(expectedStep: expectedStep)
         case .reminders:
             return await requestReminders(expectedStep: expectedStep)
+        case .notifications:
+            return await requestNotifications(expectedStep: expectedStep)
         case .liveActivityIntroduction:
             return complete(
                 liveActivityEnabled: true,
@@ -94,6 +101,9 @@ final class OnboardingModel {
             currentStep = .reminders
             return true
         case .reminders:
+            currentStep = .notifications
+            return true
+        case .notifications:
             currentStep = .liveActivityIntroduction
             return true
         case .welcome, .liveActivityIntroduction, .complete:
@@ -148,7 +158,7 @@ final class OnboardingModel {
         defer {
             isBusy = false
             if currentStep == expectedStep {
-                currentStep = .liveActivityIntroduction
+                currentStep = .notifications
             }
         }
 
@@ -161,6 +171,36 @@ final class OnboardingModel {
             errorMessage = AppLocalizer(
                 language: settingsStore.value.language
             ).string("onboarding.reminders.error")
+        }
+
+        return true
+    }
+
+    private func requestNotifications(
+        expectedStep: OnboardingStep
+    ) async -> Bool {
+        isBusy = true
+        defer {
+            isBusy = false
+            if currentStep == expectedStep {
+                currentStep = .liveActivityIntroduction
+            }
+        }
+
+        do {
+            let granted = try await notificationScheduler.requestAuthorization()
+            notificationStatus = granted ? .granted : .denied
+            settingsStore.update {
+                $0.notificationsEnabled = granted
+            }
+        } catch {
+            notificationStatus = .failed
+            settingsStore.update {
+                $0.notificationsEnabled = false
+            }
+            errorMessage = AppLocalizer(
+                language: settingsStore.value.language
+            ).string("onboarding.notifications.error")
         }
 
         return true

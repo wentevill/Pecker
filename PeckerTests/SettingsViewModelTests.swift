@@ -62,7 +62,7 @@ final class SettingsViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.authorization.calendar, .notDetermined)
         XCTAssertEqual(
             viewModel.permissionErrorText,
-            "无法请求日历访问权限，请重试。"
+            "\u{65e0}\u{6cd5}\u{8bf7}\u{6c42}\u{65e5}\u{5386}\u{8bbf}\u{95ee}\u{6743}\u{9650}\u{ff0c}\u{8bf7}\u{91cd}\u{8bd5}\u{3002}"
         )
         XCTAssertFalse(viewModel.isRequestingPermission)
     }
@@ -112,14 +112,14 @@ final class SettingsViewModelTests: XCTestCase {
                 for: .calendar,
                 localizer: localizer
             ),
-            "允许访问"
+            "\u{5141}\u{8bb8}\u{8bbf}\u{95ee}"
         )
         XCTAssertEqual(
             viewModel.permissionActionTitle(
                 for: .reminder,
                 localizer: localizer
             ),
-            "打开系统设置"
+            "\u{6253}\u{5f00}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}"
         )
     }
 
@@ -309,6 +309,106 @@ final class SettingsViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testEnablingNotificationsRequestsPermissionPersistsAndNotifies() async {
+        let store = makeStore()
+        let scheduler = RecordingNotificationScheduler(
+            authorizationResult: .success(true)
+        )
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            notificationScheduler: scheduler,
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        await viewModel.setNotificationsEnabled(
+            true,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertTrue(store.value.notificationsEnabled)
+        XCTAssertNil(viewModel.permissionErrorText)
+        XCTAssertEqual(refreshCount, 1)
+        let state = await scheduler.state()
+        XCTAssertEqual(state.authorizationRequests, 1)
+        XCTAssertEqual(state.cancelRequests, 0)
+    }
+
+    @MainActor
+    func testNotificationPermissionDenialKeepsPreferenceOff() async {
+        let store = makeStore()
+        let scheduler = RecordingNotificationScheduler(
+            authorizationResult: .success(false)
+        )
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            notificationScheduler: scheduler,
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        await viewModel.setNotificationsEnabled(
+            true,
+            localizer: AppLocalizer(language: .simplifiedChinese)
+        )
+
+        XCTAssertFalse(store.value.notificationsEnabled)
+        XCTAssertEqual(
+            viewModel.permissionErrorText,
+            "\u{65e0}\u{6cd5}\u{5f00}\u{542f}\u{901a}\u{77e5}\u{63d0}\u{9192}\u{ff0c}\u{8bf7}\u{5728}\u{7cfb}\u{7edf}\u{8bbe}\u{7f6e}\u{4e2d}\u{5141}\u{8bb8}\u{901a}\u{77e5}\u{3002}"
+        )
+        XCTAssertEqual(refreshCount, 0)
+        let state = await scheduler.state()
+        XCTAssertEqual(state.authorizationRequests, 1)
+    }
+
+    @MainActor
+    func testDisablingNotificationsCancelsPendingRequestsAndNotifies() async {
+        let store = makeStore()
+        store.update { $0.notificationsEnabled = true }
+        let scheduler = RecordingNotificationScheduler()
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            notificationScheduler: scheduler,
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        await viewModel.setNotificationsEnabled(
+            false,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertFalse(store.value.notificationsEnabled)
+        XCTAssertEqual(refreshCount, 1)
+        let state = await scheduler.state()
+        XCTAssertEqual(state.cancelRequests, 1)
+    }
+
+    @MainActor
+    func testNotificationLeadTimePersistsAndNotifies() {
+        let store = makeStore()
+        var refreshCount = 0
+        let viewModel = SettingsViewModel(
+            settingsStore: store,
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            onSettingsChanged: { refreshCount += 1 },
+            openURL: { _ in }
+        )
+
+        viewModel.setNotificationLeadTime(.oneHour)
+
+        XCTAssertEqual(store.value.notificationLeadTime, .oneHour)
+        XCTAssertEqual(refreshCount, 1)
+    }
+
+    @MainActor
     func testAISettingsPersistAndNotifyChanges() {
         let store = makeStore()
         var refreshCount = 0
@@ -460,6 +560,48 @@ private actor SettingsGateway: EventKitGatewayProtocol {
 
 private enum SettingsGatewayError: Error {
     case requestFailed
+}
+
+private actor RecordingNotificationScheduler: TimelineNotificationScheduling {
+    struct State: Equatable {
+        var authorizationRequests = 0
+        var cancelRequests = 0
+        var scheduled: [PendingTimelineNotification] = []
+    }
+
+    private let authorizationResult: Result<Bool, Error>
+    private var recordedState = State()
+
+    init(authorizationResult: Result<Bool, Error> = .success(true)) {
+        self.authorizationResult = authorizationResult
+    }
+
+    func requestAuthorization() async throws -> Bool {
+        recordedState.authorizationRequests += 1
+        return try authorizationResult.get()
+    }
+
+    func schedule(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date
+    ) async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = TimelineNotificationPlan.make(
+            items: snapshot.items,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func cancelPendingTimelineNotifications() async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = []
+    }
+
+    func state() -> State {
+        recordedState
+    }
 }
 
 private final class InMemoryAPIKeyStore: APIKeyStoring, @unchecked Sendable {

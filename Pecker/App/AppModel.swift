@@ -32,6 +32,7 @@ final class AppModel {
         self.todayViewModel = todayViewModel
         onboardingModel = OnboardingModel(
             gateway: dependencies.gateway,
+            notificationScheduler: dependencies.notificationScheduler,
             settingsStore: dependencies.settingsStore,
             defaults: onboardingDefaults
         )

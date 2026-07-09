@@ -237,8 +237,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             ]
         ]
 
-        if let imageData = input.imageData {
-            let mimeType = input.imageMIMEType ?? "image/jpeg"
+        for image in input.images {
+            let mimeType = image.mimeType
             guard ["image/jpeg", "image/png", "image/webp"].contains(mimeType)
             else {
                 throw RecognitionError.invalidConfiguration
@@ -246,7 +246,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             content.append([
                 "type": "image_url",
                 "image_url": [
-                    "url": "data:\(mimeType);base64,\(imageData.base64EncodedString())"
+                    "url": "data:\(mimeType);base64,\(image.data.base64EncodedString())"
                 ]
             ])
         }
@@ -255,7 +255,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
     }
 
     private func inputDescription(for input: RecognitionInput) -> String {
-        let fields = [
+        let fields: [String: String] = [
             "source": input.source.rawValue,
             "id": input.id,
             "sourceIdentifier": input.sourceIdentifier ?? "",
@@ -266,13 +266,33 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
             "location": input.location ?? "",
             "notes": input.notes ?? "",
             "filename": input.filename ?? "",
+            "imageCount": "\(input.images.count)",
+            "images": imageInventory(for: input),
             "recognitionNow": input.referenceDate.map(Self.iso8601String(from:)) ?? "",
             "timeZone": input.timeZoneIdentifier ?? ""
         ]
-        return fields
+        let description = fields
             .map { "\($0.key): \($0.value)" }
             .sorted()
             .joined(separator: "\n")
+        guard !input.images.isEmpty else {
+            return description
+        }
+        return """
+        \(description)
+
+        \u{8fde}\u{7eed}\u{6027}\u{53d9}\u{4e8b}\u{8bc6}\u{522b}：\u{4e00}\u{6b21}\u{8f93}\u{5165}\u{53ef}\u{80fd}\u{5305}\u{542b}\u{591a}\u{5f20}\u{56fe}\u{7247}，\u{4f46}\u{5b83}\u{4eec}\u{53ea}\u{5bf9}\u{5e94}\u{4e00}\u{4e2a}\u{4e8b}\u{4ef6}\u{3002}\u{8bf7}\u{6309}\u{56fe}\u{7247}\u{987a}\u{5e8f}\u{8054}\u{5408}\u{5224}\u{65ad}\u{548c}\u{8865}\u{9f50}\u{5b57}\u{6bb5}\u{ff0c}\u{4e0d}\u{8981}\u{62c6}\u{6210}\u{591a}\u{4e2a}\u{4e8b}\u{4ef6}\u{3002}
+        """
+    }
+
+    private func imageInventory(for input: RecognitionInput) -> String {
+        guard !input.images.isEmpty else {
+            return ""
+        }
+        return input.images.enumerated().map { offset, image in
+            let filename = image.filename ?? "unnamed"
+            return "image \(offset + 1): \(filename)"
+        }.joined(separator: "\n")
     }
 
     private static func iso8601String(from date: Date) -> String {
@@ -331,6 +351,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         \(inputDescription(for: input))
 
         Tasks:
+        - [ ] \u{8fd9}\u{662f}\u{8fde}\u{7eed}\u{6027}\u{53d9}\u{4e8b}\u{8bc6}\u{522b}；\u{4e00}\u{6b21}\u{8f93}\u{5165}\u{53ef}\u{80fd}\u{5305}\u{542b}\u{591a}\u{5f20}\u{56fe}\u{7247}，\u{4f46}\u{5b83}\u{4eec}\u{53ea}\u{5bf9}\u{5e94}\u{4e00}\u{4e2a}\u{4e8b}\u{4ef6}。
+        - [ ] \u{6309}\u{56fe}\u{7247}\u{987a}\u{5e8f}\u{8054}\u{5408}\u{5224}\u{65ad}\u{540c}\u{4e00}\u{4e8b}\u{4ef6}\u{7684}\u{57fa}\u{672c}\u{7c7b}\u{578b}，\u{4e0d}\u{628a}\u{591a}\u{5f20}\u{56fe}\u{62c6}\u{6210}\u{591a}\u{4e2a}\u{4e8b}\u{4ef6}。
         - [ ] \u{67e5}\u{770b}\u{5168}\u{90e8}\u{56fe}\u{7247}\u{5185}\u{5bb9}。
         - [ ] \u{5224}\u{65ad}\u{4e00}\u{4e2a}\u{6700}\u{7b26}\u{5408}\u{7684}\u{57fa}\u{672c}\u{7c7b}\u{578b}。
         - [ ] \u{65e0}\u{6cd5}\u{5f52}\u{5165}\u{4e13}\u{7528}\u{7c7b}\u{578b}\u{65f6}\u{8fd4}\u{56de} unknown，\u{540e}\u{7eed}\u{4ecd}\u{4f1a}\u{5c1d}\u{8bd5}\u{901a}\u{7528}\u{6a21}\u{677f}。
@@ -358,6 +380,9 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         \u{7c7b}\u{578b}\u{8bf4}\u{660e}：\(schema.extractionGuidance)
 
         Tasks:
+        - [ ] \u{8fd9}\u{662f}\u{8fde}\u{7eed}\u{6027}\u{53d9}\u{4e8b}\u{8bc6}\u{522b}；\u{4e00}\u{6b21}\u{8f93}\u{5165}\u{53ef}\u{80fd}\u{5305}\u{542b}\u{591a}\u{5f20}\u{56fe}\u{7247}，\u{4f46}\u{5b83}\u{4eec}\u{53ea}\u{5bf9}\u{5e94}\u{4e00}\u{4e2a}\u{4e8b}\u{4ef6}。
+        - [ ] \u{6309}\u{56fe}\u{7247}\u{987a}\u{5e8f}\u{8de8}\u{56fe}\u{8865}\u{9f50}\u{5b57}\u{6bb5}：\u{524d}\u{4e00}\u{5f20}\u{53ef}\u{80fd}\u{7ed9}\u{51fa}\u{6807}\u{9898}\u{6216}\u{65e5}\u{671f}，\u{540e}\u{4e00}\u{5f20}\u{53ef}\u{80fd}\u{7ed9}\u{51fa}\u{5730}\u{70b9}\u{3001}\u{5ea7}\u{4f4d}\u{6216}\u{8ba2}\u{5355}\u{8be6}\u{60c5}。
+        - [ ] \u{4e0d}\u{8981}\u{628a}\u{65e0}\u{5173}\u{4fe1}\u{606f}\u{62fc}\u{63a5}\u{6210}\u{4e0d}\u{5b58}\u{5728}\u{7684}\u{4e8b}\u{4ef6}；\u{82e5}\u{5b57}\u{6bb5}\u{51b2}\u{7a81}，\u{4f18}\u{5148}\u{91c7}\u{7528}\u{66f4}\u{5177}\u{4f53}\u{3001}\u{66f4}\u{6e05}\u{6670}\u{3001}\u{79bb}\u{4e8b}\u{4ef6}\u{51ed}\u{8bc1}\u{66f4}\u{8fd1}\u{7684}\u{4fe1}\u{606f}。
         - [ ] \u{626b}\u{63cf}\u{56fe}\u{7247}\u{5168}\u{90e8}\u{533a}\u{57df}，\u{4f46}\u{53ea}\u{4fdd}\u{7559}\u{4e0e}\u{4e8b}\u{4ef6}\u{6709}\u{5173}\u{7684}\u{4fe1}\u{606f}。
         - [ ] \u{4f18}\u{5148}\u{63d0}\u{53d6}\u{6700}\u{5c0f}\u{5fc5}\u{8981}\u{5143}\u{7d20}。
         - [ ] \u{5c3d}\u{53ef}\u{80fd}\u{63d0}\u{53d6}\u{6e05}\u{6670}\u{53ef}\u{89c1}\u{7684}\u{53ef}\u{9009}\u{5b57}\u{6bb5}；\u{7f3a}\u{5931}\u{5b57}\u{6bb5}\u{7701}\u{7565}。
@@ -384,6 +409,8 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
         \u{5f53}\u{524d}\u{7c7b}\u{578b}\u{6700}\u{5c0f}\u{5fc5}\u{8981}\u{5143}\u{7d20}：\(schema.requirements.map(\.label).joined(separator: "、"))
 
         Tasks:
+        - [ ] \u{8fd9}\u{662f}\u{8fde}\u{7eed}\u{6027}\u{53d9}\u{4e8b}\u{8bc6}\u{522b}；\u{6240}\u{6709}\u{56fe}\u{7247}\u{53ea}\u{5bf9}\u{5e94}\u{4e00}\u{4e2a}\u{4e8b}\u{4ef6}，\u{6700}\u{7ec8}\u{4e5f}\u{53ea}\u{80fd}\u{8fd4}\u{56de}\u{4e00}\u{4e2a}\u{6700}\u{5b8c}\u{6574}\u{3001}\u{53ef}\u{6267}\u{884c}\u{7684}\u{4e8b}\u{4ef6}。
+        - [ ] \u{5bf9}\u{7167}\u{6bcf}\u{5f20}\u{539f}\u{56fe}\u{6838}\u{5bf9}\u{5019}\u{9009}\u{7ed3}\u{679c}；\u{5220}\u{9664}\u{4efb}\u{4f55}\u{4e0d}\u{80fd}\u{7531}\u{56fe}\u{7247}\u{6216}\u{8f93}\u{5165}\u{652f}\u{6301}\u{7684}\u{5b57}\u{6bb5}。
         - [ ] \u{5bf9}\u{7167}\u{539f}\u{56fe}\u{9010}\u{9879}\u{6838}\u{5bf9}\u{7c7b}\u{578b}\u{548c}\u{5b57}\u{6bb5}。
         - [ ] \u{4fee}\u{6b63}\u{9519}\u{5b57}、\u{5b57}\u{6bb5}\u{9519}\u{4f4d}、\u{65e5}\u{671f}、UTC \u{504f}\u{79fb}\u{4e0e}\u{8de8}\u{65e5}\u{5173}\u{7cfb}。
         - [ ] \u{7c7b}\u{578b}\u{9519}\u{8bef}\u{65f6}\u{76f4}\u{63a5}\u{66f4}\u{6b63} kind，\u{5e76}\u{6309}\u{65b0}\u{7c7b}\u{578b}\u{5b57}\u{6bb5}\u{8fd4}\u{56de}。
@@ -422,7 +449,7 @@ public struct OpenAIRecognitionProvider: RecognitionProvider {
                 data: data,
                 statusCode: response.statusCode,
                 stage: stage,
-                hasImage: input.imageData != nil
+                hasImage: !input.images.isEmpty
             )
         }
         return data

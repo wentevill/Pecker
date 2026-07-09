@@ -13,7 +13,7 @@ struct TodayView: View {
     private let imagePreprocessor = RecognitionImagePreprocessor()
     @State private var path: [TodayRoute] = []
     @State private var isSettingsPresented = false
-    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var isCameraPresented = false
     @State private var imageRecognitionPhase: TodayScreenContent.ImageRecognitionPhase = .idle
     @State private var pendingDelete: TimelineItem?
@@ -31,7 +31,7 @@ struct TodayView: View {
                         localizer: localizer
                     ),
                     localizer: localizer,
-                    selectedPhoto: $selectedPhoto,
+                    selectedPhotos: $selectedPhotos,
                     isCameraPresented: $isCameraPresented,
                     refreshAction: { await model.refresh() },
                     onOpenSettings: {
@@ -68,8 +68,8 @@ struct TodayView: View {
                     onRetry: {
                         Task { await model.refresh() }
                     },
-                    onRecognizePhoto: { item in
-                        await recognizePhoto(item)
+                    onRecognizePhotos: { items in
+                        await recognizePhotos(items)
                     },
                     onRecognizeCameraImage: { image in
                         await recognizeCameraImage(image)
@@ -199,21 +199,27 @@ struct TodayView: View {
         onSettingsChanged()
     }
 
-    private func recognizePhoto(_ item: PhotosPickerItem) async {
+    private func recognizePhotos(_ items: [PhotosPickerItem]) async {
+        guard !items.isEmpty else {
+            return
+        }
         imageRecognitionPhase = .recognizing
         do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
-                imageRecognitionPhase = .failure(.init(
-                    reason: AppLocalizer(language: settingsStore.value.language)
-                        .string("recognition.error.photoUnreadable"),
-                    technicalDetails: nil
-                ))
-                return
+            var preparedImages: [PreparedRecognitionImage] = []
+            for item in items {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    imageRecognitionPhase = .failure(.init(
+                        reason: AppLocalizer(language: settingsStore.value.language)
+                            .string("recognition.error.photoUnreadable"),
+                        technicalDetails: nil
+                    ))
+                    return
+                }
+                preparedImages.append(try imagePreprocessor.prepare(data))
             }
 
-            let preparedImage = try imagePreprocessor.prepare(data)
-            let draft = try await imageRecognizer.recognizeImage(
-                preparedImage,
+            let draft = try await imageRecognizer.recognizeImages(
+                preparedImages,
                 source: .importedImage,
                 settings: settingsStore.value,
                 now: .now
@@ -387,7 +393,7 @@ struct TodayScreen: View {
     let content: TodayScreenContent
     let recognitionActions: TodayScreenContent.RecognitionActions?
     let localizer: AppLocalizer
-    @Binding var selectedPhoto: PhotosPickerItem?
+    @Binding var selectedPhotos: [PhotosPickerItem]
     @Binding var isCameraPresented: Bool
     let refreshAction: () async -> Void
     let onOpenSettings: () -> Void
@@ -397,7 +403,7 @@ struct TodayScreen: View {
     let canDeleteCard: (TodayScreenContent.Card) -> Bool
     let onDeleteCard: (TodayScreenContent.Card) -> Void
     let onRetry: () -> Void
-    let onRecognizePhoto: (PhotosPickerItem) async -> Void
+    let onRecognizePhotos: ([PhotosPickerItem]) async -> Void
     let onRecognizeCameraImage: (UIImage) async -> Void
     let onSaveRecognition: () -> Void
     let onCancelRecognition: () -> Void
@@ -406,7 +412,7 @@ struct TodayScreen: View {
         content: TodayScreenContent,
         recognitionActions: TodayScreenContent.RecognitionActions? = nil,
         localizer: AppLocalizer = AppLocalizer(language: .system),
-        selectedPhoto: Binding<PhotosPickerItem?> = .constant(nil),
+        selectedPhotos: Binding<[PhotosPickerItem]> = .constant([]),
         isCameraPresented: Binding<Bool> = .constant(false),
         refreshAction: @escaping () async -> Void,
         onOpenSettings: @escaping () -> Void,
@@ -416,7 +422,7 @@ struct TodayScreen: View {
         canDeleteCard: @escaping (TodayScreenContent.Card) -> Bool = { _ in false },
         onDeleteCard: @escaping (TodayScreenContent.Card) -> Void = { _ in },
         onRetry: @escaping () -> Void,
-        onRecognizePhoto: @escaping (PhotosPickerItem) async -> Void = { _ in },
+        onRecognizePhotos: @escaping ([PhotosPickerItem]) async -> Void = { _ in },
         onRecognizeCameraImage: @escaping (UIImage) async -> Void = { _ in },
         onSaveRecognition: @escaping () -> Void = {},
         onCancelRecognition: @escaping () -> Void = {}
@@ -424,7 +430,7 @@ struct TodayScreen: View {
         self.content = content
         self.recognitionActions = recognitionActions
         self.localizer = localizer
-        _selectedPhoto = selectedPhoto
+        _selectedPhotos = selectedPhotos
         _isCameraPresented = isCameraPresented
         self.refreshAction = refreshAction
         self.onOpenSettings = onOpenSettings
@@ -434,7 +440,7 @@ struct TodayScreen: View {
         self.canDeleteCard = canDeleteCard
         self.onDeleteCard = onDeleteCard
         self.onRetry = onRetry
-        self.onRecognizePhoto = onRecognizePhoto
+        self.onRecognizePhotos = onRecognizePhotos
         self.onRecognizeCameraImage = onRecognizeCameraImage
         self.onSaveRecognition = onSaveRecognition
         self.onCancelRecognition = onCancelRecognition
@@ -465,11 +471,11 @@ struct TodayScreen: View {
         .refreshable {
             await refreshAction()
         }
-        .onChange(of: selectedPhoto) { _, item in
-            guard let item else { return }
+        .onChange(of: selectedPhotos) { _, items in
+            guard !items.isEmpty else { return }
             Task {
-                await onRecognizePhoto(item)
-                selectedPhoto = nil
+                await onRecognizePhotos(items)
+                selectedPhotos = []
             }
         }
         .sheet(isPresented: $isCameraPresented) {
@@ -549,7 +555,8 @@ struct TodayScreen: View {
 
                 HStack(spacing: 10) {
                     PhotosPicker(
-                        selection: $selectedPhoto,
+                        selection: $selectedPhotos,
+                        maxSelectionCount: 6,
                         matching: .images
                     ) {
                         RecognitionActionLabel(

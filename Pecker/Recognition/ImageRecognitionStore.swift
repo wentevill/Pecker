@@ -128,6 +128,13 @@ protocol ImageRecognizing: Sendable {
         now: Date
     ) async throws -> ImageRecognitionDraft
 
+    func recognizeImages(
+        _ images: [PreparedRecognitionImage],
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft
+
     func saveRecognizedImage(
         _ draft: ImageRecognitionDraft
     ) async throws -> StoredEventRecord
@@ -140,10 +147,9 @@ extension ImageRecognizing {
         settings: TimelineSettings,
         now: Date
     ) async throws -> ImageRecognitionDraft {
-        try await recognizeImage(
-            data: image.data,
+        try await recognizeImages(
+            [image],
             source: source,
-            filename: image.filename,
             settings: settings,
             now: now
         )
@@ -155,6 +161,15 @@ actor NoopImageRecognizer: ImageRecognizing {
         data: Data,
         source: RecognitionSource,
         filename: String?,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
+        throw RecognitionError.unsupportedInput
+    }
+
+    func recognizeImages(
+        _ images: [PreparedRecognitionImage],
+        source: RecognitionSource,
         settings: TimelineSettings,
         now: Date
     ) async throws -> ImageRecognitionDraft {
@@ -204,6 +219,20 @@ struct ImageRecognitionCoordinator: ImageRecognizing {
     ) async throws -> ImageRecognitionDraft {
         try await systemCoordinator.recognizeImage(
             image,
+            source: source,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func recognizeImages(
+        _ images: [PreparedRecognitionImage],
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
+        try await systemCoordinator.recognizeImages(
+            images,
             source: source,
             settings: settings,
             now: now

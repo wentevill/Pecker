@@ -18,6 +18,7 @@ final class SettingsViewModel {
 
     private let gateway: (any EventKitGatewayProtocol)?
     private let apiKeyStore: any APIKeyStoring
+    private let notificationScheduler: any TimelineNotificationScheduling
     private let liveActivityStatusProvider: @MainActor () -> String
     private let onSettingsChanged: @MainActor () -> Void
     private let openURL: (URL) -> Void
@@ -27,6 +28,7 @@ final class SettingsViewModel {
         gateway: (any EventKitGatewayProtocol)?,
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
+        notificationScheduler: any TimelineNotificationScheduling = UserNotificationScheduler(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
             "waiting"
         },
@@ -37,6 +39,7 @@ final class SettingsViewModel {
         self.gateway = gateway
         self.authorization = authorization
         self.apiKeyStore = apiKeyStore
+        self.notificationScheduler = notificationScheduler
         liveActivityStatusProvider = liveActivityStatusText
         self.onSettingsChanged = onSettingsChanged
         self.openURL = openURL
@@ -46,6 +49,7 @@ final class SettingsViewModel {
         settingsStore: SettingsStore,
         authorization: SourceAuthorization,
         apiKeyStore: any APIKeyStoring = KeychainAPIKeyStore(),
+        notificationScheduler: any TimelineNotificationScheduling = UserNotificationScheduler(),
         liveActivityStatusText: @escaping @MainActor () -> String = {
             "waiting"
         },
@@ -57,6 +61,7 @@ final class SettingsViewModel {
             gateway: nil,
             authorization: authorization,
             apiKeyStore: apiKeyStore,
+            notificationScheduler: notificationScheduler,
             liveActivityStatusText: liveActivityStatusText,
             onSettingsChanged: onSettingsChanged,
             openURL: openURL
@@ -234,6 +239,41 @@ final class SettingsViewModel {
         notifySettingsChanged()
     }
 
+    func setNotificationsEnabled(
+        _ enabled: Bool,
+        localizer: AppLocalizer
+    ) async {
+        permissionErrorText = nil
+        if enabled {
+            do {
+                let granted = try await notificationScheduler.requestAuthorization()
+                guard granted else {
+                    settingsStore.update { $0.notificationsEnabled = false }
+                    permissionErrorText = localizer.string(
+                        "settings.notifications.error"
+                    )
+                    return
+                }
+                settingsStore.update { $0.notificationsEnabled = true }
+                notifySettingsChanged()
+            } catch {
+                settingsStore.update { $0.notificationsEnabled = false }
+                permissionErrorText = localizer.string(
+                    "settings.notifications.error"
+                )
+            }
+        } else {
+            settingsStore.update { $0.notificationsEnabled = false }
+            await notificationScheduler.cancelPendingTimelineNotifications()
+            notifySettingsChanged()
+        }
+    }
+
+    func setNotificationLeadTime(_ leadTime: TimelineNotificationLeadTime) {
+        settingsStore.update { $0.notificationLeadTime = leadTime }
+        notifySettingsChanged()
+    }
+
     func setLanguage(_ language: AppLanguage) {
         settingsStore.update { $0.language = language }
         notifySettingsChanged()
@@ -328,6 +368,7 @@ struct SettingsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     generalSection
+                    notificationsSection
                     dataSourcesSection
                     recognitionSection
                     storageSection
@@ -441,6 +482,55 @@ struct SettingsView: View {
                 accent: .next,
                 toggleAction: viewModel.setRemindersEnabled(_:)
             )
+        }
+    }
+
+    private var notificationsSection: some View {
+        settingsSection(
+            title: localizer.string("settings.notifications.title"),
+            systemImage: "bell.badge.fill",
+            accent: .now
+        ) {
+            toggleRow(
+                title: localizer.string("settings.notifications.toggle"),
+                detail: localizer.string("settings.notifications.description"),
+                systemImage: "bell.fill",
+                accent: .now,
+                isOn: Binding(
+                    get: { settingsStore.value.notificationsEnabled },
+                    set: { enabled in
+                        Task {
+                            await viewModel.setNotificationsEnabled(
+                                enabled,
+                                localizer: localizer
+                            )
+                        }
+                    }
+                )
+            )
+
+            rowDivider
+
+            settingRow(
+                title: localizer.string("settings.notifications.leadTime"),
+                systemImage: "timer",
+                accent: .now
+            ) {
+                Picker(
+                    localizer.string("settings.notifications.leadTime"),
+                    selection: Binding(
+                        get: { settingsStore.value.notificationLeadTime },
+                        set: { viewModel.setNotificationLeadTime($0) }
+                    )
+                ) {
+                    ForEach(TimelineNotificationLeadTime.allCases, id: \.self) { leadTime in
+                        Text(label(for: leadTime)).tag(leadTime)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .disabled(!settingsStore.value.notificationsEnabled)
+            }
         }
     }
 
@@ -958,6 +1048,21 @@ struct SettingsView: View {
             return localizer.string("settings.ai.mode.off")
         case .openAI:
             return "OpenAI"
+        }
+    }
+
+    private func label(for leadTime: TimelineNotificationLeadTime) -> String {
+        switch leadTime {
+        case .atStart:
+            return localizer.string("settings.notifications.leadTime.atStart")
+        case .fiveMinutes:
+            return localizer.string("settings.notifications.leadTime.five")
+        case .tenMinutes:
+            return localizer.string("settings.notifications.leadTime.ten")
+        case .thirtyMinutes:
+            return localizer.string("settings.notifications.leadTime.thirty")
+        case .oneHour:
+            return localizer.string("settings.notifications.leadTime.oneHour")
         }
     }
 

@@ -53,8 +53,22 @@ import Testing
     #expect(reminder.endDate == endDate)
     #expect(reminder.isAllDay == false)
     #expect(image.imageData == Data([1, 2, 3]))
+    #expect(image.images == [
+        RecognitionImageInput(
+            data: Data([1, 2, 3]),
+            filename: "ticket.jpg",
+            mimeType: "image/jpeg"
+        )
+    ])
     #expect(camera.filename == "recognition.jpg")
     #expect(camera.imageMIMEType == "image/jpeg")
+    #expect(camera.images == [
+        RecognitionImageInput(
+            data: Data([4, 5, 6]),
+            filename: "recognition.jpg",
+            mimeType: "image/jpeg"
+        )
+    ])
 }
 
 @Test func imageRecognitionInputCarriesExplicitMIMEType() {
@@ -66,4 +80,64 @@ import Testing
     )
 
     #expect(input.imageMIMEType == "image/jpeg")
+    #expect(input.images.first?.mimeType == "image/jpeg")
+}
+
+@Test func recognitionInputSupportsOrderedImportedImageNarratives() {
+    let referenceDate = Date(timeIntervalSince1970: 1_000)
+    let input = RecognitionInput.importedImages(
+        id: "story-1",
+        images: [
+            RecognitionImageInput(
+                data: Data([1]),
+                filename: "checkout.png",
+                mimeType: "image/png"
+            ),
+            RecognitionImageInput(
+                data: Data([2]),
+                filename: "details.webp",
+                mimeType: "image/webp"
+            )
+        ],
+        referenceDate: referenceDate,
+        timeZoneIdentifier: "Asia/Shanghai"
+    )
+
+    #expect(input.id == "image:story-1")
+    #expect(input.source == .importedImage)
+    #expect(input.sourceIdentifier == "story-1")
+    #expect(input.imageData == Data([1]))
+    #expect(input.filename == "checkout.png")
+    #expect(input.imageMIMEType == "image/png")
+    #expect(input.images.map(\.data) == [Data([1]), Data([2])])
+    #expect(input.images.map(\.filename) == ["checkout.png", "details.webp"])
+    #expect(input.images.map(\.mimeType) == ["image/png", "image/webp"])
+    #expect(input.referenceDate == referenceDate)
+    #expect(input.timeZoneIdentifier == "Asia/Shanghai")
+}
+
+@Test func recognitionInputSupportsOrderedCameraImageNarratives() {
+    let input = RecognitionInput.cameraImages(
+        id: "camera-story-1",
+        images: [
+            RecognitionImageInput(
+                data: Data([3]),
+                filename: "front.jpg",
+                mimeType: "image/jpeg"
+            ),
+            RecognitionImageInput(
+                data: Data([4]),
+                filename: "back.jpg",
+                mimeType: "image/jpeg"
+            )
+        ],
+        referenceDate: nil,
+        timeZoneIdentifier: nil
+    )
+
+    #expect(input.id == "camera:camera-story-1")
+    #expect(input.source == .cameraImage)
+    #expect(input.imageData == Data([3]))
+    #expect(input.filename == "front.jpg")
+    #expect(input.images.map(\.data) == [Data([3]), Data([4])])
 }

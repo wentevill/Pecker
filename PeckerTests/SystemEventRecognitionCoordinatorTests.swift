@@ -443,6 +443,86 @@ final class SystemEventRecognitionCoordinatorImageXCTests: XCTestCase {
     #expect(await repository.records().isEmpty)
 }
 
+@Test func multiImageRecognitionPassesOrderedImagesToProvider() async throws {
+    let provider = RecordingRecognitionProvider(
+        result: RecognitionResult(
+            payload: ExternalEventTemplatePayload(
+                kind: .task,
+                fields: [
+                    "title": "\u{63d0}\u{4ea4}\u{6750}\u{6599}",
+                    "eventDate": "2026-07-03"
+                ]
+            ),
+            confidence: 0.9
+        )
+    )
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: RecordingEventRepository(),
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        providerFactory: { _, _ in provider }
+    )
+
+    let draft = try await coordinator.recognizeImages(
+        [
+            PreparedRecognitionImage(
+                data: Data([1]),
+                filename: "step-1.jpg",
+                mimeType: "image/jpeg",
+                pixelWidth: 100,
+                pixelHeight: 100
+            ),
+            PreparedRecognitionImage(
+                data: Data([2]),
+                filename: "step-2.png",
+                mimeType: "image/png",
+                pixelWidth: 100,
+                pixelHeight: 100
+            )
+        ],
+        source: .importedImage,
+        settings: TimelineSettings(
+            aiRecognitionMode: .openAI,
+            openAIAPIKeyConfigured: true
+        ),
+        now: Date(timeIntervalSince1970: 5_000)
+    )
+
+    let input = try #require(await provider.inputs().first)
+    #expect(input.images.map(\.data) == [Data([1]), Data([2])])
+    #expect(input.images.map(\.filename) == ["step-1.jpg", "step-2.png"])
+    #expect(input.images.map(\.mimeType) == ["image/jpeg", "image/png"])
+    #expect(input.imageData == Data([1]))
+    #expect(draft.imageData == Data([1]))
+    #expect(draft.filename == "step-1.jpg")
+    #expect(draft.mimeType == "image/jpeg")
+}
+
+@Test func multiImageRecognitionRejectsEmptyInputsBeforeProvider() async throws {
+    let provider = RecordingRecognitionProvider()
+    let coordinator = SystemEventRecognitionCoordinator(
+        repository: RecordingEventRepository(),
+        apiKeyStore: StaticAPIKeyStore(apiKey: "sk-test"),
+        providerFactory: { _, _ in provider }
+    )
+
+    do {
+        _ = try await coordinator.recognizeImages(
+            [],
+            source: .importedImage,
+            settings: TimelineSettings(
+                aiRecognitionMode: .openAI,
+                openAIAPIKeyConfigured: true
+            ),
+            now: Date(timeIntervalSince1970: 5_000)
+        )
+        Issue.record("Expected empty multi-image input to fail")
+    } catch let error as RecognitionError {
+        #expect(error == .unsupportedInput)
+    }
+
+    #expect(await provider.inputs().isEmpty)
+}
+
 @Test func confirmedImageDraftPersistsRecognizedRecord() async throws {
     let repository = RecordingEventRepository()
     let coordinator = SystemEventRecognitionCoordinator(

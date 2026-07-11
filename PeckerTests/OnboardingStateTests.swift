@@ -138,12 +138,12 @@ final class OnboardingStateTests: XCTestCase {
         )
 
         XCTAssertTrue(skipped)
-        XCTAssertEqual(fixture.model.currentStep, .liveActivityIntroduction)
+        XCTAssertEqual(fixture.model.currentStep, .notifications)
         XCTAssertNil(fixture.model.errorMessage)
     }
 
     @MainActor
-    func testReminderGrantedAdvancesToLiveActivityIntroduction() async {
+    func testReminderGrantedAdvancesToNotifications() async {
         let fixture = makeFixture(reminderResult: .success(true))
         await advanceToReminders(fixture.model)
 
@@ -151,7 +151,7 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(
             fixture.model.currentStep,
-            .liveActivityIntroduction
+            .notifications
         )
         XCTAssertEqual(fixture.model.reminderStatus, .granted)
         let requestCounts = await fixture.gateway.requestCounts()
@@ -159,7 +159,7 @@ final class OnboardingStateTests: XCTestCase {
     }
 
     @MainActor
-    func testReminderDeniedAdvancesToLiveActivityIntroduction() async {
+    func testReminderDeniedAdvancesToNotifications() async {
         let fixture = makeFixture(reminderResult: .success(false))
         await advanceToReminders(fixture.model)
 
@@ -167,7 +167,7 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(
             fixture.model.currentStep,
-            .liveActivityIntroduction
+            .notifications
         )
         XCTAssertEqual(fixture.model.reminderStatus, .denied)
     }
@@ -182,7 +182,7 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(
             fixture.model.currentStep,
-            .liveActivityIntroduction
+            .notifications
         )
         let requestCounts = await fixture.gateway.requestCounts()
         XCTAssertEqual(requestCounts, .init())
@@ -197,13 +197,58 @@ final class OnboardingStateTests: XCTestCase {
 
         XCTAssertEqual(
             fixture.model.currentStep,
-            .liveActivityIntroduction
+            .notifications
         )
         XCTAssertEqual(fixture.model.reminderStatus, .failed)
         XCTAssertEqual(
             fixture.model.errorMessage,
             "Unable to access Reminders. Try again later in system Settings."
         )
+    }
+
+    @MainActor
+    func testNotificationGrantedPersistsSettingAndAdvancesToLiveActivity() async {
+        let scheduler = RecordingNotificationScheduler(
+            authorizationResult: .success(true)
+        )
+        let fixture = makeFixture(notificationScheduler: scheduler)
+        await advanceToNotifications(fixture.model)
+
+        await fixture.model.performPrimaryAction()
+
+        XCTAssertEqual(fixture.model.currentStep, .liveActivityIntroduction)
+        XCTAssertTrue(fixture.settingsStore.value.notificationsEnabled)
+        let state = await scheduler.state()
+        XCTAssertEqual(state.authorizationRequests, 1)
+    }
+
+    @MainActor
+    func testNotificationDeniedAdvancesWithoutEnablingSetting() async {
+        let scheduler = RecordingNotificationScheduler(
+            authorizationResult: .success(false)
+        )
+        let fixture = makeFixture(notificationScheduler: scheduler)
+        await advanceToNotifications(fixture.model)
+
+        await fixture.model.performPrimaryAction()
+
+        XCTAssertEqual(fixture.model.currentStep, .liveActivityIntroduction)
+        XCTAssertFalse(fixture.settingsStore.value.notificationsEnabled)
+        XCTAssertEqual(fixture.model.notificationStatus, .denied)
+    }
+
+    @MainActor
+    func testNotificationsCanBeSkippedWithoutRequestingPermission() async {
+        let scheduler = RecordingNotificationScheduler()
+        let fixture = makeFixture(notificationScheduler: scheduler)
+        await advanceToNotifications(fixture.model)
+
+        fixture.model.skipCurrentPermission()
+
+        XCTAssertEqual(fixture.model.currentStep, .liveActivityIntroduction)
+        let state = await scheduler.state()
+        XCTAssertEqual(state.authorizationRequests, 0)
+        XCTAssertFalse(fixture.settingsStore.value.notificationsEnabled)
     }
 
     @MainActor
@@ -452,6 +497,12 @@ final class OnboardingStateTests: XCTestCase {
 
     @MainActor
     private func advanceToLiveActivity(_ model: OnboardingModel) async {
+        await advanceToNotifications(model)
+        await model.performPrimaryAction()
+    }
+
+    @MainActor
+    private func advanceToNotifications(_ model: OnboardingModel) async {
         await advanceToReminders(model)
         await model.performPrimaryAction()
     }
@@ -461,6 +512,7 @@ final class OnboardingStateTests: XCTestCase {
         gateway: OnboardingGateway? = nil,
         calendarResult: Result<Bool, Error> = .success(true),
         reminderResult: Result<Bool, Error> = .success(true),
+        notificationScheduler: (any TimelineNotificationScheduling)? = nil,
         liveActivityEnabled: Bool = false,
         onboardingCompleted: Bool = false
     ) -> Fixture {
@@ -483,17 +535,20 @@ final class OnboardingStateTests: XCTestCase {
             calendarResult: calendarResult,
             reminderResult: reminderResult
         )
+        let scheduler = notificationScheduler ?? RecordingNotificationScheduler()
         let dependencies = AppDependencies(
             gateway: gateway,
             mapper: EventKitMapper(),
             engine: .init(),
             snapshotStore: OnboardingSnapshotStore(),
             settingsStore: settingsStore,
-            calendar: Calendar(identifier: .gregorian)
+            calendar: Calendar(identifier: .gregorian),
+            notificationScheduler: scheduler
         )
         return Fixture(
             model: OnboardingModel(
                 gateway: gateway,
+                notificationScheduler: scheduler,
                 settingsStore: settingsStore,
                 defaults: defaults
             ),
@@ -543,6 +598,48 @@ private struct Fixture {
 private enum TestError: Error {
     case calendar
     case reminders
+}
+
+private actor RecordingNotificationScheduler: TimelineNotificationScheduling {
+    struct State: Equatable {
+        var authorizationRequests = 0
+        var cancelRequests = 0
+        var scheduled: [PendingTimelineNotification] = []
+    }
+
+    private let authorizationResult: Result<Bool, Error>
+    private var recordedState = State()
+
+    init(authorizationResult: Result<Bool, Error> = .success(true)) {
+        self.authorizationResult = authorizationResult
+    }
+
+    func requestAuthorization() async throws -> Bool {
+        recordedState.authorizationRequests += 1
+        return try authorizationResult.get()
+    }
+
+    func schedule(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date
+    ) async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = TimelineNotificationPlan.make(
+            items: snapshot.items,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func cancelPendingTimelineNotifications() async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = []
+    }
+
+    func state() -> State {
+        recordedState
+    }
 }
 
 private actor OnboardingGateway: EventKitGatewayProtocol {

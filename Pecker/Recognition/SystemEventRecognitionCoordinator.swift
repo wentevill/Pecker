@@ -261,22 +261,42 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
         settings: TimelineSettings,
         now: Date
     ) async throws -> ImageRecognitionDraft {
+        try await recognizeImages(
+            [image],
+            source: source,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func recognizeImages(
+        _ images: [PreparedRecognitionImage],
+        source: RecognitionSource,
+        settings: TimelineSettings,
+        now: Date
+    ) async throws -> ImageRecognitionDraft {
+        guard let primaryImage = images.first else {
+            throw RecognitionError.unsupportedInput
+        }
         let idPrefix = source == .cameraImage ? "camera" : "image"
         let sourceIdentifier = UUID().uuidString
+        let recognitionImages = images.map {
+            RecognitionImageInput(
+                data: $0.data,
+                filename: $0.filename,
+                mimeType: $0.mimeType
+            )
+        }
         let input: RecognitionInput = source == .cameraImage
-            ? .cameraImage(
+            ? .cameraImages(
                 id: sourceIdentifier,
-                imageData: image.data,
-                filename: image.filename,
-                mimeType: image.mimeType,
+                images: recognitionImages,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
-            : .importedImage(
+            : .importedImages(
                 id: sourceIdentifier,
-                imageData: image.data,
-                filename: image.filename,
-                mimeType: image.mimeType,
+                images: recognitionImages,
                 referenceDate: now,
                 timeZoneIdentifier: calendar.timeZone.identifier
             )
@@ -310,9 +330,9 @@ struct SystemEventRecognitionCoordinator: SystemEventRecognizing {
             id: "\(idPrefix):\(sourceIdentifier)",
             sourceIdentifier: sourceIdentifier,
             source: source,
-            filename: image.filename,
-            mimeType: image.mimeType,
-            imageData: image.data,
+            filename: primaryImage.filename,
+            mimeType: primaryImage.mimeType,
+            imageData: primaryImage.data,
             recognizedAt: now,
             startDate: validation.startDate,
             endDate: validation.endDate,

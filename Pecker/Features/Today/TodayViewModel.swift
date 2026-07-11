@@ -81,6 +81,12 @@ final class TodayViewModel {
                     now: now,
                     generation: generation
                 )
+                await reconcileNotifications(
+                    snapshot: snapshot,
+                    settings: settings,
+                    now: now,
+                    generation: generation
+                )
                 guard isCurrent(generation) else {
                     return
                 }
@@ -197,6 +203,12 @@ final class TodayViewModel {
                 now: now,
                 generation: generation
             )
+            await reconcileNotifications(
+                snapshot: snapshot,
+                settings: settings,
+                now: now,
+                generation: generation
+            )
             guard isCurrent(generation) else {
                 return
             }
@@ -280,6 +292,28 @@ final class TodayViewModel {
             return "running"
         case .end:
             return "waiting"
+        }
+    }
+
+    private func reconcileNotifications(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date,
+        generation: Int
+    ) async {
+        guard isCurrent(generation), !Task.isCancelled else {
+            return
+        }
+
+        if settings.notificationsEnabled {
+            await dependencies.notificationScheduler.schedule(
+                snapshot: snapshot,
+                settings: settings,
+                now: now
+            )
+        } else {
+            await dependencies.notificationScheduler
+                .cancelPendingTimelineNotifications()
         }
     }
 

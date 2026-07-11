@@ -222,6 +222,70 @@ final class TodayViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testEnabledNotificationsScheduleAllFutureItemsWithLeadTime() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let scheduler = RecordingNotificationScheduler()
+        let gateway = FakeEventKitGateway(
+            authorization: .init(calendar: .fullAccess, reminders: .fullAccess),
+            events: [
+                event(identifier: "past", title: "Past", at: now.addingTimeInterval(120)),
+                event(identifier: "next", title: "Next", at: now.addingTimeInterval(900))
+            ],
+            reminders: [
+                reminder(at: now.addingTimeInterval(1_800))
+            ]
+        )
+        let viewModel = makeViewModel(
+            gateway: gateway,
+            settings: .init(
+                notificationsEnabled: true,
+                notificationLeadTime: .fiveMinutes
+            ),
+            notificationScheduler: scheduler
+        )
+
+        await viewModel.refresh(now: now)
+
+        let state = await scheduler.state()
+        XCTAssertEqual(state.cancelRequests, 1)
+        XCTAssertEqual(
+            state.scheduled.map(\.id),
+            ["pecker.timeline.calendar.next", "pecker.timeline.reminder.reminder"]
+        )
+        XCTAssertEqual(
+            state.scheduled.map(\.fireDate),
+            [
+                now.addingTimeInterval(600),
+                now.addingTimeInterval(1_500)
+            ]
+        )
+        XCTAssertEqual(
+            state.scheduled.map(\.title),
+            ["Next", "Submit report"]
+        )
+    }
+
+    @MainActor
+    func testDisabledNotificationsCancelPendingRequestsWithoutScheduling() async {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let scheduler = RecordingNotificationScheduler()
+        let viewModel = makeViewModel(
+            gateway: FakeEventKitGateway(
+                authorization: .init(calendar: .fullAccess, reminders: .denied),
+                events: [event(at: now.addingTimeInterval(900))]
+            ),
+            settings: .init(remindersEnabled: false, notificationsEnabled: false),
+            notificationScheduler: scheduler
+        )
+
+        await viewModel.refresh(now: now)
+
+        let state = await scheduler.state()
+        XCTAssertEqual(state.cancelRequests, 1)
+        XCTAssertEqual(state.scheduled, [])
+    }
+
+    @MainActor
     func testDeniedCalendarFetchesAuthorizedRemindersOnly() async {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let gateway = FakeEventKitGateway(
@@ -870,7 +934,8 @@ final class TodayViewModelTests: XCTestCase {
         settings: TimelineSettings = .init(),
         calendar: Calendar = Calendar(identifier: .gregorian),
         activityClient: (any ActivityClient)? = nil,
-        systemEventRecognizer: (any SystemEventRecognizing)? = nil
+        systemEventRecognizer: (any SystemEventRecognizing)? = nil,
+        notificationScheduler: (any TimelineNotificationScheduling)? = nil
     ) -> TodayViewModel {
         TodayViewModel(
             dependencies: makeDependencies(
@@ -879,7 +944,8 @@ final class TodayViewModelTests: XCTestCase {
                 settings: settings,
                 calendar: calendar,
                 activityClient: activityClient,
-                systemEventRecognizer: systemEventRecognizer
+                systemEventRecognizer: systemEventRecognizer,
+                notificationScheduler: notificationScheduler
             )
         )
     }
@@ -891,7 +957,8 @@ final class TodayViewModelTests: XCTestCase {
         settings: TimelineSettings = .init(),
         calendar: Calendar = Calendar(identifier: .gregorian),
         activityClient: (any ActivityClient)? = nil,
-        systemEventRecognizer: (any SystemEventRecognizing)? = nil
+        systemEventRecognizer: (any SystemEventRecognizing)? = nil,
+        notificationScheduler: (any TimelineNotificationScheduling)? = nil
     ) -> AppDependencies {
         let defaults = UserDefaults(
             suiteName: "TodayViewModelTests.\(UUID().uuidString)"
@@ -906,7 +973,8 @@ final class TodayViewModelTests: XCTestCase {
             settingsStore: settingsStore,
             calendar: calendar,
             activityClient: activityClient ?? RecordingActivityClient(),
-            systemEventRecognizer: systemEventRecognizer ?? NoopSystemEventRecognizer()
+            systemEventRecognizer: systemEventRecognizer ?? NoopSystemEventRecognizer(),
+            notificationScheduler: notificationScheduler ?? RecordingNotificationScheduler()
         )
     }
 }
@@ -1281,6 +1349,48 @@ private enum TestError: Error {
     case save
     case settings
     case activity
+}
+
+private actor RecordingNotificationScheduler: TimelineNotificationScheduling {
+    struct State: Equatable {
+        var authorizationRequests = 0
+        var cancelRequests = 0
+        var scheduled: [PendingTimelineNotification] = []
+    }
+
+    private let authorizationResult: Result<Bool, Error>
+    private var recordedState = State()
+
+    init(authorizationResult: Result<Bool, Error> = .success(true)) {
+        self.authorizationResult = authorizationResult
+    }
+
+    func requestAuthorization() async throws -> Bool {
+        recordedState.authorizationRequests += 1
+        return try authorizationResult.get()
+    }
+
+    func schedule(
+        snapshot: TodaySnapshot,
+        settings: TimelineSettings,
+        now: Date
+    ) async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = TimelineNotificationPlan.make(
+            items: snapshot.items,
+            settings: settings,
+            now: now
+        )
+    }
+
+    func cancelPendingTimelineNotifications() async {
+        recordedState.cancelRequests += 1
+        recordedState.scheduled = []
+    }
+
+    func state() -> State {
+        recordedState
+    }
 }
 
 private final class RecordingActivityClient: ActivityClient, @unchecked Sendable {

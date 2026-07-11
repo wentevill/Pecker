@@ -64,7 +64,7 @@ final class AppLocalizerTests: XCTestCase {
         XCTAssertEqual(
             AppLocalizer(language: .simplifiedChinese)
                 .string("timeline.range.explanation"),
-            "历史和未来日程最多加载今天前后一年。"
+            "\u{5386}\u{53f2}\u{548c}\u{672a}\u{6765}\u{65e5}\u{7a0b}\u{6700}\u{591a}\u{52a0}\u{8f7d}\u{4eca}\u{5929}\u{524d}\u{540e}\u{4e00}\u{5e74}\u{3002}"
         )
     }
 }

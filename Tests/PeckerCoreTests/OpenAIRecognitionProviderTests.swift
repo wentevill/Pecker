@@ -115,6 +115,47 @@ import Testing
     #expect(text.contains("data:image/jpeg;base64,/9j/"))
 }
 
+@Test func openAIProviderIncludesOrderedMultiImageInputsAndNarrativeGuidance() throws {
+    let provider = OpenAIRecognitionProvider(
+        configuration: .init(
+            host: "https://api.openai.com",
+            apiKey: "sk-test",
+            model: "gpt-test"
+        )
+    )
+
+    let request = try provider.makeRequest(
+        for: .importedImages(
+            id: "story-1",
+            images: [
+                RecognitionImageInput(
+                    data: Data([0x01]),
+                    filename: "checkout.png",
+                    mimeType: "image/png"
+                ),
+                RecognitionImageInput(
+                    data: Data([0x02]),
+                    filename: "details.webp",
+                    mimeType: "image/webp"
+                )
+            ],
+            referenceDate: Date(timeIntervalSince1970: 1_000),
+            timeZoneIdentifier: "Asia/Shanghai"
+        )
+    )
+
+    let body = try #require(request.httpBody)
+    let text = try #require(String(data: body, encoding: .utf8))
+    #expect(text.components(separatedBy: #""type":"image_url""#).count - 1 == 2)
+    #expect(text.contains("data:image/png;base64,AQ=="))
+    #expect(text.contains("data:image/webp;base64,Ag=="))
+    #expect(text.contains("imageCount: 2"))
+    #expect(text.contains("image 1: checkout.png"))
+    #expect(text.contains("image 2: details.webp"))
+    #expect(text.contains("\u{8fde}\u{7eed}\u{6027}\u{53d9}\u{4e8b}\u{8bc6}\u{522b}"))
+    #expect(text.contains("\u{53ea}\u{5bf9}\u{5e94}\u{4e00}\u{4e2a}\u{4e8b}\u{4ef6}"))
+}
+
 @Test func openAIProviderUsesExplicitImageMIMEType() throws {
     let provider = OpenAIRecognitionProvider(
         configuration: .init(

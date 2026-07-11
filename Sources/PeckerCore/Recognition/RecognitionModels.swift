@@ -12,6 +12,18 @@ public enum RecognitionSource: String, Codable, Sendable, Equatable, Hashable, C
     case cameraImage
 }
 
+public struct RecognitionImageInput: Sendable, Equatable {
+    public let data: Data
+    public let filename: String?
+    public let mimeType: String
+
+    public init(data: Data, filename: String?, mimeType: String) {
+        self.data = data
+        self.filename = filename
+        self.mimeType = mimeType
+    }
+}
+
 public struct RecognitionInput: Sendable, Equatable {
     public let id: String
     public let source: RecognitionSource
@@ -25,6 +37,7 @@ public struct RecognitionInput: Sendable, Equatable {
     public let imageData: Data?
     public let filename: String?
     public let imageMIMEType: String?
+    public let images: [RecognitionImageInput]
     public let referenceDate: Date?
     public let timeZoneIdentifier: String?
 
@@ -41,6 +54,7 @@ public struct RecognitionInput: Sendable, Equatable {
         imageData: Data?,
         filename: String?,
         imageMIMEType: String? = nil,
+        images: [RecognitionImageInput]? = nil,
         referenceDate: Date? = nil,
         timeZoneIdentifier: String? = nil
     ) {
@@ -56,6 +70,15 @@ public struct RecognitionInput: Sendable, Equatable {
         self.imageData = imageData
         self.filename = filename
         self.imageMIMEType = imageMIMEType
+        self.images = images ?? imageData.map {
+            [
+                RecognitionImageInput(
+                    data: $0,
+                    filename: filename,
+                    mimeType: imageMIMEType ?? "image/jpeg"
+                )
+            ]
+        } ?? []
         self.referenceDate = referenceDate
         self.timeZoneIdentifier = timeZoneIdentifier
     }
@@ -132,6 +155,22 @@ public struct RecognitionInput: Sendable, Equatable {
         )
     }
 
+    public static func importedImages(
+        id: String,
+        images: [RecognitionImageInput],
+        referenceDate: Date? = nil,
+        timeZoneIdentifier: String? = nil
+    ) -> RecognitionInput {
+        imageInput(
+            id: "image:\(id)",
+            source: .importedImage,
+            sourceIdentifier: id,
+            images: images,
+            referenceDate: referenceDate,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+    }
+
     public static func cameraImage(
         id: String,
         imageData: Data,
@@ -153,6 +192,50 @@ public struct RecognitionInput: Sendable, Equatable {
             imageData: imageData,
             filename: filename,
             imageMIMEType: mimeType,
+            referenceDate: referenceDate,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+    }
+
+    public static func cameraImages(
+        id: String,
+        images: [RecognitionImageInput],
+        referenceDate: Date? = nil,
+        timeZoneIdentifier: String? = nil
+    ) -> RecognitionInput {
+        imageInput(
+            id: "camera:\(id)",
+            source: .cameraImage,
+            sourceIdentifier: id,
+            images: images,
+            referenceDate: referenceDate,
+            timeZoneIdentifier: timeZoneIdentifier
+        )
+    }
+
+    private static func imageInput(
+        id: String,
+        source: RecognitionSource,
+        sourceIdentifier: String,
+        images: [RecognitionImageInput],
+        referenceDate: Date?,
+        timeZoneIdentifier: String?
+    ) -> RecognitionInput {
+        let primary = images.first
+        return RecognitionInput(
+            id: id,
+            source: source,
+            sourceIdentifier: sourceIdentifier,
+            title: primary?.filename,
+            location: nil,
+            notes: nil,
+            startDate: nil,
+            endDate: nil,
+            isAllDay: false,
+            imageData: primary?.data,
+            filename: primary?.filename,
+            imageMIMEType: primary?.mimeType,
+            images: images,
             referenceDate: referenceDate,
             timeZoneIdentifier: timeZoneIdentifier
         )

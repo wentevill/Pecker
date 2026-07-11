@@ -27,16 +27,16 @@ struct OnboardingView: View {
 
     private var progress: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(model.currentStep.progress) / 4")
+            Text("\(model.currentStep.progress) / 5")
                 .font(.subheadline.monospacedDigit().weight(.semibold))
                 .foregroundStyle(TimelineTheme.textSecondary)
                 .accessibilityLabel(
-                    "Onboarding step \(model.currentStep.progress) of 4"
+                    "Onboarding step \(model.currentStep.progress) of 5"
                 )
 
             ProgressView(
                 value: Double(model.currentStep.progress),
-                total: 4
+                total: 5
             )
             .tint(TimelineTheme.now)
             .accessibilityHidden(true)
@@ -83,6 +83,15 @@ struct OnboardingView: View {
                 message: localizer.string("onboarding.reminders.message")
             ) {
                 permissionNote(localizer.string("onboarding.reminders.note"))
+            }
+        case .notifications:
+            onboardingCard(
+                symbol: "bell.badge",
+                eyebrow: "NOTIFICATIONS",
+                title: localizer.string("onboarding.notifications.title"),
+                message: localizer.string("onboarding.notifications.message")
+            ) {
+                permissionNote(localizer.string("onboarding.notifications.note"))
             }
         case .liveActivityIntroduction:
             onboardingCard(
@@ -143,7 +152,8 @@ struct OnboardingView: View {
             .accessibilityHint(primaryButtonHint)
 
             if model.currentStep == .calendar
-                || model.currentStep == .reminders {
+                || model.currentStep == .reminders
+                || model.currentStep == .notifications {
                 Button(localizer.string("onboarding.skipSource")) {
                     let expectedStep = model.currentStep
                     _ = model.skipCurrentPermission(
@@ -178,6 +188,8 @@ struct OnboardingView: View {
             localizer.string("onboarding.primary.calendar")
         case .reminders:
             localizer.string("onboarding.primary.reminders")
+        case .notifications:
+            localizer.string("onboarding.primary.notifications")
         case .liveActivityIntroduction:
             localizer.string("onboarding.primary.liveActivity")
         case .complete:
@@ -193,6 +205,8 @@ struct OnboardingView: View {
             localizer.string("onboarding.hint.calendar")
         case .reminders:
             localizer.string("onboarding.hint.reminders")
+        case .notifications:
+            localizer.string("onboarding.hint.notifications")
         case .liveActivityIntroduction:
             localizer.string("onboarding.hint.liveActivity")
         case .complete:

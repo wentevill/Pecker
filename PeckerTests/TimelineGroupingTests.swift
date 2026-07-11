@@ -342,6 +342,114 @@ final class TimelineGroupingTests: XCTestCase {
         XCTAssertEqual(Set(flattenedIDs).count, flattenedIDs.count)
     }
 
+    func testDateSectionsGroupFutureItemsByDayAscending() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let dayOne = item(
+            id: "day-one",
+            title: "Morning train",
+            start: 86_400 + 9 * 3_600,
+            end: 86_400 + 10 * 3_600,
+            source: .calendar,
+            kind: .train
+        )
+        let dayTwo = item(
+            id: "day-two",
+            title: "Flight",
+            start: 2 * 86_400 + 8 * 3_600,
+            end: 2 * 86_400 + 10 * 3_600,
+            source: .calendar,
+            kind: .flight
+        )
+
+        let sections = TimelineGrouping.dateSections(
+            items: [dayTwo, dayOne],
+            calendar: calendar,
+            descending: false,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertEqual(sections.count, 2)
+        XCTAssertEqual(sections.map { section in
+            guard case let .date(day) = section.kind else { return nil }
+            return day
+        }, [
+            date(86_400),
+            date(2 * 86_400)
+        ])
+        XCTAssertEqual(sections.map { $0.items.map(\.id) }, [
+            [dayOne.id],
+            [dayTwo.id]
+        ])
+        XCTAssertTrue(sections[0].title.contains("1970"))
+    }
+
+    func testDateSectionsGroupHistoryItemsByDayDescending() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let older = item(
+            id: "older",
+            title: "Older meeting",
+            start: 86_400 + 9 * 3_600,
+            end: 86_400 + 10 * 3_600,
+            source: .calendar,
+            kind: .meeting
+        )
+        let newer = item(
+            id: "newer",
+            title: "Newer meeting",
+            start: 2 * 86_400 + 8 * 3_600,
+            end: 2 * 86_400 + 10 * 3_600,
+            source: .calendar,
+            kind: .meeting
+        )
+
+        let sections = TimelineGrouping.dateSections(
+            items: [older, newer],
+            calendar: calendar,
+            descending: true,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertEqual(sections.map { $0.items.map(\.id) }, [
+            [newer.id],
+            [older.id]
+        ])
+    }
+
+    func testDateSectionsSortHistoryItemsWithinDayDescending() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let morning = item(
+            id: "morning",
+            title: "Morning",
+            start: 86_400 + 9 * 3_600,
+            end: 86_400 + 10 * 3_600,
+            source: .calendar,
+            kind: .meeting
+        )
+        let afternoon = item(
+            id: "afternoon",
+            title: "Afternoon",
+            start: 86_400 + 15 * 3_600,
+            end: 86_400 + 16 * 3_600,
+            source: .calendar,
+            kind: .meeting
+        )
+
+        let sections = TimelineGrouping.dateSections(
+            items: [morning, afternoon],
+            calendar: calendar,
+            descending: true,
+            localizer: AppLocalizer(language: .english)
+        )
+
+        XCTAssertEqual(sections.first?.items.map(\.id), [
+            afternoon.id,
+            morning.id
+        ])
+    }
+
     private func item(
         id: String,
         title: String,

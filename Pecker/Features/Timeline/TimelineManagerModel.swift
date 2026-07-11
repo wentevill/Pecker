@@ -49,6 +49,8 @@ final class TimelineManagerModel {
         )
     }
 
+    var displayCalendar: Calendar { calendar }
+
     @discardableResult
     func load(now: Date = .now) async -> Bool {
         referenceDate = now

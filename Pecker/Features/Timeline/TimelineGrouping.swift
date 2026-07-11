@@ -3,19 +3,29 @@ import PeckerCore
 
 enum TimelineGrouping {
     struct Section: Equatable, Identifiable {
-        enum Kind: String, CaseIterable, Equatable {
+        enum Kind: Equatable {
             case overdue
             case allDay
             case active
             case upcoming
             case elapsed
+            case date(Date)
         }
 
         let kind: Kind
         let title: String
         let items: [TimelineItem]
 
-        var id: Kind { kind }
+        var id: String {
+            switch kind {
+            case .overdue: "overdue"
+            case .allDay: "allDay"
+            case .active: "active"
+            case .upcoming: "upcoming"
+            case .elapsed: "elapsed"
+            case let .date(day): "date-\(day.timeIntervalSince1970)"
+            }
+        }
     }
 
     static func sections(
@@ -51,6 +61,31 @@ enum TimelineGrouping {
         }
 
         return item.startDate <= now && endDate > now
+    }
+
+    static func dateSections(
+        items: [TimelineItem],
+        calendar: Calendar,
+        descending: Bool,
+        localizer: AppLocalizer = AppLocalizer(language: .system)
+    ) -> [Section] {
+        let grouped = Dictionary(grouping: items) { item in
+            calendar.startOfDay(for: item.startDate)
+        }
+        let days = grouped.keys.sorted {
+            descending ? $0 > $1 : $0 < $1
+        }
+
+        return days.compactMap { day in
+            guard let items = grouped[day] else {
+                return nil
+            }
+            return Section(
+                kind: .date(day),
+                title: dateTitle(for: day, localizer: localizer),
+                items: sortedDateItems(items, descending: descending)
+            )
+        }
     }
 
     private static func isOverdueReminder(_ item: TimelineItem, now: Date) -> Bool {
@@ -111,6 +146,14 @@ enum TimelineGrouping {
         return lhs.id < rhs.id
     }
 
+    private static func sortedDateItems(
+        _ items: [TimelineItem],
+        descending: Bool
+    ) -> [TimelineItem] {
+        let sorted = items.sorted(by: sortItems(_:_:))
+        return descending ? Array(sorted.reversed()) : sorted
+    }
+
     private static func makeSection(
         kind: Section.Kind,
         title: String,
@@ -120,6 +163,20 @@ enum TimelineGrouping {
             kind: kind,
             title: title,
             items: items.sorted(by: sortItems(_:_:))
+        )
+    }
+
+    private static func dateTitle(
+        for day: Date,
+        localizer: AppLocalizer
+    ) -> String {
+        day.formatted(
+            .dateTime
+                .year()
+                .month(.wide)
+                .day()
+                .weekday(.wide)
+                .locale(localizer.locale)
         )
     }
 }

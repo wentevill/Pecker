@@ -312,8 +312,11 @@ struct LocalTimelineCardService: LocalTimelineCardManaging {
         guard Self.isMutable(record) else {
             throw LocalTimelineCardError.readOnlySource
         }
-        let quarantined = try record.imageReference.map {
-            try imageStore.quarantineImage(at: $0)
+        let quarantined: QuarantinedImage?
+        if let imageReference = record.imageReference {
+            quarantined = try? imageStore.quarantineImage(at: imageReference)
+        } else {
+            quarantined = nil
         }
         do {
             try await repository.delete(id: id)

@@ -35,11 +35,9 @@ struct FullTimelineView: View {
 
     var body: some View {
         TimelineView(.periodic(from: now, by: 60)) { context in
-            let sections = TimelineGrouping.sections(
+            let sections = timelineSections(
                 items: displayedItems(at: context.date),
-                now: context.date,
-                activeOnly: activeOnly,
-                localizer: localizer
+                now: context.date
             )
 
             ZStack {
@@ -224,6 +222,27 @@ struct FullTimelineView: View {
         }
     }
 
+    private func timelineSections(
+        items: [TimelineItem],
+        now: Date
+    ) -> [TimelineGrouping.Section] {
+        guard !activeOnly, model.selectedScope != .today else {
+            return TimelineGrouping.sections(
+                items: items,
+                now: now,
+                activeOnly: activeOnly,
+                localizer: localizer
+            )
+        }
+
+        return TimelineGrouping.dateSections(
+            items: items,
+            calendar: model.displayCalendar,
+            descending: model.selectedScope == .history,
+            localizer: localizer
+        )
+    }
+
     private var emptyState: some View {
         TimelineCard(accent: .neutral) {
             VStack(alignment: .leading, spacing: 12) {
@@ -241,16 +260,43 @@ struct FullTimelineView: View {
         now: Date
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(section.title)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(TimelineTheme.textSecondary)
-                .padding(.horizontal, 4)
+            sectionHeader(section)
 
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(section.items) { item in
                     timelineRow(item: item, section: section, now: now)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionHeader(_ section: TimelineGrouping.Section) -> some View {
+        switch section.kind {
+        case .date:
+            HStack(spacing: 10) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(TimelineTheme.textTertiary)
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.white.opacity(0.44)))
+
+                Text(section.title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(TimelineTheme.textPrimary)
+
+                Rectangle()
+                    .fill(TimelineTheme.cardStroke)
+                    .frame(height: 1)
+            }
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
+            .accessibilityElement(children: .combine)
+        default:
+            Text(section.title)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(TimelineTheme.textSecondary)
+                .padding(.horizontal, 4)
         }
     }
 
@@ -371,6 +417,8 @@ struct FullTimelineView: View {
             localizer.string("timeline.section.upcoming")
         case .elapsed:
             localizer.string("timeline.section.elapsed")
+        case .date:
+            kindTitle(item.kind)
         }
     }
 
@@ -423,6 +471,8 @@ struct FullTimelineView: View {
             return .next
         case .overdue, .allDay, .elapsed:
             return item.source == .reminder ? .neutral : .next
+        case .date:
+            return model.selectedScope == .future ? .next : .neutral
         }
     }
 

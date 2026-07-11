@@ -20,6 +20,51 @@ final class TimelineRecordEditorTests: XCTestCase {
         XCTAssertEqual(images.deletedPaths, ["Images/patrol.jpg"])
     }
 
+    func testLocalServiceDeletesRecordWhenImageQuarantineFails() async throws {
+        let record = makeRecord()
+        let repository = EditorRepository(record: record)
+        let images = EditorImageStore(quarantineError: EditorTestError.failed)
+        let service = LocalTimelineCardService(
+            repository: repository,
+            imageStore: images
+        )
+
+        try await service.delete(id: record.id)
+
+        let remainingRecords = await repository.records
+        XCTAssertTrue(remainingRecords.isEmpty)
+        XCTAssertTrue(images.restoredImages.isEmpty)
+    }
+
+    func testLocalServiceRestoresQuarantinedImageWhenRecordDeleteFails() async {
+        let record = makeRecord()
+        let repository = EditorRepository(
+            record: record,
+            deleteError: EditorTestError.failed
+        )
+        let images = EditorImageStore()
+        let service = LocalTimelineCardService(
+            repository: repository,
+            imageStore: images
+        )
+
+        do {
+            try await service.delete(id: record.id)
+            XCTFail("Expected delete to fail")
+        } catch {
+            XCTAssertEqual(error as? EditorTestError, .failed)
+        }
+
+        let remainingRecords = await repository.records
+        XCTAssertEqual(remainingRecords, [record])
+        XCTAssertEqual(images.restoredImages, [
+            QuarantinedImage(
+                originalPath: "Images/patrol.jpg",
+                quarantinePath: "Images/patrol.jpg"
+            )
+        ])
+    }
+
     func testGenericEditorUpdatesCoreFields() throws {
         let record = makeRecord()
         var editor = try TimelineRecordEditor(record: record)
@@ -559,11 +604,17 @@ final class TimelineRecordEditorTests: XCTestCase {
     }
 }
 
+private enum EditorTestError: Error, Equatable {
+    case failed
+}
+
 private actor EditorRepository: EventRepositoryStoring {
     var records: [StoredEventRecord]
+    let deleteError: Error?
 
-    init(record: StoredEventRecord) {
+    init(record: StoredEventRecord, deleteError: Error? = nil) {
         records = [record]
+        self.deleteError = deleteError
     }
 
     func loadAll() async throws -> [StoredEventRecord] {
@@ -576,20 +627,36 @@ private actor EditorRepository: EventRepositoryStoring {
     }
 
     func delete(source: RecognitionSource) async throws {
+        if let deleteError {
+            throw deleteError
+        }
         records.removeAll { $0.source == source }
     }
 
     func delete(id: String) async throws {
+        if let deleteError {
+            throw deleteError
+        }
         records.removeAll { $0.id == id }
     }
 }
 
 private final class EditorImageStore: ImageFileStoring, @unchecked Sendable {
     private let lock = NSLock()
+    private let quarantineError: Error?
     private var paths: [String] = []
+    private var restored: [QuarantinedImage] = []
+
+    init(quarantineError: Error? = nil) {
+        self.quarantineError = quarantineError
+    }
 
     var deletedPaths: [String] {
         lock.withLock { paths }
+    }
+
+    var restoredImages: [QuarantinedImage] {
+        lock.withLock { restored }
     }
 
     func saveImage(
@@ -602,5 +669,20 @@ private final class EditorImageStore: ImageFileStoring, @unchecked Sendable {
 
     func deleteImage(at relativePath: String) throws {
         lock.withLock { paths.append(relativePath) }
+    }
+
+    func quarantineImage(at relativePath: String) throws -> QuarantinedImage {
+        if let quarantineError {
+            throw quarantineError
+        }
+        try deleteImage(at: relativePath)
+        return QuarantinedImage(
+            originalPath: relativePath,
+            quarantinePath: relativePath
+        )
+    }
+
+    func restoreImage(_ image: QuarantinedImage) throws {
+        lock.withLock { restored.append(image) }
     }
 }
